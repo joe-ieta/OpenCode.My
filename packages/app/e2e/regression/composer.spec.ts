@@ -1978,6 +1978,38 @@ test("custom provider advanced options save typed leaves and rebase price rows a
   await expect(trigger).toHaveText("Existing Model")
 })
 
+test("custom provider model fields can be scrolled into view on a short window", async ({ page }) => {
+  await page.setViewportSize({ width: 640, height: 480 })
+  const fixture = customProviderFixture()
+  await openSession(page, {
+    name: "CustomProviderModelLayout",
+    ...fixture.config,
+    customProviders: {
+      revision: "layout-revision",
+      target: "C:/fixture/opencode.jsonc",
+      providers: [fixture.entry],
+    },
+  })
+  await page.locator('[data-action="composer-model"]').click()
+  await page
+    .getByRole("dialog", { name: "Select model", exact: true })
+    .getByRole("button", { name: "Custom providers", exact: true })
+    .click()
+  const dialog = page.getByRole("dialog", { name: "Custom providers", exact: true })
+  await dialog.getByRole("button", { name: "Edit provider", exact: true }).click()
+
+  const context = dialog.getByRole("textbox", { name: "Context limit", exact: true })
+  await expect(context).not.toBeInViewport()
+  await dialog.getByRole("heading", { name: "Provider", exact: true }).hover()
+  await page.mouse.wheel(0, 440)
+  await expect(context).toBeInViewport({ ratio: 1 })
+  await expect(context).toHaveValue("16000")
+  await expect(dialog.getByRole("textbox", { name: "Model display name", exact: true })).toBeInViewport({ ratio: 1 })
+  const modelID = dialog.getByRole("textbox", { name: "Request model ID (defaults to model key)", exact: true })
+  await expect(modelID).toBeInViewport({ ratio: 1 })
+  await expect(modelID).toHaveValue("remote-model")
+})
+
 test("custom provider text tests are explicit, cancellable and invalidated when saved connection fields change", async ({
   page,
 }) => {

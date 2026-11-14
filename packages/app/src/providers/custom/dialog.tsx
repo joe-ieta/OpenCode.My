@@ -9,7 +9,7 @@ import { createStore } from "solid-js/store"
 import { For, Show, onCleanup, onMount } from "solid-js"
 import { Button } from "@opencode/ui/button"
 import { TextField } from "@opencode/ui/text-field"
-import { Dialog, DialogBody, DialogFooter, DialogHeader, DialogTitle } from "@opencode/ui/dialog"
+import { Dialog, DialogFooter, DialogHeader, DialogTitle } from "@opencode/ui/dialog"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useServerSDK } from "@/runtime/server/client"
@@ -565,7 +565,7 @@ export function DialogCustomProviders(props: { directory?: string; providerID?: 
   }
 
   return (
-    <Dialog fit class="custom-provider-dialog" containerClass="!w-[min(calc(100vw_-_24px),720px)]">
+    <Dialog fit containerClass="max-h-[calc(100dvh_-_24px)] !w-[min(calc(100vw_-_24px),720px)]">
       <DialogHeader closeLabel={language.t("common.close")}>
         <DialogTitle>{language.t("customProvider.title")}</DialogTitle>
         <Show when={store.view !== "list"}>
@@ -574,7 +574,7 @@ export function DialogCustomProviders(props: { directory?: string; providerID?: 
           </Button>
         </Show>
       </DialogHeader>
-      <DialogBody class="custom-provider-body max-h-[min(78dvh,760px)]">
+      <div class="custom-provider-body" data-scrollable>
         <Show when={store.error}>
           <p role="alert" class="custom-provider-alert">
             {store.error}
@@ -1062,7 +1062,7 @@ export function DialogCustomProviders(props: { directory?: string; providerID?: 
             </div>
           </Show>
         </Show>
-      </DialogBody>
+      </div>
       <DialogFooter>
         <div class="custom-provider-footer">
           <Show

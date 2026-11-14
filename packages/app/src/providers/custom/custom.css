@@ -1,6 +1,8 @@
 .custom-provider-body {
   display: flex;
+  width: 100%;
   min-height: 0;
+  max-height: min(78dvh, 760px);
   flex: 1;
   flex-direction: column;
   gap: 12px;
@@ -56,6 +58,7 @@
 
 .custom-provider-model {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   gap: 8px;
   border: 1px solid var(--v2-border-border-base);
