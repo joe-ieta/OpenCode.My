@@ -2,19 +2,17 @@
 
 **English** · [简体中文](README.zh.md)
 
-OpenCode My is the desktop edition maintained on `dev-my`. It adds an independent Side bar for projects and sessions, and a form for configuring custom models from the model picker.
+A desktop AI coding workspace for everyday development. Built on OpenCode, it retains the full coding and agent capabilities while improving the interface, personal workflows, and local model experience. OpenCode My is maintained on `dev-my`.
 
-## Side bar
+## Personalization features
 
-In **Settings → General → Interface layout**, select **Side bar**. Pin or collapse projects, open recent sessions by project, and start a session from a project row. **Running sessions** shows active work across connected servers, including background Shell work and subagents, with branch and elapsed time when available.
+- **Side bar** · Select **Side bar** under **Settings → General → Interface layout**. Pin or collapse projects, browse recent sessions by project, and see running work across connected servers, including background Shell tasks and subagents.
 
-<img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with project groups, recent sessions, and running work" width="330">
+  <img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with project groups, recent sessions, and running work" width="330">
 
-## Custom models
+- **Custom models** · Open **Custom providers** from the model picker to configure a global OpenAI-compatible provider. Discover and import models or enter them manually, set the display name, request ID, and context limit, and test text responses. Use **Manage models** to choose which models appear in the picker.
 
-Open the model picker and choose **Custom providers** to add or edit a global OpenAI-compatible provider. Enter a base URL, save an optional API key in the credential store, then fetch and import models or enter them manually. Set the display name, request model ID, and context limit, then use **Test text response** to check that the model answers. **Manage models** controls which models appear in the picker.
-
-<img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider model form with the request ID, display name, context limit, and text test" width="690">
+  <img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider model form with the request ID, display name, context limit, and text test" width="690">
 
 _Screenshots use sample data._
 

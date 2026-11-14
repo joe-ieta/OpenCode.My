@@ -8,11 +8,8 @@
 
 - 2026-11-14，源码基线已同步至 V2 2.3.0 的 `dev@f0089856c0`，合入 227 个上游提交，保留共享项目历史、独立 Side bar、Running、升级迁移及桌面发行补丁。`dev-my` 是桌面维护主线，远端 `sidebar-mode` 保留为 PR 来源引用。二进制与源码同步记录见 [releases.md](releases.md)。
 - 2026-11-14，`dev-my-models` 已合入 `dev-my`，自定义 Provider 与模型管理成为桌面主线的一部分；后续功能不再在临时分支开发。与官方 `dev` 的产品、设计和实现差异汇总见 [dev-my 与官方 dev 的差异](differences.md)。
-- 当前测试预发行 [v2.3.0-my.5](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.5) 来自 `29d0135d9b`，已合入官方 `dev@d759c548aa`。Windows x64 安装验收通过，矮窗口可滚动查看完整的模型名称、请求 ID 和上下文限额。Linux amd64/arm64 已提供 AppImage 和 deb，CLI 冒烟通过，桌面人工验收待完成。稳定版为 `v2.2.6-my.1`。
-- 最新正式发行 [v2.2.6-my.1](https://github.com/joe-ieta/opencode/releases/tag/v2.2.6-my.1) 提供 Windows x64 NSIS 和 Linux amd64、arm64 的 AppImage 与 deb，构建源码 `231de37312`。Windows 与 Linux 本地验证均已通过。
-- 本版增加 Side bar 项目计数、固定区域下置与远程仓库提示，并合入官方会话已读菜单、侧面板恢复、Copilot Auto 和嵌入模型入口；继续复用共享项目缓存、会话索引与 Running 实现。
-- 正式发行已设为 GitHub Latest。构建和验收结果见 [发行记录](releases.md)。
-- Linux 在 Ubuntu 24.04.5 容器中构建，完整检查 34 项、两种架构各 7,676 个模型比对、CLI 迁移冒烟及四个安装包的解包检查均通过。ARM64 冒烟在 QEMU 中执行；2026-11-13 用户确认 Linux 本地验证通过。
+- 最新正式发行 [v2.3.0-my.5](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.5) 来自 `29d0135d9b`，已合入官方 `dev@d759c548aa`。提供 Windows x64 NSIS 和 Linux amd64、arm64 的 AppImage 与 deb，三种目标均通过安装测试。矮窗口可滚动查看完整的模型名称、请求 ID 和上下文限额。
+- `v2.3.0-my.5` 已设为 GitHub Latest。Linux 两种架构各比对 7,855 个模型，通过 CLI 服务发现、V1 迁移冒烟及安装包解包检查。arm64 自动冒烟通过 QEMU 执行。详见 [发行记录](releases.md)。
 - macOS 暂无本 fork 发行验证；`release-my.ts` 支持 Windows x64 与 Linux x64/arm64。Linux arm64 可在 Ubuntu 24.04 x64 上通过 `qemu-user-static`、`libc6-dev-arm64-cross` 和 binfmt 交叉构建及 CLI 冒烟，正式 ARM64 GUI 验收仍需原生 arm64。完整环境准备、构建和排障见 [发布环境与多架构构建](../KB/release-environment.md)。
 - 历史正式版验证（`v2.2.3-dev-my.3`）：Windows 与 WSL Ubuntu 根检查均 35/35；Windows NSIS、ASAR/CLI 版本、7-Zip 完整性、`latest.yml` SHA512 通过；Linux x64/arm64 模型目录冒烟各 7,646 个模型，desktop CLI 冒烟均通过；两架构 ASAR/CLI、AppImage/deb 架构、deb 元数据、更新清单与 10 个资产的服务端 SHA256 均已核对。完整应用单元测试、browser 条件测试和 GUI 回归未在本轮重复运行；ARM64 GUI 尚未原生验收。详细结果见 [releases.md](releases.md)。
 
