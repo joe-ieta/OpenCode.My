@@ -8,11 +8,20 @@
 | ------------ | ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
 | Windows | `v2.2.6-my.1` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.2.6-my.1) |
 | Linux | `v2.2.6-my.1` | Ubuntu amd64/arm64 | [AppImage / deb](https://github.com/joe-ieta/opencode/releases/tag/v2.2.6-my.1) |
-| Windows 测试（`dev-my`） | `v2.3.0-my.4` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.4) |
+| Windows 测试（`dev-my`） | `v2.3.0-my.5` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.5) |
+| Linux 测试（`dev-my`） | `v2.3.0-my.5` | Linux amd64/arm64 | [AppImage / deb](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.5) |
+| Windows 测试（历史，`dev-my`） | `v2.3.0-my.4` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.4) |
 | Windows 测试（历史，`dev-my`） | `v2.3.0-my.3` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.3) |
 | Windows 测试（历史，`dev-my-models`） | `v2.3.0-my.2` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.2) |
 
 `v2.2.6-my.1` 为 Windows 和 Linux 的正式发行，已设为 GitHub Latest。全部平台统一使用 GitHub 完整安装包，Gitee 已停用。需要独立下载源时可参考 [自建发布物存储](../KB/self-hosted-release-storage.md) 草案，当前尚未接入。历史源码标签不代表旧 Release 资产仍可下载。
+
+## v2.3.0-my.5 测试预发行（dev-my）
+
+- 构建标签对应 `29d0135d9b784a3cd7489ab9fd67edf7db45aa2c`，包含官方 `dev@d759c548aa`。用户已通过 Windows x64 安装验收，确认在矮窗口可滚动查看完整的模型名称、请求 ID 和上下文限额。[GitHub Release](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.5)
+- Windows 根检查 35/35，Chromium 回归 29/29。CLI 服务发现和 V1 迁移冒烟通过。安装包 282,100,524 字节，SHA256 为 `8c54783a06a3696a10804139929ca84591213c7770ba72c40ad122852de29273`。
+- 2026-11-15 在同一 Release 追加 Linux amd64/arm64 的 AppImage 和 deb，复用 Windows 模型快照，快照 SHA256 为 `37821e757acb6b6793e786f6c77153913da1b8280e5ea582a3aac3c063c394e2`。两种架构均比对 7,855 个模型，内置 CLI 的服务发现、V1 升级确认和历史迁移冒烟通过，arm64 通过 QEMU 验证。Linux 桌面人工验收待完成。
+- 四个 Linux 安装包已解包核对架构、ASAR、桌面入口和更新源。两个 Linux 更新清单的 SHA512 和大小与安装包一致。联合 `SHA256SUMS` 覆盖五个安装包，十个 GitHub 资产的大小和 SHA256 均与本地一致。该版仍为预发行，Latest 为 `v2.2.6-my.1`。
 
 ## v2.3.0-my.4 Windows x64 测试预发行（dev-my）
 
