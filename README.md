@@ -8,11 +8,11 @@ A desktop AI coding workspace for everyday development. Built on OpenCode, it re
 
 - **Side bar** · Select **Side bar** under **Settings → General → Interface layout**. Pin or collapse projects, browse recent sessions by project, and see running work across connected servers, including background Shell tasks and subagents.
 
-  <img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with project groups, recent sessions, and running work" width="330">
+  <img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with project groups, recent sessions, and running work">
 
 - **Custom models** · Open **Custom providers** from the model picker to configure a global OpenAI-compatible provider. Discover and import models or enter them manually, set the display name, request ID, and context limit, and test text responses. Use **Manage models** to choose which models appear in the picker.
 
-  <img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider model form with the request ID, display name, context limit, and text test" width="690">
+  <img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider model form with the request ID, display name, context limit, and text test">
 
 _Screenshots use sample data._
 

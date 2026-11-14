@@ -8,11 +8,11 @@ OpenCode My 是面向日常开发的桌面 AI 编程工作台。基于 OpenCode�
 
 - **侧栏（Side bar）** · 在 **设置 → 常规 → 界面布局** 中选择 **侧栏**。可置顶或收起项目，按项目浏览最近会话，并集中查看已连接服务器上的运行活动，包括后台 Shell 和子智能体。
 
-  <img src="docs/fork/dev-my/side-bar-zh.png" alt="侧栏中的项目分组、最近会话和运行中任务" width="330">
+  <img src="docs/fork/dev-my/side-bar-zh.png" alt="侧栏中的项目分组、最近会话和运行中任务">
 
 - **自定义模型（Custom models）** · 在模型选择器中打开 **自定义 Provider**，配置全局 OpenAI 兼容 Provider。可发现并导入模型，也可手动添加，设置模型显示名称、请求 ID 与上下文限额，并测试文本响应。通过 **管理模型** 选择在模型选择器中显示的模型。
 
-  <img src="docs/fork/dev-my/custom-models-zh.png" alt="自定义 Provider 表单，显示请求模型 ID、模型名称、上下文限额和文本测试" width="690">
+  <img src="docs/fork/dev-my/custom-models-zh.png" alt="自定义 Provider 表单，显示请求模型 ID、模型名称、上下文限额和文本测试">
 
 _截图使用示例数据。_
 
