@@ -40,6 +40,12 @@ function run(effect: TabPreviewEffect) {
   warmTimer = setTimeout(() => dispatch({ type: "warm.expired", attempt }), effect.delayMs)
 }
 
+export interface TabPreviewStats {
+  turns?: number
+  context?: number
+  cost?: number
+}
+
 export interface TabPreviewData {
   projectName?: string
   title?: string
@@ -48,6 +54,7 @@ export interface TabPreviewData {
   lastRun?: string
   branch?: string
   worktree?: string
+  stats?: TabPreviewStats
 }
 
 export function TabPreviewPopover(props: {
@@ -75,6 +82,33 @@ export function TabPreviewPopover(props: {
   // placement from a ResizeObserver callback, where that memo has no owner and is never disposed.
   const placement = () =>
     props.orientation === "vertical" ? (language.direction() === "rtl" ? "left-start" : "right-start") : "bottom-start"
+
+  // Session usage reads as one compact line each: turns, the context that step filled, and its cost.
+  const stats = () => {
+    const value = props.data.stats
+
+    if (!value) return []
+
+    const compact = (tokens: number) =>
+      new Intl.NumberFormat(language.intl(), { notation: "compact", maximumFractionDigits: 1 }).format(tokens)
+
+    const money = new Intl.NumberFormat(language.intl(), {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+
+    return [
+      value.turns ? language.t("sidebar.session.turns", { count: value.turns }) : undefined,
+      value.context === undefined
+        ? undefined
+        : language.t("sidebar.session.context", { used: compact(value.context) }),
+      value.cost === undefined
+        ? undefined
+        : language.t("sidebar.session.cost", { cost: money.format(value.cost) }),
+    ].filter((row): row is string => row !== undefined)
+  }
 
   return (
     <HoverCard
@@ -147,6 +181,13 @@ export function TabPreviewPopover(props: {
               <span data-slot="detail">{language.t("sidebar.session.worktree", { path: props.data.worktree! })}</span>
             </div>
           </Show>
+          <For each={stats()}>
+            {(row) => (
+              <div data-slot="row">
+                <span data-slot="detail">{row}</span>
+              </div>
+            )}
+          </For>
           <Show when={props.data.serverName}>
             <div data-slot="server">{props.data.serverName}</div>
           </Show>

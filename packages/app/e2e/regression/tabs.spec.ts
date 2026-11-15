@@ -997,8 +997,9 @@ test("recent sessions keep metadata changes in place, advance on completion, and
   await expect(preview).toContainText("Last run ended:")
   await expect(preview).toContainText("Branch: task-branch")
   await expect(preview).toContainText(`Worktree: ${worktree}`)
+  // The hint reads the run as a day, not a full timestamp.
   await expect(preview).toContainText(
-    new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "medium" }).format(ended),
+    `Last run ended: ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(ended)}`,
   )
   await expect.poll(() => loaded.includes(a.id)).toBe(true)
   await workspace.push([
@@ -1023,6 +1024,43 @@ test("recent sessions keep metadata changes in place, advance on completion, and
     },
   ])
   await expect(sidebar.locator("[data-titlebar-tab-title]")).toHaveText([a.title, b.title, c.title])
+})
+
+test("the Side bar hint reads the session's turns, context and cost", async ({ page }) => {
+  const ended = 1700000100000
+  await mockWorkspace(page, {
+    name: "Hint stats",
+    sessions: [{ ...a, time: { created: ended - 10000, updated: ended, idle: ended } }],
+    pageMessages: (sessionID) => ({
+      items:
+        sessionID === a.id
+          ? [
+              { id: "msg_hint_user_1", type: "user", time: { created: ended - 9000 }, text: "First turn" },
+              {
+                id: "msg_hint_assistant",
+                type: "assistant",
+                time: { created: ended - 8000, completed: ended - 7000 },
+                model: { id: "claude-opus-4-6", providerID: "opencode", variant: "max" },
+                agent: "build",
+                cost: 0.01,
+                tokens: { input: 1000, output: 500, reasoning: 0, cache: { read: 0, write: 0 } },
+                finish: "stop",
+                content: [],
+              },
+              { id: "msg_hint_user_2", type: "user", time: { created: ended - 5000 }, text: "Second turn" },
+            ]
+          : [],
+    }),
+    seed: { tabs: [a.id], settings: { appearance: { tabLayout: "sidebar" } } },
+  })
+  await page.goto(sessionHref(a.id))
+  await expectSessionTitle(page, a.title)
+  const sidebar = page.locator('[data-slot="vertical-tabs-sidebar"]')
+  await sidebar.locator(`[data-titlebar-tab-slot]:has(a[href="${sessionHref(a.id)}"])`).hover()
+  const preview = page.locator('[data-component="session-tab-popover"]')
+  await expect(preview).toContainText("Turns: 2")
+  await expect(preview).toContainText("Context: 1.5K tokens")
+  await expect(preview).toContainText("Cost: $0.00")
 })
 
 test("sidebar loads history before Home mounts and shares live additions and removals", async ({ page }) => {
