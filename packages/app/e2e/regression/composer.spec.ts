@@ -2308,7 +2308,10 @@ test("model picker bottom actions open provider connections, custom providers an
   await page.locator('[data-action="composer-model"]').click()
   const picker = page.getByRole("dialog", { name: "Select model", exact: true })
 
-  await picker.getByRole("button", { name: "Connect an integration", exact: true }).click()
+  await picker
+    .locator('[data-slot="model-picker-actions"]')
+    .getByRole("button", { name: "Connect an integration", exact: true })
+    .click()
   const integrations = page.getByRole("dialog", { name: "Integrations", exact: true })
   await expect(integrations).toBeVisible()
   await expect(integrations.getByRole("searchbox", { name: "Search providers", exact: true })).toBeFocused()

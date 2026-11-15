@@ -294,6 +294,24 @@ test("model dialog toggles a favorite from the keyboard and leads with favorite 
   await expect(dialog.locator('[data-option-key="opencode:mobile-c"]')).toHaveAttribute("data-active", "")
 })
 
+test("model dialog connects a built-in provider from the search row with Enter", async ({ page }) => {
+  const { model, dialog } = await openDesktopPicker(page, "ltr")
+  await model.click()
+  const search = dialog.getByRole("combobox", { name: "Search models", exact: true })
+  const connect = dialog
+    .locator('[data-slot="text-input-v2-trailing"]')
+    .getByRole("button", { name: "Connect an integration", exact: true })
+  await expect(search).toBeFocused()
+  await search.press("Tab")
+  await expect(connect).toBeFocused()
+  await connect.press("Enter")
+  const providers = page.getByRole("dialog", { name: "Integrations", exact: true })
+  await expect(providers.getByRole("searchbox", { name: "Search providers", exact: true })).toBeFocused()
+  await page.keyboard.press("Escape")
+  await expect(providers).toBeHidden()
+  await expect(dialog).toBeVisible()
+})
+
 test.describe("touch composer pickers", () => {
   test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
 

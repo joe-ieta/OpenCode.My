@@ -24,6 +24,7 @@ import { Button } from "@opencode/ui/button"
 import { Badge } from "@opencode/ui/badge"
 import { Dialog, DialogBody, DialogTitle } from "@opencode/ui/dialog"
 import { Icon } from "@opencode/ui/icon"
+import { IconButton } from "@opencode/ui/icon-button"
 import { Keybind } from "@opencode/ui/keybind"
 import { MenuScroll } from "@opencode/ui/menu-scroll"
 import { SearchHighlight, SearchList, type SearchListHandle, type SearchListRow } from "@opencode/ui/search-list"
@@ -630,40 +631,36 @@ function ModelPickerActions(props: {
   return (
     <div
       data-slot={props.mobile ? "model-selector-actions" : "model-picker-actions"}
-      class={props.mobile ? "flex flex-col gap-2" : "flex flex-col gap-1 border-t border-v2-border-border-muted p-2"}
+      class={props.mobile ? "flex flex-col gap-2" : "flex items-center gap-1 border-t border-v2-border-border-muted p-2"}
     >
-      <div class={props.mobile ? "contents" : "flex items-center gap-1"}>
-        <Show when={props.onCustom}>
-          <Button
-            variant="ghost"
-            class={props.mobile ? "w-full !h-10 !justify-start" : "flex-1 !justify-start"}
-            icon="outline-settings"
-            onClick={() => props.onCustom?.()}
-          >
-            {language.t("customProvider.title")}
-          </Button>
-        </Show>
+      <Show when={props.onCustom}>
         <Button
           variant="ghost"
           class={props.mobile ? "w-full !h-10 !justify-start" : "flex-1 !justify-start"}
-          icon="outline-sliders"
-          onClick={() => props.onManage()}
+          icon="outline-settings"
+          onClick={() => props.onCustom?.()}
         >
-          {language.t("dialog.model.manage")}
+          {language.t("customProvider.title")}
         </Button>
-      </div>
-      <Show when={props.onConnect}>
-        <div class={props.mobile ? "contents" : "flex justify-center"}>
-          <Button
-            variant="ghost"
-            class={props.mobile ? "w-full !h-10 !justify-center" : "!justify-center"}
-            icon="plus"
-            onClick={() => props.onConnect?.()}
-          >
-            {language.t("command.provider.connect")}
-          </Button>
-        </div>
       </Show>
+      <Show when={props.onConnect}>
+        <Button
+          variant="ghost"
+          class={props.mobile ? "w-full !h-10 !justify-start" : "flex-1 !justify-start"}
+          icon="plus"
+          onClick={() => props.onConnect?.()}
+        >
+          {language.t("command.provider.connect")}
+        </Button>
+      </Show>
+      <Button
+        variant="ghost"
+        class={props.mobile ? "w-full !h-10 !justify-start" : "flex-1 !justify-start"}
+        icon="outline-sliders"
+        onClick={() => props.onManage()}
+      >
+        {language.t("dialog.model.manage")}
+      </Button>
     </div>
   )
 }
@@ -1050,6 +1047,17 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
             query={query.search}
             onQuery={setSearch}
             placeholder={language.t("dialog.model.search.placeholder")}
+            trailing={
+              // In the field's trailing slot, so Tab reaches it while the field keeps focus for the rows.
+              <Tooltip placement="top" gutter={4} value={language.t("command.provider.connect")} ignoreSafeArea={false}>
+                <IconButton
+                  variant="ghost-muted"
+                  icon={<Icon name="plus" size="small" />}
+                  aria-label={language.t("command.provider.connect")}
+                  onClick={connect}
+                />
+              </Tooltip>
+            }
             items={rows()}
             key={(row) => row.id}
             section={(row) => row.group.category}
