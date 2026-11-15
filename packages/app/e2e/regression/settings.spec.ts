@@ -1977,6 +1977,11 @@ test("providers: the connect dialog lists connected providers and manages their 
 
       if (account && body.label) account.label = body.label
     },
+    onCredentialRemove: (credentialID) => {
+      const index = accounts.findIndex((item) => item.id === credentialID)
+
+      if (index >= 0) accounts.splice(index, 1)
+    },
   })
 
   await settings.getByRole("tab", { name: "Providers", exact: true }).click()
@@ -2041,6 +2046,22 @@ test("providers: the connect dialog lists connected providers and manages their 
   await expect(dialog.getByPlaceholder("API key")).toBeVisible()
   await dialog.getByRole("navigation").getByRole("button", { name: "OpenAI", exact: true }).click()
   await expect(list).toBeVisible()
+
+  // A connected provider can be removed from the picker itself, its stored key included.
+  await dialog.getByRole("navigation").getByRole("button", { name: "Connect", exact: true }).click()
+  const openaiRow = dialog.locator('[data-provider-id="openai"]')
+  await expect(openaiRow.locator('[data-slot="provider-connected"]')).toHaveText("Home")
+  await dialog.getByRole("button", { name: "Remove OpenAI", exact: true }).click()
+  await expect(dialog.getByText("Remove OpenAI and its saved credentials?", { exact: true })).toBeVisible()
+  await expect(dialog.getByRole("button", { name: "Remove", exact: true })).toBeFocused()
+
+  const removedKey = page.waitForRequest(
+    (request) => request.method() === "DELETE" && new URL(request.url()).pathname === "/api/credential/cred_personal",
+  )
+
+  await dialog.getByRole("button", { name: "Remove", exact: true }).click()
+  await removedKey
+  await expect(openaiRow.locator('[data-slot="provider-connected"]')).toHaveCount(0)
 })
 
 test("providers: adding an account starts a lone method once", async ({ page, context }) => {

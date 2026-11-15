@@ -383,6 +383,9 @@ export const dict = {
   "dialog.provider.accounts.removeConfirm": "Remove {{account}}?",
   "dialog.provider.accounts.remove": "Remove",
   "dialog.provider.accounts.options": "{{account}} options",
+  "dialog.provider.disconnect": "Remove",
+  "dialog.provider.disconnect.action": "Remove {{provider}}",
+  "dialog.provider.disconnect.confirm": "Remove {{provider}} and its saved credentials?",
   "provider.connect.copyFailed": "Couldn't copy to the clipboard",
   "provider.connect.title": "Connect {{provider}}",
 

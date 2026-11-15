@@ -16,6 +16,7 @@ import { useParams } from "@solidjs/router"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { useServerSDK } from "@/runtime/server/client"
+import { formatServerError } from "@/runtime/server/errors"
 import { consoleProviderName } from "@/providers/catalog/console"
 import { useIntegrations } from "@/providers/catalog/integrations"
 import { ProviderModelGroup, ProviderModelIcon } from "@/providers/models/provider-group"
@@ -35,6 +36,7 @@ import { StepActions, WaitingButton } from "./step-actions"
 import { DialogChatGPTPlanWelcome } from "./chatgpt-welcome"
 import { authServerName } from "./remote"
 import { providerAccounts } from "@/settings/providers/accounts"
+import { useProviderAccountActions } from "@/settings/providers/account-actions"
 import { AccountNameInput } from "@/settings/providers/account-name"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Menu } from "@opencode/ui/menu"
@@ -297,11 +299,15 @@ const POPULAR = ["opencode", "opencode-go", "openai", "github-copilot", "anthrop
 
 function ProviderPicker(props: { directory?: string; onSelect: (provider: string) => void; onPrepare?: () => void }) {
   const integrations = useIntegrations(() => props.directory)
+  const accountActions = useProviderAccountActions(() => props.directory)
+  const sdk = useServerSDK()
   const language = useLanguage()
 
   const [store, setStore] = createStore<{
     filter: string
     active?: string
+    confirming?: string
+    removing?: string
   }>({
     filter: "",
   })
@@ -349,12 +355,46 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
 
   let picker: HTMLDivElement | undefined
   let search: HTMLInputElement | undefined
+  let confirmRemove: HTMLButtonElement | undefined
 
   onMount(() => search?.focus({ preventScroll: true }))
 
   const connect = (provider: string) => {
     props.onPrepare?.()
     props.onSelect(provider)
+  }
+
+  // Removing a connected provider deletes every stored credential, API keys included. A provider connected only
+  // through environment variables has nothing stored to delete, so its row offers no remove action.
+  const remove = (provider: IntegrationInfo) => {
+    const accounts = providerAccounts(provider)
+
+    if (accounts.length === 0) return
+    setStore("removing", provider.id)
+    void Promise.all(accounts.map((account) => sdk.api.credential.remove({ credentialID: account.id })))
+      .then(() => accountActions.refresh())
+      .then(() =>
+        showToast({
+          variant: "success",
+          icon: "circle-check",
+          title: language.t("provider.disconnect.toast.disconnected.title", { provider: provider.name }),
+          description: language.t("provider.disconnect.toast.disconnected.description", { provider: provider.name }),
+        }),
+      )
+      .catch((error) =>
+        showToast({ title: language.t("common.requestFailed"), description: formatServerError(error, language.t) }),
+      )
+      .finally(() => setStore({ confirming: undefined, removing: undefined }))
+  }
+
+  const prompt = (provider: string) => {
+    setStore({ confirming: provider, active: provider })
+    queueMicrotask(() => confirmRemove?.focus())
+  }
+
+  const cancel = (provider: string) => {
+    setStore("confirming", undefined)
+    queueMicrotask(() => picker?.querySelector<HTMLElement>(`[data-provider-id="${CSS.escape(provider)}"]`)?.focus())
   }
 
   const move = (event: KeyboardEvent, direction: number) => {
@@ -371,6 +411,11 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
   }
 
   const handleKeyDown = (event: KeyboardEvent) => {
+    // Only the search field and a provider row's own button navigate or connect; the remove controls keep their keys.
+    const row = event.target instanceof Element ? event.target.closest("[data-provider-row]") : undefined
+
+    if (event.target !== search && !row) return
+
     if (event.key === "ArrowDown") return move(event, 1)
 
     if (event.key === "ArrowUp") return move(event, -1)
@@ -419,49 +464,87 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
                       }
 
                       return (
-                        <button
-                          type="button"
-                          data-provider-id={provider.id}
-                          class="flex min-h-8 w-full items-center gap-2 rounded-md py-1.5 ps-2 pe-2 text-left text-[13px] leading-5 tracking-[-0.04px] hover:bg-v2-overlay-simple-overlay-hover focus:bg-v2-overlay-simple-overlay-hover focus:outline-none disabled:pointer-events-none"
-                          classList={{ "bg-v2-overlay-simple-overlay-hover": store.active === provider.id }}
-                          onMouseEnter={() => setStore("active", provider.id)}
-                          disabled={disabled(provider)}
-                          onClick={() => connect(provider.id)}
+                        <Show
+                          when={store.confirming !== provider.id}
+                          fallback={
+                            <div class="flex min-h-8 items-center gap-1.5 rounded-md ps-[30px] pe-1 text-[13px] leading-5 tracking-[-0.04px]">
+                              <span role="alert" class="min-w-0 flex-1 truncate font-[440] text-v2-text-text-base">
+                                {language.t("dialog.provider.disconnect.confirm", { provider: provider.name })}
+                              </span>
+                              <Button variant="ghost-muted" onClick={() => cancel(provider.id)}>
+                                {language.t("common.cancel")}
+                              </Button>
+                              <Button
+                                ref={(element: HTMLButtonElement) => (confirmRemove = element)}
+                                variant="neutral"
+                                disabled={store.removing === provider.id}
+                                aria-busy={store.removing === provider.id}
+                                onClick={() => remove(provider)}
+                              >
+                                {language.t("dialog.provider.disconnect")}
+                              </Button>
+                            </div>
+                          }
                         >
-                          <ProviderModelIcon
-                            provider={provider}
-                            class={`shrink-0 text-v2-icon-icon-base ${disabled(provider) ? "opacity-50" : ""}`}
-                          />
-                          <span
-                            class="min-w-0 truncate font-[440]"
-                            classList={{
-                              "text-v2-text-text-base": !disabled(provider),
-                              "text-v2-text-text-faint": disabled(provider),
-                            }}
-                          >
-                            {provider.name}
-                          </span>
-                          <Show when={disabled(provider)}>
-                            <span class="min-w-0 truncate font-[440] text-v2-text-text-faint">
-                              {language.t("dialog.provider.environmentOnly")}
-                            </span>
-                          </Show>
-                          <Show when={account()}>
-                            {(label) => (
-                              <Badge data-slot="provider-connected" class="min-w-0 shrink truncate">
-                                {label()}
-                              </Badge>
-                            )}
-                          </Show>
-                          <Show when={!!connection()?.status}>
-                            <span
-                              data-slot="provider-status"
-                              class="ms-auto shrink-0 font-[440] text-[var(--v2-state-fg-warning)]"
+                          <div class="flex min-h-8 items-center rounded-md hover:bg-v2-overlay-simple-overlay-hover focus-within:bg-v2-overlay-simple-overlay-hover">
+                            <button
+                              type="button"
+                              data-provider-id={provider.id}
+                              data-provider-row
+                              class="flex min-h-8 min-w-0 flex-1 items-center gap-2 rounded-md py-1.5 ps-2 pe-2 text-left text-[13px] leading-5 tracking-[-0.04px] focus:outline-none disabled:pointer-events-none"
+                              classList={{ "bg-v2-overlay-simple-overlay-hover": store.active === provider.id }}
+                              onMouseEnter={() => setStore("active", provider.id)}
+                              disabled={disabled(provider)}
+                              onClick={() => connect(provider.id)}
                             >
-                              {language.t("dialog.provider.needsSignIn")}
-                            </span>
-                          </Show>
-                        </button>
+                              <ProviderModelIcon
+                                provider={provider}
+                                class={`shrink-0 text-v2-icon-icon-base ${disabled(provider) ? "opacity-50" : ""}`}
+                              />
+                              <span
+                                class="min-w-0 truncate font-[440]"
+                                classList={{
+                                  "text-v2-text-text-base": !disabled(provider),
+                                  "text-v2-text-text-faint": disabled(provider),
+                                }}
+                              >
+                                {provider.name}
+                              </span>
+                              <Show when={disabled(provider)}>
+                                <span class="min-w-0 truncate font-[440] text-v2-text-text-faint">
+                                  {language.t("dialog.provider.environmentOnly")}
+                                </span>
+                              </Show>
+                              <Show when={account()}>
+                                {(label) => (
+                                  <Badge data-slot="provider-connected" class="min-w-0 shrink truncate">
+                                    {label()}
+                                  </Badge>
+                                )}
+                              </Show>
+                              <Show when={!!connection()?.status}>
+                                <span
+                                  data-slot="provider-status"
+                                  class="ms-auto shrink-0 font-[440] text-[var(--v2-state-fg-warning)]"
+                                >
+                                  {language.t("dialog.provider.needsSignIn")}
+                                </span>
+                              </Show>
+                            </button>
+                            <Show when={providerAccounts(provider).length > 0}>
+                              <IconButton
+                                variant="ghost-muted"
+                                size="small"
+                                class="me-1 shrink-0"
+                                icon={<Icon name="trash" size="small" />}
+                                aria-label={language.t("dialog.provider.disconnect.action", {
+                                  provider: provider.name,
+                                })}
+                                onClick={() => prompt(provider.id)}
+                              />
+                            </Show>
+                          </div>
+                        </Show>
                       )
                     }}
                   </For>

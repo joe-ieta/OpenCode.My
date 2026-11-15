@@ -58,6 +58,8 @@ export interface MockServerConfig {
   onCredentialActivate?: (credentialID: string) => void
   // Runs on PATCH /api/credential/:id with the request body; the fixture applies the new label.
   onCredentialUpdate?: (credentialID: string, body: { label?: string }) => void
+  // Runs on DELETE /api/credential/:id; the fixture drops the account so the next sync reflects it.
+  onCredentialRemove?: (credentialID: string) => void
   // Runs on POST /api/integration/:id/connect/key; returning `{ error }` rejects the key with a 400 and that message.
   onConnectKey?: (input: { integrationID: string; body: unknown }) => void | { error: string }
   // Terminal shells the settings offer (`/api/config/shell`).
@@ -922,7 +924,8 @@ function mockHandlers(
           Effect.sync(() => config.onCredentialUpdate?.(ctx.params.credentialID, ctx.payload)).pipe(
             Effect.andThen(noContent),
           ),
-        credentialRemove: () => noContent,
+        credentialRemove: (ctx) =>
+          Effect.sync(() => config.onCredentialRemove?.(ctx.params.credentialID)).pipe(Effect.andThen(noContent)),
         command: (ctx) =>
           Effect.sync(() => ({
             location: location(config, requestDirectory(config, ctx.request)),
