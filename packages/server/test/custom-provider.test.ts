@@ -148,6 +148,74 @@ it.live("saves custom providers, preserves JSONC, rotates keys and refreshes run
   }),
 )
 
+it.live(
+  "adds discovered models to the runtime catalog while the custom editor keeps the saved entries",
+  () =>
+    Effect.gen(function* () {
+      const tmp = yield* Effect.acquireDisposable(Effect.promise(() => tmpdir("custom-provider-auto-discovery-")))
+      const file = path.join(tmp.path, "opencode.jsonc")
+      const gateway = yield* Effect.acquireRelease(
+        Effect.sync(() =>
+          Bun.serve({
+            hostname: "127.0.0.1",
+            port: 0,
+            fetch(request) {
+              if (new URL(request.url).pathname !== "/v1/models") return new Response(null, { status: 404 })
+              return Response.json({ data: [{ id: "manual" }, { id: "runtime-only" }] })
+            },
+          }),
+        ),
+        (server) => Effect.promise(() => server.stop(true)),
+      )
+      const original = JSON.stringify({
+        experimental: { openai_compatible_discovery: true },
+        providers: {
+          gateway: {
+            name: "Custom gateway",
+            package: "@opencode/ai/providers/openai-compatible",
+            settings: { baseURL: new URL("v1", gateway.url).href },
+            models: {
+              manual: { name: "Manual model", modelID: "manual-alias", limit: { context: 16_000, output: 4000 } },
+            },
+          },
+        },
+      })
+      yield* Effect.promise(() => Bun.write(file, original))
+      const server = yield* startServer(tmp.path)
+      yield* Effect.promise(async () => {
+        const read = (route: string) => {
+          const url = new URL(route, server.base)
+          url.searchParams.set("location[directory]", tmp.path)
+          return fetch(url, { headers: server.headers })
+        }
+        const decode = Schema.decodeUnknownSync(Schema.Struct({ data: Schema.Array(Model.Info) }))
+        const deadline = Date.now() + 8000
+        while (true) {
+          const runtime = decode(await (await read("/api/model")).json()).data
+          if (runtime.some((model) => model.providerID === "gateway" && model.id === "runtime-only")) {
+            expect(runtime.filter((model) => model.providerID === "gateway")).toHaveLength(2)
+            expect(runtime.find((model) => model.providerID === "gateway" && model.id === "manual")).toMatchObject({
+              name: "Manual model",
+              modelID: "manual-alias",
+              limit: { context: 16_000, output: 4000 },
+            })
+            break
+          }
+          if (Date.now() >= deadline) throw new Error("Expected the background discovery to publish its model")
+          await Bun.sleep(75)
+        }
+        const listing = Schema.decodeUnknownSync(CustomProvider.Listing)(
+          await (await read("/api/experimental/config/providers")).json(),
+        )
+        const custom = listing.providers.find((provider) => provider.id === "gateway")
+        expect(Object.keys(custom?.models ?? {})).toEqual(["manual"])
+        expect(await Bun.file(file).text()).toBe(original)
+      })
+    }),
+  // The test waits for a real HTTP response and the background catalog publication.
+  12_000,
+)
+
 it.live("rejects unsafe patches and edits to ambiguous or non-global definitions without writing", () =>
   Effect.gen(function* () {
     const tmp = yield* Effect.acquireDisposable(Effect.promise(() => tmpdir("custom-provider-guards-")))

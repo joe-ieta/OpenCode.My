@@ -395,6 +395,8 @@ P1 验证均使用临时配置、内存数据库及隔离本地端点。该阶�
 
 `opencode-agent` / `opencodejr` 的评论是机器人验证或分诊，不等于维护者设计批准。
 
+2026-11-15，`dev-my` 合入 #57161 的自动目录发现。它通过 `openai_compatible_discovery` 补充运行时聊天模型，手工配置的模型和限额优先，Custom providers 继续使用原有手工录入及显式 Fetch models 流程。#59520 的限额发现仅保留上表的历史快照。
+
 ### 15.3 合并后的实现调整
 
 - 移动端模型抽屉改接到上游 `ModelDrawer` 状态机；新增 `custom` / `edit` 动作及 target，关闭动画结束后再打开自定义 provider 对话框，避免与 `open` / `close.timed-out` 竞争。

@@ -29,8 +29,7 @@
 | [#59603](https://github.com/anomalyco/opencode/issues/59603) | **OPEN**；2.2.0 移除桌面自定义 provider 入口；官方仍建议编辑 `opencode.json` |
 | [#50650](https://github.com/anomalyco/opencode/issues/50650)、[#57325](https://github.com/anomalyco/opencode/issues/57325) | **OPEN**；旧桌面表单保存失败、不能设 limits/发现；旧表单已移除，问题未由上游解决 |
 | [#57997](https://github.com/anomalyco/opencode/pull/57997) | **OPEN**；恢复自定义 OpenAI-compatible provider 保存。仅机器人验证，无维护者批准/合并 |
-| [#57161](https://github.com/anomalyco/opencode/pull/57161) | **OPEN**；为配置的 OpenAI-compatible provider 自动发现模型，带 feature flag；仅机器人验证，未合并 |
-| [#59520](https://github.com/anomalyco/opencode/pull/59520) | **OPEN**；为自定义 OpenAI-compatible provider 发现 context limit；未合并 |
+| [#57161](https://github.com/anomalyco/opencode/pull/57161) | 官方仍开放。fork 的 `dev-my` 已合入 `aa71865099`，由 `openai_compatible_discovery` 控制运行时目录补充。 |
 | [#40524](https://github.com/anomalyco/opencode/issues/40524) | **OPEN**；V2 provider 目录与 `/models` 对账的主要跟踪 issue；无维护者结论 |
 | [#51527](https://github.com/anomalyco/opencode/issues/51527) | **OPEN**；配置已存在时可通过 `ConfigProviderPlugin` 的 key method 设置 Key；任意 ID 预注册仍不支持 |
 | [#62448](https://github.com/anomalyco/opencode/issues/62448)、[#61628](https://github.com/anomalyco/opencode/issues/61628) | **OPEN**；更广义的桌面 provider 管理、无需配置文件的产品需求 |
@@ -38,7 +37,7 @@
 
 Side bar 的相关 V2 需求在 #60241 汇集，包括 #55446、#51759、#53851、#54922，以及 Inbox #59220、界面讨论 #60233。不要把“建议优先人工审核”或机器人转人工回复写成已经获得设计批准。
 
-自定义 provider 的上游状态同样不能用机器人评论推断批准：`opencode-agent` / `opencodejr` 的 COMMENTED review 只是验证或分诊。2.3.0 已合并的本地模型变化是 #63266（保存 Key 用于本地发现）、#63700（15 秒超时与端点隔离）、#63200/#56214/#63198（LM Studio decision/null context）和 #62240（部分 limit 保留）；#57161/#57997/#59520 仍未合并。
+官方 2.3.0 已包含 #63266（保存 Key 用于本地发现）、#63700（15 秒超时与端点隔离）、#63200/#56214/#63198（LM Studio decision/null context）和 #62240（部分 limit 保留）。[#59520 的限额发现](https://github.com/anomalyco/opencode/pull/59520) 仅存历史记录，`dev-my` 已停止跟踪。
 
 2026-11-14 已在 #33704 介绍 fork 的模型选择器入口与实现范围。[实现范围评论](https://github.com/anomalyco/opencode/issues/33704#issuecomment-6872183643)
 

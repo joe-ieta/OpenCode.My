@@ -5299,6 +5299,101 @@
         }
       }
     },
+    "/api/experimental/generate/test-text": {
+      "post": {
+        "tags": ["generate"],
+        "operationId": "experimental.generate.testText",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "204": {
+            "description": "<No Content>"
+          },
+          "400": {
+            "description": "InvalidRequestError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestErrorEncoded"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UnauthorizedError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnauthorizedErrorEncoded"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ProviderNotFoundError | ModelNotFoundError | LocationNotFoundError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ProviderNotFoundErrorEncoded"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ModelNotFoundErrorEncoded"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LocationNotFoundErrorEncoded"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "UnsupportedModelError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnsupportedModelErrorEncoded"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "ProviderRequestError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderRequestErrorEncoded"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "ServiceUnavailableError",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceUnavailableErrorEncoded"
+                }
+              }
+            }
+          }
+        },
+        "description": "Experimental: may change without compatibility guarantees. Send a short stateless prompt to a model saved in the server's base configuration.",
+        "summary": "Test a saved text model",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Generate.TextTestRequest"
+              }
+            }
+          },
+          "required": true
+        }
+      }
+    },
     "/api/experimental/generate": {
       "post": {
         "tags": ["generate"],
@@ -17196,6 +17291,9 @@
               "mcp_events": {
                 "type": "boolean"
               },
+              "openai_compatible_discovery": {
+                "type": "boolean"
+              },
               "part_rows": {
                 "type": "boolean"
               },
@@ -20743,6 +20841,26 @@
         "required": ["type", "name", "instructions", "levels"],
         "additionalProperties": false,
         "description": "Place the input on ordered levels, lowest first"
+      },
+      "Generate.TextTestRequest": {
+        "type": "object",
+        "properties": {
+          "model": {
+            "type": "object",
+            "properties": {
+              "providerID": {
+                "$ref": "#/components/schemas/Provider.ID"
+              },
+              "id": {
+                "type": "string"
+              }
+            },
+            "required": ["providerID", "id"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["model"],
+        "additionalProperties": false
       },
       "Generate.Usage": {
         "type": "object",

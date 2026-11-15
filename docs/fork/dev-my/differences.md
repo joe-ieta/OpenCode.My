@@ -152,7 +152,7 @@ Running sessions 的区域：
 - 自定义 Provider 服务端测试 15/15、生产 Chromium 回归 10/10；覆盖配置/JSONC、凭据失败重试、发现、原生元数据、文本测试、高级字段、底部入口、返回导航、Provider 删除、V1 只读删除和模型删除。根检查 35/35，App/core/server 的 `typecheck:tsc` 通过。
 - 尚未完成真实 llama.cpp、SGLang、LiteLLM、私有网关及真实 Ollama/LM Studio 的版本兼容、工具/图像推理人工验收。
 - Provider ID 重命名、项目级写入、任意 headers/body 编辑不做；真实引擎兼容矩阵另立验证。
-- 上游需求 [#33704](https://github.com/anomalyco/opencode/issues/33704) 仍 open，已在该 issue 记录实现范围评论；#57161、#57997、#59520 等仍未合并，不能把 Draft/机器人验证写成上游已交付。
+- 上游需求 [#33704](https://github.com/anomalyco/opencode/issues/33704) 仍开放。fork 已合入 [#57161](https://github.com/anomalyco/opencode/pull/57161)，由实验开关补充运行时模型目录。Custom providers 编辑器读取手工保存的条目。
 - 2.3.0 已合并的 #60496（未知发布日期）、#63266（保存 Key 用于本地发现）、#63700（15 秒发现超时与端点隔离）、#63200/#56214/#63198（LM Studio 元数据）和 #62240（部分 limit 保留）属于官方行为，不再作为 fork 差异。
 
 ## 5. 其他维护差异
