@@ -652,7 +652,10 @@ export function SidebarProjects(props: {
                     collapsed[1]((keys) => (keys.includes(key) ? keys.filter((item) => item !== key) : [...keys, key]))
                   }}
                 >
-                  <Icon name={collapsed[0].includes(key) ? "folder" : "file-tree-active"} class="shrink-0" />
+                  <Icon
+                    name={collapsed[0].includes(key) ? "folder" : "folder-open"}
+                    class="shrink-0"
+                  />
                   <Show
                     when={group().tabs.some(isRunning)}
                     fallback={

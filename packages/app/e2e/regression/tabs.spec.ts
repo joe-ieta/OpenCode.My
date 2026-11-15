@@ -1406,7 +1406,7 @@ test("Side bar switches between project navigation and a most-recent list with g
 
   const collapse = sidebar.getByRole("button", { name: "Collapse project Other", exact: true })
   const expand = sidebar.getByRole("button", { name: "Expand project Other", exact: true })
-  await expect(collapse.locator(":scope > svg use")).toHaveAttribute("href", "#opencode-v2-icon-file-tree-active")
+  await expect(collapse.locator(":scope > svg use")).toHaveAttribute("href", /^#opencode-v2-icon-(?:new-)?folder-open$/)
   await collapse.click()
   await expect(expand.locator(":scope > svg use")).toHaveAttribute("href", /^#opencode-v2-icon-(?:new-)?folder$/)
   await expect(titles).toHaveText([a.title, c.title])
@@ -1436,7 +1436,7 @@ test("Side bar switches between project navigation and a most-recent list with g
   await expect(newSession).toHaveCount(0)
   await expect(expand).toBeVisible()
   await expand.click()
-  await expect(collapse.locator(":scope > svg use")).toHaveAttribute("href", "#opencode-v2-icon-file-tree-active")
+  await expect(collapse.locator(":scope > svg use")).toHaveAttribute("href", /^#opencode-v2-icon-(?:new-)?folder-open$/)
 })
 
 for (const [locale, title, grouping, projectMode, listMode, projectCount, addProject, newSession] of [
