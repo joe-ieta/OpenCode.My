@@ -91,7 +91,7 @@ export function TabNavItem(
     closable?: boolean
     closeLabel?: string
     closeMenuLabel?: string
-    previewDetails?: Pick<TabPreviewData, "lastRun" | "branch" | "worktree">
+    previewDetails?: () => Pick<TabPreviewData, "lastRun" | "branch" | "worktree" | "stats">
     onPreviewOpenChange?: (open: boolean) => void
     menuItems?: JSX.Element
     onNavigate: () => void
@@ -231,6 +231,17 @@ export function TabNavItem(
 
   const previewBlocked = () =>
     !!props.dragging || selectTabPreviewBlocked(renameState()) || !!props.pressed || !props.session
+
+  // Built as a memo so a hint updates when its session's messages, branch or cost arrive after the row mounted.
+  const previewData = createMemo(
+    (): TabPreviewData => ({
+      projectName: projectName(),
+      title: props.session?.title,
+      path: previewPath(),
+      serverName: serverLabel(),
+      ...props.previewDetails?.(),
+    }),
+  )
 
   const measureTitleOverflow = () => {
     if (!titleEl || editing()) {
@@ -629,13 +640,7 @@ export function TabNavItem(
           setPopoverOpen(value)
           props.onPreviewOpenChange?.(value)
         }}
-        data={{
-          projectName: projectName(),
-          title: props.session?.title,
-          path: previewPath(),
-          serverName: serverLabel(),
-          ...props.previewDetails,
-        }}
+        data={previewData()}
       />
       <Menu.Context.Portal>
         <Menu.Context.Content

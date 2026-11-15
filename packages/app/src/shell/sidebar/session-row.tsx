@@ -3,6 +3,7 @@ import { Menu } from "@opencode/ui/menu"
 import { useGlobal } from "@/runtime/server/runtime"
 import { createSessionBranches } from "@/shell/sessions/branches"
 import { sessionLastRunLabel } from "@/shell/titlebar/tab-title"
+import { lastAssistantWithUsage } from "@opencode/client/solid"
 import { pathKey } from "@/workspaces/path-key"
 import { createSessionExporter } from "@/session/commands/export-session"
 import { createEffect, createMemo, createResource, onCleanup, Show } from "solid-js"
@@ -85,6 +86,29 @@ function SessionTabSlot(props: {
     )
   })
 
+  // What the hint says about this session: user turns, the context its latest step filled, and its cost.
+  const previewStats = createMemo(() => {
+    const value = entry()
+
+    if (!value) return
+    const messages = value.ctx.data.session.message.list(value.session.id)
+    const last = lastAssistantWithUsage(messages, value.session.revert?.messageID)
+
+    const context = last
+      ? last.tokens.input +
+        last.tokens.output +
+        last.tokens.reasoning +
+        last.tokens.cache.read +
+        last.tokens.cache.write
+      : undefined
+
+    return {
+      turns: messages.filter((message) => message.type === "user").length || undefined,
+      context,
+      cost: value.ctx.data.session.cost(value.session.id),
+    }
+  })
+
   const sortable = useSortable({
     get id() {
       return props.id
@@ -137,11 +161,12 @@ function SessionTabSlot(props: {
         closable={props.closable}
         closeLabel={props.closeLabel}
         closeMenuLabel={props.closeLabel ?? language.t("common.close")}
-        previewDetails={{
+        previewDetails={() => ({
           lastRun: sessionLastRunLabel(props.session?.time, language),
           branch: branch(),
           worktree: worktree(),
-        }}
+          stats: previewStats(),
+        })}
         onPreviewOpenChange={(open) => {
           const value = entry()
 
