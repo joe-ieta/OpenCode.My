@@ -18,6 +18,7 @@ import { useCommand } from "@/shell/commands/command"
 import { useTabs } from "@/shell/tabs/tabs"
 import { useSessionTabAvatarState } from "@/shell/layout/project-avatar-state"
 import { adjacentTabKey, mergeVisibleTabOrder } from "@/shell/titlebar/tab-order"
+import { ActivityRing } from "@opencode/ui/activity-ring"
 import { Button } from "@opencode/ui/button"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Icon } from "@opencode/ui/icon"
@@ -378,6 +379,9 @@ export function SidebarProjects(props: {
   const isUnread = (tab: Tab) =>
     (!props.currentTab || tabKey(tab) !== tabKey(props.currentTab)) && !!status[tabKey(tab)]?.unread
 
+  // A project runs while any of its sessions executes, the current one included.
+  const isRunning = (tab: Tab) => !!status[tabKey(tab)]?.loading
+
   // Include collapsed projects and rows outside the recent preview, while excluding the current session.
   createEffect(() => {
     setSidebarUnread(displayedTabs().some(isUnread))
@@ -610,12 +614,25 @@ export function SidebarProjects(props: {
                   }}
                 >
                   <Icon name={collapsed[0].includes(key) ? "chevron-right" : "chevron-down"} class="shrink-0" />
-                  <Show when={group().tabs.some(isUnread)}>
+                  <Show
+                    when={group().tabs.some(isRunning)}
+                    fallback={
+                      <Show when={group().tabs.some(isUnread)}>
+                        <span
+                          role="img"
+                          aria-label={language.t("sidebar.project.unread")}
+                          class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent"
+                        />
+                      </Show>
+                    }
+                  >
                     <span
                       role="img"
-                      aria-label={language.t("sidebar.project.unread")}
-                      class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent"
-                    />
+                      aria-label={language.t("sidebar.project.running")}
+                      class="flex size-3 shrink-0 items-center justify-center text-v2-icon-icon-muted"
+                    >
+                      <ActivityRing width={12} height={12} />
+                    </span>
                   </Show>
                   <span dir="auto" class="min-w-0 flex-1 truncate">
                     {group().name}
