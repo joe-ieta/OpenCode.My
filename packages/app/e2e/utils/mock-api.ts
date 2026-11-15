@@ -1,6 +1,7 @@
 import { CustomProvider } from "@opencode/schema/custom-provider"
 import { Predicate, Schema, SchemaGetter } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api"
+import { Generate } from "@opencode/schema/generate"
 import { PersistentPty } from "@opencode/schema/persistent-pty"
 import { Pty } from "@opencode/schema/pty"
 import { Worktree } from "@opencode/schema/worktree"
@@ -260,6 +261,13 @@ const Group = HttpApiGroup.make("mock")
     }),
   )
   .add(HttpApiEndpoint.get("websearchProviders", "/api/websearch/provider", { success: Json }))
+  .add(
+    HttpApiEndpoint.post("modelTestText", "/api/experimental/generate/test-text", {
+      payload: Generate.TextTestRequest,
+      success: NoContent,
+      error: [Unsupported, MockInternal.pipe(HttpApiSchema.status(502))],
+    }),
+  )
   .add(HttpApiEndpoint.get("usageLimits", "/api/experimental/usage/limits", { success: Json }))
   .add(
     HttpApiEndpoint.get("worktreeList", "/api/worktree", {

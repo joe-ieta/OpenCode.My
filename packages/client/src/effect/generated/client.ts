@@ -118,6 +118,8 @@ import type {
   ModelDefaultOutput,
   ExperimentalGenerateTextInput,
   ExperimentalGenerateTextOutput,
+  ExperimentalGenerateTestTextInput,
+  ExperimentalGenerateTestTextOutput,
   ExperimentalGenerateImageInput,
   ExperimentalGenerateImageOutput,
   ExperimentalGenerateDecisionsInput,
@@ -952,6 +954,12 @@ const EndpointExperimentalGenerateText =
       ),
     )
 
+const EndpointExperimentalGenerateTestText =
+  (raw: RawClient["server.generate"]) => (input: ExperimentalGenerateTestTextInput) =>
+    preserveEffect<ExperimentalGenerateTestTextOutput>()(
+      raw["generate.testText"]({ payload: { model: input["model"] } }).pipe(Effect.mapError(mapClientError)),
+    )
+
 const EndpointExperimentalGenerateImage =
   (raw: RawClient["server.generate"]) => (input: ExperimentalGenerateImageInput) =>
     preserveEffect<ExperimentalGenerateImageOutput>()(
@@ -983,6 +991,7 @@ const EndpointExperimentalGenerateDecisions =
 
 const adaptGroupExperimentalGenerate = (raw: RawClient["server.generate"]) => ({
   text: EndpointExperimentalGenerateText(raw),
+  testText: EndpointExperimentalGenerateTestText(raw),
   image: EndpointExperimentalGenerateImage(raw),
   decisions: EndpointExperimentalGenerateDecisions(raw),
 })

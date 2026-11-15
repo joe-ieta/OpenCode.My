@@ -2538,6 +2538,74 @@ test("models: a Console provider picked on Providers opens its collapsed group, 
   await expect(settings.getByRole("switch", { name: "Managed Gemini", exact: true })).toBeVisible()
 })
 
+test("models: tests only saved text models and supports cancel and retry", async ({ page }) => {
+  const started = Promise.withResolvers<void>()
+  const release = Promise.withResolvers<void>()
+  const model = { providerID: "custom", id: "saved" }
+  const attempts: unknown[] = []
+
+  const { settings } = await open(page, {
+    provider: {
+      all: [
+        {
+          id: "custom",
+          name: "Custom",
+          models: {
+            saved: { id: "saved", name: "Saved model" },
+            discovered: { id: "discovered", name: "Discovered model" },
+          },
+        },
+      ],
+      connected: ["custom"],
+      default: {},
+    },
+    configEntries: [
+      {
+        type: "document",
+        path: "/home/test/.config/opencode/opencode.jsonc",
+        info: { providers: { custom: { models: { saved: { name: "Saved model" } } } } },
+      },
+    ],
+    onTestModel: async (input) => {
+      attempts.push(input)
+
+      if (attempts.length === 1) {
+        started.resolve()
+        await release.promise
+
+        return
+      }
+
+      if (attempts.length === 2) return { error: "The provider rejected the saved credentials." }
+    },
+  })
+
+  await settings.getByRole("tab", { name: "Models", exact: true }).click()
+  const testButton = settings.getByRole("button", { name: "Test text response for Saved model", exact: true })
+  await expect(settings.getByRole("switch", { name: "Discovered model", exact: true })).toBeVisible()
+  await expect(
+    settings.getByRole("button", { name: "Test text response for Discovered model", exact: true }),
+  ).toHaveCount(0)
+  expect(attempts).toEqual([])
+  await testButton.click()
+  const dialog = page.getByRole("dialog", { name: "Test text response", exact: true })
+
+  try {
+    await started.promise
+    await expect(dialog.getByRole("status")).toHaveText("Testing text response…")
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
+    await expect(dialog.getByRole("status")).toHaveText("Text test cancelled.")
+  } finally {
+    release.resolve()
+  }
+
+  await dialog.getByRole("button", { name: "Try again", exact: true }).click()
+  await expect(dialog.getByRole("alert")).toHaveText("The provider rejected the saved credentials.")
+  await dialog.getByRole("button", { name: "Try again", exact: true }).click()
+  await expect(dialog.getByRole("status")).toHaveText("The model returned a text response.")
+  expect(attempts).toEqual([{ model }, { model }, { model }])
+})
+
 test("the add server dialog keeps focus above fullscreen settings", async ({ page }) => {
   await mockRemoteServer(page, { directory: "/remote/settings-demo" })
   const { settings } = await open(page)

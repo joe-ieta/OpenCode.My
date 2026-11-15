@@ -54,18 +54,29 @@ import { Workspace } from "@opencode/schema/workspace"
 import { Effect, Schema } from "effect"
 import { fileURLToPath } from "url"
 
-const promiseContract = compile(ClientApi, {
-  groupNames,
-  omitEndpoints: promiseOmitEndpoints,
-  namespace: clientNamespace,
-  aliases: true,
-})
-const effectContract = compile(ClientApi, {
-  groupNames,
-  omitEndpoints: effectOmitEndpoints,
-  namespace: clientNamespace,
-  aliases: true,
-})
+const promiseContract = removeNewTextTestAlias(
+  compile(ClientApi, {
+    groupNames,
+    omitEndpoints: promiseOmitEndpoints,
+    namespace: clientNamespace,
+    aliases: true,
+  }),
+)
+const effectContract = removeNewTextTestAlias(
+  compile(ClientApi, {
+    groupNames,
+    omitEndpoints: effectOmitEndpoints,
+    namespace: clientNamespace,
+    aliases: true,
+  }),
+)
+
+function removeNewTextTestAlias(contract: ReturnType<typeof compile>) {
+  return {
+    ...contract,
+    aliases: contract.aliases?.filter((alias) => alias.to.join(".") !== "experimental.generate.testText"),
+  }
+}
 const effectTypeReferences = [
   ...namespaceTypes("Agent", "@opencode/schema/agent", Agent),
   ...namespaceTypes("Artifact", "@opencode/schema/artifact", Artifact),

@@ -1504,6 +1504,13 @@ export const dict = {
   "settings.models.description": "Choose which models appear in model picker",
   "settings.models.enableAll": "Enable all models",
   "settings.models.disableAll": "Disable all models",
+  "settings.models.test.title": "Test text response",
+  "settings.models.test.model": "Test text response for {{model}}",
+  "settings.models.test.running": "Testing text response…",
+  "settings.models.test.passed": "The model returned a text response.",
+  "settings.models.test.cancelled": "Text test cancelled.",
+  "settings.models.test.failed": "The text test failed.",
+  "settings.models.test.timeout": "The text test timed out.",
 
   "settings.permissions.tool.read.title": "Read",
   "settings.permissions.tool.read.description": "Reading a file (matches the file path)",

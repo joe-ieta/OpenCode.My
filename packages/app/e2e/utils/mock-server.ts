@@ -1,6 +1,7 @@
 import type { CustomProvider } from "@opencode/schema/custom-provider"
 import type { Page } from "@playwright/test"
 import type { OpenCodeEvent, SessionMessageInfo, SessionActivityInfo } from "@opencode/client/promise"
+import type { TextTestRequest } from "@opencode/schema/generate"
 import { Permission } from "@opencode/schema/permission"
 import { artifactKind, artifactMime } from "@opencode/util/artifact"
 import { Model } from "@opencode/schema/model"
@@ -79,6 +80,7 @@ export interface MockServerConfig {
   // Without it, writes answer 501 MockUnsupported.
   onFileWrite?: (input: { path: string; directory: string; body: string }) => void
   configEntries?: unknown[]
+  onTestModel?: (input: TextTestRequest) => Promise<void | { error: string }>
   directory: string
   project: unknown
   // Replaces the `/api/project` inventory, which defaults to `[project]`. A location inside a listed project
@@ -811,6 +813,15 @@ function mockHandlers(
                 : { persistentPty: state.persistentPty.capability },
           }),
         config: () => Effect.succeed(configEntries),
+        modelTestText: (ctx) => {
+          const testModel = config.onTestModel
+
+          if (!testModel) return unsupported("test a saved model", "onTestModel")
+
+          return Effect.promise(() => testModel(ctx.payload)).pipe(
+            Effect.flatMap((result) => (result ? Effect.fail(new MockInternal({ message: result.error })) : noContent)),
+          )
+        },
         reference: () => Effect.succeed({ location: location(config), data: [] }),
         // `beforeAgentsResponse` holds the Location's agent list, as a cold Location does while its plugins activate.
         agent: (ctx) =>

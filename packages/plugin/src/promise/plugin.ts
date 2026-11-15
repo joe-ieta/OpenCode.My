@@ -36,7 +36,7 @@ export interface Context {
   readonly experimental: {
     readonly terminal: Pick<OpenCodeClient["experimental"]["persistentPty"], "read">
     /** Stateless generation with a model and a prompt: no session, history or tools. */
-    readonly generate: ExperimentalGenerateApi
+    readonly generate: Omit<ExperimentalGenerateApi, "testText">
     readonly artifact: ExperimentalArtifactDomain
   }
   readonly integration: IntegrationDomain

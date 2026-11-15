@@ -8,6 +8,11 @@ import { PositiveInt, optional } from "./schema.js"
 
 const description = (text: string) => ({ description: text })
 
+export interface TextTestRequest extends Schema.Schema.Type<typeof TextTestRequest> {}
+export const TextTestRequest = Schema.Struct({
+  model: Schema.Struct({ providerID: Model.Ref.fields.providerID, id: Schema.String }),
+}).annotate({ identifier: "Generate.TextTestRequest" })
+
 // ---------------------------------------------------------------------------
 // Shared
 // ---------------------------------------------------------------------------
