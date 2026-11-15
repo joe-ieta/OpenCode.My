@@ -6,13 +6,20 @@
 
 | 通道         | 版本              | 平台               | 下载                                                                               |
 | ------------ | ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| Windows | `v2.3.0-my.10` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.10) |
-| Linux | `v2.3.0-my.10` | Linux amd64/arm64 | [AppImage / deb](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.10) |
-| Windows 测试（历史，`dev-my`） | `v2.3.0-my.4` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.4) |
-| Windows 测试（历史，`dev-my`） | `v2.3.0-my.3` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.3) |
-| Windows 测试（历史，`dev-my-models`） | `v2.3.0-my.2` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.2) |
+| 正式发行（Latest） | `v2.3.0-my.12` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.12) |
+| 2.2.6 系列末版 | `v2.2.6-my.1` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/opencode/releases/tag/v2.2.6-my.1) |
+| 2.2.5 系列末版（预发行） | `v2.2.5-my.8` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/opencode/releases/tag/v2.2.5-my.8) |
 
-`v2.3.0-my.10` 为 Windows 和 Linux 的正式发行，已设为 GitHub Latest。全部平台统一使用 GitHub 完整安装包，Gitee 已停用。需要独立下载源时可参考 [自建发布物存储](../KB/self-hosted-release-storage.md) 草案，当前尚未接入。历史源码标签不代表旧 Release 资产仍可下载。
+桌面版按对应的官方版本号（如 `2.3.0`）保留最后一个 fork 迭代的附件。过程版本的发行页、说明和源码标签用于查阅历史。各维护线的附件分别管理。
+
+## v2.3.0-my.12 Windows x64 与 Linux amd64/arm64 正式发行
+
+- 构建提交为 `09e804577bcfacb05c7ea7e42855aab4cc3db44c`，包含 `upstream/dev@e3ed63c7de`。Windows x64 安装包已通过用户手工验收。[GitHub Release](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.12)
+- 模型选择器恢复内置集成连接，并支持移除已保存的凭据。侧栏会话悬停提示新增轮次、上下文用量和费用，近期运行结束时间以相对时间显示。[PR #6](https://github.com/joe-ieta/opencode/pull/6) · [PR #7](https://github.com/joe-ieta/opencode/pull/7)
+- Linux 两种架构各提供 AppImage 和 deb，使用与 Windows 同一源码和模型快照。快照 SHA256 为 `1622400c83bc3333bd75ac3b814874e27dbbf0ae9df4e5c001b359e6bb513acc`。
+- `bun run check` 35/35，相关 Chromium 回归 38/38。两种 Linux 架构均比对 8,633 个模型，通过桌面 CLI 冒烟和解包核验。arm64 自动冒烟使用 QEMU，Linux 手工安装待验收。
+- 联合 `SHA256SUMS` 覆盖五个安装包。三份更新清单的 SHA512 和大小已校验，10 个远端附件均已核对大小和 SHA256。[SHA256SUMS](https://github.com/joe-ieta/opencode/releases/download/v2.3.0-my.12/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/opencode/releases/download/v2.3.0-my.12/build.json)
+- 本次清理了 8 个桌面过程版本的 56 个附件。发行页、发布说明和源码标签均已核对保留，三个系列末版各保留 10 个附件。
 
 ## v2.3.0-my.10 Windows x64 与 Linux amd64/arm64 正式发行
 
@@ -20,7 +27,7 @@
 - Side bar 在「首页」下方恢复「新建会话」，使用首页选中的项目。「按项目」和「列表」统一显示活跃会话数、会话总数和项目总数。项目展开与折叠采用对应的文件夹图标。[PR #5](https://github.com/joe-ieta/opencode/pull/5)
 - Windows x64 的 NSIS 安装包已通过用户安装测试。2026-11-16，用户确认 Linux amd64 和 arm64 的安装测试均已通过，中英文发布说明已更新。
 - Linux 两种架构各提供 AppImage 与 deb，复用 Windows 的源码提交和模型快照。快照 SHA256 为 `1622400c83bc3333bd75ac3b814874e27dbbf0ae9df4e5c001b359e6bb513acc`。两种架构均比对 8,633 个模型，通过 CLI 服务发现、V1 升级确认和历史迁移冒烟。arm64 自动冒烟通过 QEMU 执行，四个 Linux 安装包均已解包核验。
-- `bun run check` 35/35，Chromium 回归 25/25。三份更新清单的 SHA512 和大小与安装包一致，联合 `SHA256SUMS` 覆盖五个安装包。GitHub 上的 10 个资产均已核对大小和 SHA256。[SHA256SUMS](https://github.com/joe-ieta/opencode/releases/download/v2.3.0-my.10/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/opencode/releases/download/v2.3.0-my.10/build.json)
+- `bun run check` 35/35，Chromium 回归 25/25。三份更新清单的 SHA512 和大小与安装包一致，五个安装包的联合校验清单及全部 10 个远端附件在发布时均已核对。
 
 ## v2.3.0-my.8 Windows x64 与 Linux amd64/arm64 正式发行
 
