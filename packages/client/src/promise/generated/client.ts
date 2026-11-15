@@ -111,6 +111,8 @@ import type {
   ModelDefaultOutput,
   ExperimentalGenerateTextInput,
   ExperimentalGenerateTextOutput,
+  ExperimentalGenerateTestTextInput,
+  ExperimentalGenerateTestTextOutput,
   ExperimentalGenerateImageInput,
   ExperimentalGenerateImageOutput,
   ExperimentalGenerateDecisionsInput,
@@ -1186,6 +1188,18 @@ export function make(options: ClientOptions) {
             },
             requestOptions,
           ).then((value) => value.data),
+        testText: (input: ExperimentalGenerateTestTextInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalGenerateTestTextOutput>(
+            {
+              method: "POST",
+              path: `/api/experimental/generate/test-text`,
+              body: { model: input["model"] },
+              successStatus: 204,
+              declaredStatuses: [400, 401, 404, 422, 502, 503],
+              empty: true,
+            },
+            requestOptions,
+          ),
         image: (input: ExperimentalGenerateImageInput, requestOptions?: RequestOptions) =>
           request<{ readonly data: ExperimentalGenerateImageOutput }>(
             {

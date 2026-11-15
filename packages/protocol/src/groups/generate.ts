@@ -1,7 +1,7 @@
 import { Generate } from "@opencode/schema/generate"
 import { Model } from "@opencode/schema/model"
 import { Schema } from "effect"
-import { HttpApiEndpoint, HttpApiGroup, OpenApi } from "effect/http-api"
+import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/http-api"
 import {
   InvalidRequestError,
   LocationNotFoundError,
@@ -41,6 +41,20 @@ export const GenerateGroup = HttpApiGroup.make("server.generate")
         summary: "Generate text",
         description:
           "Run one stateless model generation using the server's base configuration and return the assistant text. Uses the base configuration's default model when none is specified.",
+      }),
+    ),
+  )
+  .add(
+    HttpApiEndpoint.post("generate.testText", "/api/experimental/generate/test-text", {
+      payload: Generate.TextTestRequest,
+      success: HttpApiSchema.NoContent,
+      error: errors,
+    }).annotateMerge(
+      OpenApi.annotations({
+        identifier: "experimental.generate.testText",
+        summary: "Test a saved text model",
+        description:
+          "Experimental: may change without compatibility guarantees. Send a short stateless prompt to a model saved in the server's base configuration.",
       }),
     ),
   )

@@ -71,9 +71,14 @@ export type Error =
   | UnavailableError
 
 export interface Interface {
-  readonly text: (input: TextInput) => Effect.Effect<string, Error>
+  readonly text: (input: TextInput, options?: TextOptions) => Effect.Effect<string, Error>
   readonly image: (input: ImageRequest) => Effect.Effect<ImageResult, Error>
   readonly decisions: (input: DecisionRequest) => Effect.Effect<DecisionResult, Error>
+}
+
+interface TextOptions {
+  readonly maxTokens?: number
+  readonly retry?: boolean
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Generate") {}
@@ -89,7 +94,7 @@ export const layer = Layer.effect(
     const images = yield* ImageClient.Service
     const decisionClient = yield* DecisionClient.Service
 
-    const runText = Effect.fn("Generate.text")(function* (input: TextInput) {
+    const runText = Effect.fn("Generate.text")(function* (input: TextInput, options?: TextOptions) {
       const resolved = yield* resolver.resolve(input.model).pipe(
         Effect.catchTag(
           [
@@ -111,19 +116,18 @@ export const layer = Layer.effect(
       if (!resolved && input.model) return yield* missing(input.model, "chat")
       if (!resolved)
         return yield* new UnavailableError({ message: "No model specified and no supported model is available" })
-      const response = yield* llm
-        .generate(
-          ai.request({
-            model: resolved.model,
-            prompt: input.prompt,
-            // Gateways require session attribution even for a stateless call; no Session is stored.
-            headers: { "x-opencode-session": SessionID.create() },
-          }),
-        )
-        .pipe(
-          ModelRetry.retryOneShot,
-          Effect.mapError((error) => providerError(resolved.ref, error)),
-        )
+      const request = llm.generate(
+        ai.request({
+          model: resolved.model,
+          prompt: input.prompt,
+          maxTokens: options?.maxTokens,
+          // Gateways require session attribution even for a stateless call; no Session is stored.
+          headers: { "x-opencode-session": SessionID.create() },
+        }),
+      )
+      const response = yield* (options?.retry === false ? request : request.pipe(ModelRetry.retryOneShot)).pipe(
+        Effect.mapError((error) => providerError(resolved.ref, error)),
+      )
       return response.text
     })
 
@@ -223,7 +227,7 @@ export const layer = Layer.effect(
       )
 
     return Service.of({
-      text: (input) => credentials(runText(input)),
+      text: (input, options) => credentials(runText(input, options)),
       image: (input) => credentials(image(input)),
       decisions: (input) => credentials(decisions(input)),
     })

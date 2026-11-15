@@ -3980,6 +3980,10 @@ export type ExperimentalGenerateTextInput = {
 
 export type ExperimentalGenerateTextOutput = GenerateTextResponse["data"]
 
+export type ExperimentalGenerateTestTextInput = { readonly model: { readonly providerID: string; readonly id: string } }
+
+export type ExperimentalGenerateTestTextOutput = void
+
 export type ExperimentalGenerateImageInput = {
   readonly model: { readonly id: string; readonly providerID: string; readonly variant?: string }
   readonly prompt: string

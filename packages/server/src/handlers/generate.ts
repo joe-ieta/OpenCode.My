@@ -1,4 +1,5 @@
 import { Generate } from "@opencode/core/generate"
+import { Config } from "@opencode/core/config"
 import { Location } from "@opencode/core/location"
 import { LocationServiceMap } from "@opencode/core/location-services"
 import { AbsolutePath } from "@opencode/core/schema"
@@ -9,11 +10,12 @@ import {
   ServiceUnavailableError,
   UnsupportedModelError,
 } from "@opencode/protocol/errors"
-import type { DecisionRequest, ImageRequest } from "@opencode/schema/generate"
+import type { DecisionRequest, ImageRequest, TextTestRequest } from "@opencode/schema/generate"
 import { Global } from "@opencode/util/global"
 import { Model } from "@opencode/schema/model"
+import { hasSavedModel } from "@opencode/schema/config"
 import { Effect } from "effect"
-import { HttpApiBuilder } from "effect/http-api"
+import { HttpApiBuilder, HttpApiSchema } from "effect/http-api"
 import { Api } from "../api"
 import { awaitPlugins, locationErrors } from "../location"
 
@@ -40,6 +42,48 @@ export const GenerateHandler = HttpApiBuilder.group(Api, "server.generate", (han
       Effect.provide(services),
       locationErrors,
     )
+    const testText = Effect.fn("server.generate.testText")(
+      function* (request: { readonly payload: TextTestRequest }) {
+        const model = Model.Ref.make({
+          providerID: request.payload.model.providerID,
+          id: Model.ID.make(request.payload.model.id),
+        })
+        const config = yield* Config.Service
+        const entries = yield* config.entries()
+        if (!hasSavedModel(entries, model))
+          return yield* new ModelNotFoundError({
+            providerID: model.providerID,
+            modelID: model.id,
+            message: "The model must be saved in the server's base configuration",
+          })
+        const generate = yield* Generate.Service
+        const text = yield* generate
+          .text({ model, prompt: "Reply with just OK." }, { maxTokens: 32, retry: false })
+          .pipe(
+            Effect.mapError(testTextError),
+            Effect.timeoutOrElse({
+              duration: "15 seconds",
+              orElse: () =>
+                Effect.fail(
+                  new ProviderRequestError({
+                    providerID: model.providerID,
+                    reason: "provider",
+                    message: "The text test timed out.",
+                  }),
+                ),
+            }),
+          )
+        if (!text.trim())
+          return yield* new ProviderRequestError({
+            providerID: model.providerID,
+            reason: "provider",
+            message: "The model returned no text.",
+          })
+        return HttpApiSchema.NoContent.make()
+      },
+      Effect.provide(services),
+      locationErrors,
+    )
     const decisions = Effect.fn("server.generate.decisions")(
       function* (request: { readonly payload: DecisionRequest }) {
         const names = new Set(request.payload.questions.map((question) => question.name))
@@ -58,10 +102,24 @@ export const GenerateHandler = HttpApiBuilder.group(Api, "server.generate", (han
     return handlers
       .handle("generate.text", text)
       .handle("generate.textLegacy", text)
+      .handle("generate.testText", testText)
       .handle("generate.image", image)
       .handle("generate.decisions", decisions)
   }),
 )
+
+function testTextError(error: Generate.Error) {
+  if (error._tag !== "Generate.ProviderRequestError") return generateError(error)
+
+  return new ProviderRequestError({
+    providerID: error.providerID,
+    reason: error.reason,
+    message:
+      error.reason === "authentication"
+        ? "The provider rejected the saved credentials."
+        : "The provider could not complete the text test.",
+  })
+}
 
 function generateError(error: Generate.Error) {
   switch (error._tag) {

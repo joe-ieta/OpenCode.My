@@ -26,8 +26,8 @@ import type { Workspace } from "@opencode/schema/workspace"
 import type { Instruction } from "@opencode/schema/instruction"
 import type { Snapshot } from "@opencode/schema/snapshot"
 import type { Shell } from "@opencode/schema/shell"
-import type { Generate } from "@opencode/schema/generate"
 import type { Provider } from "@opencode/schema/provider"
+import type { Generate } from "@opencode/schema/generate"
 import type { Integration } from "@opencode/schema/integration"
 import type { Mcp } from "@opencode/schema/mcp"
 import type { PtyTicket } from "@opencode/schema/pty-ticket"
@@ -1507,6 +1507,14 @@ export type ExperimentalGenerateTextOperation<E = never> = (
   input: ExperimentalGenerateTextInput,
 ) => Effect.Effect<ExperimentalGenerateTextOutput, E>
 
+export type ExperimentalGenerateTestTextInput = {
+  readonly model: { readonly providerID: Provider.ID; readonly id: string }
+}
+export type ExperimentalGenerateTestTextOutput = void
+export type ExperimentalGenerateTestTextOperation<E = never> = (
+  input: ExperimentalGenerateTestTextInput,
+) => Effect.Effect<ExperimentalGenerateTestTextOutput, E>
+
 export type ExperimentalGenerateImageInput = {
   readonly model: Model.Ref
   readonly prompt: string
@@ -1532,6 +1540,7 @@ export type ExperimentalGenerateDecisionsOperation<E = never> = (
 
 export interface ExperimentalGenerateApi<E = never> {
   readonly text: ExperimentalGenerateTextOperation<E>
+  readonly testText: ExperimentalGenerateTestTextOperation<E>
   readonly image: ExperimentalGenerateImageOperation<E>
   readonly decisions: ExperimentalGenerateDecisionsOperation<E>
 }
@@ -3035,9 +3044,6 @@ export type ConfigUpdateOutput = ExperimentalConfigUpdateOutput
 
 /** @deprecated Use `ExperimentalConfigUpdateOperation`. Removed in the next minor. */
 export type ConfigUpdateOperation<E = never> = ExperimentalConfigUpdateOperation<E>
-
-/** @deprecated Use `ExperimentalGenerateApi`. Removed in the next minor. */
-export type GenerateApi<E = never> = ExperimentalGenerateApi<E>
 
 /** @deprecated Use `ExperimentalVoiceApi`. Removed in the next minor. */
 export type VoiceApi<E = never> = ExperimentalVoiceApi<E>
