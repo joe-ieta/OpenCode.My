@@ -329,12 +329,18 @@ export function ModelSelectorDrawer(props: {
     void dialog.push(() => <DialogManageModels />)
   }
 
+  const connect = async () => {
+    const { DialogConnectProvider } = await import("@/providers/connect/dialog")
+    void dialog.push(() => <DialogConnectProvider directory={location().directory} selection={props.model} />)
+  }
+
   return (
     <ModelDrawer
       trigger={props.trigger}
       onManage={manage}
       model={props.model}
       provider={props.provider}
+      onConnect={connect}
       onCustom={custom.available() ? () => void custom.open() : undefined}
       chatgptPlan={chatgptPlan()}
       onClose={() => props.onClose?.()}
@@ -349,6 +355,7 @@ function ModelDrawer(props: {
   chatgptPlan?: boolean
   onClose: () => void
   onManage: () => void
+  onConnect?: () => void
   onCustom?: () => void
 }) {
   const language = useLanguage()
@@ -369,6 +376,8 @@ function ModelDrawer(props: {
       if (effect.type === "cancel-close-timeout") return clearTimeout(closeTimer)
 
       if (effect.action === "manage") return props.onManage()
+
+      if (effect.action === "connect") return props.onConnect?.()
 
       if (effect.action === "custom") return props.onCustom?.()
       queueMicrotask(props.onClose)
@@ -431,6 +440,7 @@ function ModelDrawer(props: {
                   props.onCustom ? () => dispatch({ type: "action.selected", action: "custom" }) : undefined
                 }
                 onManage={() => dispatch({ type: "action.selected", action: "manage" })}
+                onConnect={props.onConnect}
               />
               <Show when={props.chatgptPlan}>
                 <div class="flex min-h-10 items-center gap-2 border-t border-v2-border-border-muted px-3 py-2 text-[13px] leading-5 text-v2-text-text-base">
@@ -612,6 +622,7 @@ function ChatgptPlanFooter() {
 function ModelPickerActions(props: {
   onCustom?: () => void
   onManage: () => void
+  onConnect?: () => void
   mobile?: boolean
 }) {
   const language = useLanguage()
@@ -619,26 +630,40 @@ function ModelPickerActions(props: {
   return (
     <div
       data-slot={props.mobile ? "model-selector-actions" : "model-picker-actions"}
-      class={props.mobile ? "flex flex-col gap-2" : "flex items-center gap-1 border-t border-v2-border-border-muted p-2"}
+      class={props.mobile ? "flex flex-col gap-2" : "flex flex-col gap-1 border-t border-v2-border-border-muted p-2"}
     >
-      <Show when={props.onCustom}>
+      <div class={props.mobile ? "contents" : "flex items-center gap-1"}>
+        <Show when={props.onCustom}>
+          <Button
+            variant="ghost"
+            class={props.mobile ? "w-full !h-10 !justify-start" : "flex-1 !justify-start"}
+            icon="outline-settings"
+            onClick={() => props.onCustom?.()}
+          >
+            {language.t("customProvider.title")}
+          </Button>
+        </Show>
         <Button
           variant="ghost"
           class={props.mobile ? "w-full !h-10 !justify-start" : "flex-1 !justify-start"}
-          icon="outline-settings"
-          onClick={() => props.onCustom?.()}
+          icon="outline-sliders"
+          onClick={() => props.onManage()}
         >
-          {language.t("customProvider.title")}
+          {language.t("dialog.model.manage")}
         </Button>
+      </div>
+      <Show when={props.onConnect}>
+        <div class={props.mobile ? "contents" : "flex justify-center"}>
+          <Button
+            variant="ghost"
+            class={props.mobile ? "w-full !h-10 !justify-center" : "!justify-center"}
+            icon="plus"
+            onClick={() => props.onConnect?.()}
+          >
+            {language.t("command.provider.connect")}
+          </Button>
+        </div>
       </Show>
-      <Button
-        variant="ghost"
-        class={props.mobile ? "w-full !h-10 !justify-start" : "flex-1 !justify-start"}
-        icon="outline-sliders"
-        onClick={() => props.onManage()}
-      >
-        {language.t("dialog.model.manage")}
-      </Button>
     </div>
   )
 }
@@ -715,6 +740,12 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
 
   const location = useWorkspaceLocation()
   const custom = createCustomProviderEditor(() => location().directory, props.model)
+
+  const connect = async () => {
+    const { DialogConnectProvider } = await import("@/providers/connect/dialog")
+    // Pushed so closing the connect flow returns to this model picker.
+    void dialog.push(() => <DialogConnectProvider directory={location().directory} selection={props.model} />)
+  }
 
   const flyoutRect = () => (flyoutRef?.isConnected ? flyoutRef.getBoundingClientRect() : undefined)
 
@@ -1040,6 +1071,7 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
         <ModelPickerActions
           onCustom={custom.available() ? () => void custom.open() : undefined}
           onManage={manage}
+          onConnect={connect}
         />
         <Show when={chatgptPlan()}>
           <ChatgptPlanFooter />

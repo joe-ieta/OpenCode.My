@@ -2294,10 +2294,29 @@ test("LM Studio native import uses instance context and never pins an unloaded m
   })
 })
 
-test("model picker bottom actions open custom providers and model management with back navigation", async ({ page }) => {
-  await openSession(page, { name: "ModelPickerActions", ...customProviderFixture().config })
+test("model picker bottom actions open provider connections, custom providers and model management with back navigation", async ({
+  page,
+}) => {
+  const fixture = customProviderFixture()
+  await openSession(page, {
+    name: "ModelPickerActions",
+    ...fixture.config,
+    integrations: [
+      { id: "openai", name: "OpenAI", methods: [{ type: "key", label: "API key" }], connections: [] },
+    ],
+  })
   await page.locator('[data-action="composer-model"]').click()
   const picker = page.getByRole("dialog", { name: "Select model", exact: true })
+
+  await picker.getByRole("button", { name: "Connect an integration", exact: true }).click()
+  const integrations = page.getByRole("dialog", { name: "Integrations", exact: true })
+  await expect(integrations).toBeVisible()
+  await expect(integrations.getByRole("searchbox", { name: "Search providers", exact: true })).toBeFocused()
+  await expect(integrations.getByRole("button", { name: "OpenAI", exact: true })).toBeVisible()
+  await expect(integrations.getByText("Private gateway", { exact: true })).toHaveCount(0)
+  await page.keyboard.press("Escape")
+  await expect(integrations).toBeHidden()
+  await expect(picker).toBeVisible()
 
   await picker.getByRole("button", { name: "Manage models", exact: true }).click()
   const manage = page.getByRole("dialog", { name: "Manage models", exact: true })
