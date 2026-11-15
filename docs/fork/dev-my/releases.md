@@ -19,7 +19,8 @@
 - 2026-11-15 公开为正式发行并设为 GitHub Latest。`origin/dev-my` 和发行标签均核对到源码提交 `9e7ae48438f7c1638cd686d5213b4c1572814264`。[GitHub Release](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.8)
 - Side bar 默认按项目分组，可用图标切换到按最近活动排序的列表。Home 项目行显示运行状态。模型设置新增已保存文本模型的测试、取消和重试，自动发现的模型进入运行时目录。
 - Windows 沿用已通过用户安装验收的 NSIS 安装包，282,168,224 字节，SHA256 为 `16adf124c1742d42d7bd2ae4553172553358e2edc49e5fcfa481c955c9ab2af1`。中英文默认模式专项 Chromium 回归 2/2 通过，Windows 和 WSL 的 `bun run check` 均为 35/35。
-- Linux amd64 和 arm64 各提供 AppImage 与 deb。四包均解包核对架构、桌面入口、ASAR 和 CLI 版本。两架构用 Windows 同一模型快照比对 8,639 个模型，包内 CLI 服务发现、V1 确认和历史迁移冒烟均通过。arm64 冒烟通过 QEMU 执行，Linux 桌面安装待手工验收。快照 SHA256 为 `98a4edfea42662f40c44f21f42c710e96d96328d03ef9ff7c524038e656afbbf`。
+- Linux amd64 和 arm64 各提供 AppImage 与 deb。四包均解包核对架构、桌面入口、ASAR 和 CLI 版本。两架构用 Windows 同一模型快照比对 8,639 个模型，包内 CLI 服务发现、V1 确认和历史迁移冒烟均通过。arm64 冒烟通过 QEMU 执行。快照 SHA256 为 `98a4edfea42662f40c44f21f42c710e96d96328d03ef9ff7c524038e656afbbf`。
+- 用户确认 Linux amd64 和 arm64 的安装测试均已通过，中英文发布说明已补记验收结果。
 - 三份更新清单的 SHA512 和大小与对应安装包一致。联合 `SHA256SUMS` 覆盖五个安装包，GitHub 公开发行的 10 个资产均已逐项核对大小和 SHA256。
 
 ## v2.3.0-my.6 Windows x64 本地审核版
