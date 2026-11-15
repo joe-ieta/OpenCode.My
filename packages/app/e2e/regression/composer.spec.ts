@@ -1284,7 +1284,7 @@ test("keeps a narrow session composer contained when invoking a built-in", async
   await expect(editor).toBeEmpty()
 })
 
-test("keeps focus in a dialog that replaces the model dialog and returns it to the composer caret", async ({
+test("keeps focus in model management and restores the composer caret after both dialogs close", async ({
   page,
 }) => {
   const { editor } = await openSession(page, {
@@ -1297,7 +1297,7 @@ test("keeps focus in a dialog that replaces the model dialog and returns it to t
   await editor.press("ArrowLeft")
   await editor.press("ArrowLeft")
   await editor.press("ArrowLeft")
-  // Clicking the trigger leaves focus at the caret, so the replacing dialog returns it there.
+  // Clicking the trigger leaves focus at the caret so the model picker can restore it.
   await page.locator('[data-component="composer"] [data-action="composer-model"]').click()
 
   const models = page.getByRole("dialog", { name: "Select model", exact: true })
@@ -1313,6 +1313,9 @@ test("keeps focus in a dialog that replaces the model dialog and returns it to t
   await expect(search).toBeFocused()
   await page.keyboard.press("Escape")
   await expect(manage).toBeHidden()
+  await expect(models).toBeVisible()
+  await page.keyboard.press("Escape")
+  await expect(models).toBeHidden()
   await expect(editor).toBeFocused()
   await page.keyboard.type(",")
   await expect(editor).toHaveText("keep, me")
