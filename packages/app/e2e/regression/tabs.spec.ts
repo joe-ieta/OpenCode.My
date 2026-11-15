@@ -1403,7 +1403,12 @@ test("Side bar switches between project navigation and a most-recent list with g
   if (!projectNewSessionIcon) throw new Error("Missing project new-session icon")
   await sidebar.getByRole("heading", { name: "Other", exact: true }).hover()
   await sidebar.getByRole("button", { name: "Pin project Other", exact: true }).click()
-  await sidebar.getByRole("button", { name: "Collapse project Other", exact: true }).click()
+
+  const collapse = sidebar.getByRole("button", { name: "Collapse project Other", exact: true })
+  const expand = sidebar.getByRole("button", { name: "Expand project Other", exact: true })
+  await expect(collapse.locator(":scope > svg use")).toHaveAttribute("href", "#opencode-v2-icon-file-tree-active")
+  await collapse.click()
+  await expect(expand.locator(":scope > svg use")).toHaveAttribute("href", /^#opencode-v2-icon-(?:new-)?folder$/)
   await expect(titles).toHaveText([a.title, c.title])
   await list.click()
   await expect(list).toHaveAttribute("aria-pressed", "true")
@@ -1429,7 +1434,9 @@ test("Side bar switches between project navigation and a most-recent list with g
   await expect(sidebar.getByTitle("3 projects", { exact: true })).toHaveText("3")
   await expect(addProject).toBeVisible()
   await expect(newSession).toHaveCount(0)
-  await expect(sidebar.getByRole("button", { name: "Expand project Other", exact: true })).toBeVisible()
+  await expect(expand).toBeVisible()
+  await expand.click()
+  await expect(collapse.locator(":scope > svg use")).toHaveAttribute("href", "#opencode-v2-icon-file-tree-active")
 })
 
 for (const [locale, title, grouping, projectMode, listMode, projectCount, addProject, newSession] of [
