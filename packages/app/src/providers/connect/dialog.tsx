@@ -369,10 +369,15 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
   const remove = (provider: IntegrationInfo) => {
     const accounts = providerAccounts(provider)
 
-    if (accounts.length === 0) return
+    if (store.removing || accounts.length === 0) return
     setStore("removing", provider.id)
-    void Promise.all(accounts.map((account) => sdk.api.credential.remove({ credentialID: account.id })))
-      .then(() => accountActions.refresh())
+    void Promise.allSettled(accounts.map((account) => sdk.api.credential.remove({ credentialID: account.id })))
+      .then(async (results) => {
+        // A request can fail after another credential has already been deleted.
+        await accountActions.refresh().catch(() => undefined)
+        const failed = results.find((result) => result.status === "rejected")
+        if (failed) throw failed.reason
+      })
       .then(() =>
         showToast({
           variant: "success",
@@ -471,7 +476,11 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
                               <span role="alert" class="min-w-0 flex-1 truncate font-[440] text-v2-text-text-base">
                                 {language.t("dialog.provider.disconnect.confirm", { provider: provider.name })}
                               </span>
-                              <Button variant="ghost-muted" onClick={() => cancel(provider.id)}>
+                              <Button
+                                variant="ghost-muted"
+                                disabled={!!store.removing}
+                                onClick={() => cancel(provider.id)}
+                              >
                                 {language.t("common.cancel")}
                               </Button>
                               <Button
@@ -536,6 +545,7 @@ function ProviderPicker(props: { directory?: string; onSelect: (provider: string
                                 variant="ghost-muted"
                                 size="small"
                                 class="me-1 shrink-0"
+                                disabled={!!store.removing}
                                 icon={<Icon name="trash" size="small" />}
                                 aria-label={language.t("dialog.provider.disconnect.action", {
                                   provider: provider.name,

@@ -141,6 +141,9 @@ export const dict = {
   "palette.group.files": "檔案",
 
   "dialog.provider.search.placeholder": "搜尋提供者",
+  "dialog.provider.disconnect": "移除",
+  "dialog.provider.disconnect.action": "移除 {{provider}}",
+  "dialog.provider.disconnect.confirm": "移除 {{provider}} 及其已儲存的憑證？",
   "dialog.provider.empty": "找不到提供者",
   "dialog.provider.group.popular": "熱門",
   "dialog.provider.tag.recommended": "推薦",

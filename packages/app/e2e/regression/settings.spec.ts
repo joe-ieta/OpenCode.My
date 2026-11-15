@@ -2064,6 +2064,49 @@ test("providers: the connect dialog lists connected providers and manages their 
   await expect(openaiRow.locator('[data-slot="provider-connected"]')).toHaveCount(0)
 })
 
+test("providers: a partial removal refreshes the remaining account so it can be retried", async ({ page }) => {
+  const accounts = [
+    { type: "credential", id: "cred_primary", label: "Primary", method: "key" },
+    { type: "credential", id: "cred_backup", label: "Backup", method: "key" },
+  ]
+  const { settings } = await open(page, {
+    integrations: () => [
+      { id: "openai", name: "OpenAI", methods: [{ type: "key", label: "API key" }], connections: accounts },
+    ],
+    onCredentialRemove: (credentialID) => {
+      const index = accounts.findIndex((account) => account.id === credentialID)
+      if (index >= 0) accounts.splice(index, 1)
+    },
+  })
+  await page.route(
+    "**/api/credential/cred_backup",
+    (route) =>
+      route.fulfill({
+        status: 500,
+        json: { name: "UnknownError", data: { message: "Could not remove the backup credential" } },
+      }),
+    { times: 1 },
+  )
+
+  await settings.getByRole("tab", { name: "Providers", exact: true }).click()
+  await settings.getByRole("button", { name: "Show more providers", exact: true }).click()
+  const dialog = page.getByRole("dialog", { name: "Integrations", exact: true })
+  const badge = dialog.locator('[data-provider-id="openai"] [data-slot="provider-connected"]')
+  const remove = dialog.getByRole("button", { name: "Remove OpenAI", exact: true })
+  const confirm = dialog.getByRole("button", { name: "Remove", exact: true })
+
+  await expect(badge).toHaveText("Primary")
+  await remove.click()
+  await confirm.click()
+  await expect(page.getByText("Request failed", { exact: true })).toBeVisible()
+  await expect(badge).toHaveText("Backup")
+
+  await remove.click()
+  await confirm.click()
+  await expect(badge).toHaveCount(0)
+  await expect(remove).toHaveCount(0)
+})
+
 test("providers: adding an account starts a lone method once", async ({ page, context }) => {
   await context.route("https://auth.example.test/**", (route) => route.fulfill({ body: "Sign in" }))
   const attempts: string[] = []
