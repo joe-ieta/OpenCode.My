@@ -815,6 +815,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                     newSessionButton={
                                       <RecentlyClosedTabsMenu
                                         size="small"
+                                        icon={<Icon name="edit" />}
                                         onNewTab={openNewTab}
                                         tooltip={
                                           <>

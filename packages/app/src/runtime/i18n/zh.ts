@@ -411,6 +411,7 @@ export const dict = {
   "sidebar.grouping.none": "列表",
   "sidebar.projectSessions.title": "项目会话",
   "sidebar.projectSessions.summary": "活跃会话：{{active}} · 会话总数：{{sessions}} · 项目总数：{{projects}}",
+  "sidebar.projects.count.other": "{{count}} 个项目",
   "sidebar.draft.unsent": "草稿（未发送）",
   "sidebar.session.branch": "分支：{{branch}}",
   "sidebar.session.worktree": "工作树：{{path}}",

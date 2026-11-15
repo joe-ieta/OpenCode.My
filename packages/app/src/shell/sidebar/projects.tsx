@@ -23,7 +23,7 @@ import { Button } from "@opencode/ui/button"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
-import { Select } from "@opencode/ui/select"
+import { Tooltip } from "@opencode/ui/tooltip"
 import { displayName } from "@opencode/ui/project-avatar"
 import { pathKey } from "@/workspaces/path-key"
 import { setSidebarUnread } from "@/shell/sidebar-peek"
@@ -895,82 +895,96 @@ export function SidebarProjects(props: {
         }}
       >
         <>
-          <div class="mb-2 flex min-h-7 shrink-0 flex-wrap items-center gap-x-1 [app-region:no-drag]">
-            <h2 class="min-w-0 truncate text-[13px] leading-4 font-medium text-v2-text-text-muted">
+          <div class="mb-2 flex h-7 min-w-0 shrink-0 items-center gap-0.5 [app-region:no-drag]">
+            <h2
+              class="min-w-0 truncate text-[13px] leading-4 font-medium text-v2-text-text-muted"
+              title={language.t("sidebar.projectSessions.title")}
+            >
               {language.t("sidebar.projectSessions.title")}
             </h2>
-            <div class="ms-auto flex min-w-0 items-center gap-1">
-              <Select
-                options={["project", "none"] as const}
-                current={view[0].mode}
-                appearance="small"
-                surface="invisible"
-                aria-label={language.t("sidebar.grouping.label")}
-                label={(option) => language.t(`sidebar.grouping.${option}`)}
-                onSelect={(option) => {
-                  if (!option || !view[3]()) return
-                  view[1](() => ({ mode: option }))
-                  scrollRef.scrollTop = 0
-                }}
-                class="min-w-0"
-              />
-              <Show when={listMode()}>
-                <span
-                  class="shrink-0 whitespace-nowrap px-1 text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
-                  title={language.t("sidebar.projectSessions.summary", summary())}
-                >
-                  {summary().active}/{summary().sessions}/{summary().projects}
-                </span>
-                {props.newSessionButton}
-              </Show>
-              <Show when={!listMode()}>
-                <span
-                  class="shrink-0 px-1 text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
-                  title={language.plural("sidebar.projects.count", projectCount())}
-                >
-                  {projectCount()}
-                </span>
-                <Show
-                  when={servers.visible.length === 1}
-                  fallback={
-                    <Menu gutter={6} modal={false} placement="bottom-end">
-                      <Menu.Trigger
-                        as={IconButton}
-                        variant="ghost-muted"
+            <div role="group" aria-label={language.t("sidebar.grouping.label")} class="flex shrink-0 items-center gap-0.5">
+              <For each={["project", "none"] as const}>
+                {(mode) => {
+                  const label = () => language.t(`sidebar.grouping.${mode}`)
+                  const selected = () => view[0].mode === mode
+
+                  return (
+                    <Tooltip value={label()} appearance="compact" placement="bottom" class="flex">
+                      <IconButton
                         size="small"
-                        icon={<Icon name="folder-add-left" />}
-                        aria-label={language.t("home.project.add")}
-                        disabled={!servers.visible.length}
+                        variant="ghost-muted"
+                        icon={<Icon name={mode === "project" ? "folder" : "bullet-list"} size="small" />}
+                        aria-label={label()}
+                        aria-pressed={selected()}
+                        state={selected() ? "pressed" : undefined}
+                        disabled={!view[3]()}
+                        onClick={() => {
+                          if (selected()) return
+                          view[1](() => ({ mode }))
+                          scrollRef.scrollTop = 0
+                        }}
                       />
-                      <Menu.Portal>
-                        <Menu.Content>
-                          <For each={servers.visible}>
-                            {(conn) => (
-                              <Menu.Item
-                                disabled={isServerFailed(global.servers.health[ServerConnection.key(conn)])}
-                                onSelect={() => projectActions.choose(conn)}
-                              >
-                                {serverName(conn)}
-                              </Menu.Item>
-                            )}
-                          </For>
-                        </Menu.Content>
-                      </Menu.Portal>
-                    </Menu>
-                  }
-                >
-                  <IconButton
-                    variant="ghost-muted"
-                    size="small"
-                    icon={<Icon name="folder-add-left" />}
-                    aria-label={language.t("home.project.add")}
-                    title={language.t("home.project.add")}
-                    disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
-                    onClick={() => projectActions.choose(servers.visible[0])}
-                  />
-                </Show>
-              </Show>
+                    </Tooltip>
+                  )
+                }}
+              </For>
             </div>
+            <Show when={listMode()}>
+              <span
+                class="ms-auto shrink-0 whitespace-nowrap text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
+                title={language.t("sidebar.projectSessions.summary", summary())}
+              >
+                {summary().active}/{summary().sessions}/{summary().projects}
+              </span>
+              {props.newSessionButton}
+            </Show>
+            <Show when={!listMode()}>
+              <span
+                class="ms-auto shrink-0 text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
+                title={language.plural("sidebar.projects.count", projectCount())}
+              >
+                {projectCount()}
+              </span>
+              <Show
+                when={servers.visible.length === 1}
+                fallback={
+                  <Menu gutter={6} modal={false} placement="bottom-end">
+                    <Menu.Trigger
+                      as={IconButton}
+                      variant="ghost-muted"
+                      size="small"
+                      icon={<Icon name="folder-add-left" />}
+                      aria-label={language.t("home.project.add")}
+                      disabled={!servers.visible.length}
+                    />
+                    <Menu.Portal>
+                      <Menu.Content>
+                        <For each={servers.visible}>
+                          {(conn) => (
+                            <Menu.Item
+                              disabled={isServerFailed(global.servers.health[ServerConnection.key(conn)])}
+                              onSelect={() => projectActions.choose(conn)}
+                            >
+                              {serverName(conn)}
+                            </Menu.Item>
+                          )}
+                        </For>
+                      </Menu.Content>
+                    </Menu.Portal>
+                  </Menu>
+                }
+              >
+                <IconButton
+                  variant="ghost-muted"
+                  size="small"
+                  icon={<Icon name="folder-add-left" />}
+                  aria-label={language.t("home.project.add")}
+                  title={language.t("home.project.add")}
+                  disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
+                  onClick={() => projectActions.choose(servers.visible[0])}
+                />
+              </Show>
+            </Show>
           </div>
         </>
         <div

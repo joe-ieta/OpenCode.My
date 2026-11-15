@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test, type Locator, type Page } from "@playwright/test"
 import type { OpenCodeEvent, SessionActivityInfo, SessionMessageInfo } from "@opencode/client/promise"
 import {
   NO_PROVIDER,
@@ -82,7 +82,7 @@ test("Side bar keeps project history and running sessions separate from the offi
   await expect(sidebar.locator("[data-titlebar-tab-title]")).toHaveText([a.title])
   await expect(running).toHaveCount(0)
   await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toHaveCount(0)
-  await expect(sidebar.getByRole("button", { name: "Group sessions By project", exact: true })).toHaveCount(0)
+  await expect(sidebar.getByRole("group", { name: "Group sessions", exact: true })).toHaveCount(0)
   await sidebar.locator(`a[data-titlebar-tab-link][href="${sessionHref(a.id)}"]`).hover()
   const preview = page.locator('[data-component="session-tab-popover"]')
   await expect(preview).toContainText(a.title)
@@ -263,7 +263,7 @@ test("sidebar and Home share projects and history without opening session tabs",
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Empty project", "Shared history"])
   await expect(sidebar.getByRole("button", { name: "Close tab", exact: true })).toHaveCount(0)
   await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
-  await expect(sidebar.getByRole("button", { name: /^Group sessions/ })).toHaveText("By project")
+  await expect(sidebar.getByRole("button", { name: "By project", exact: true })).toHaveAttribute("aria-pressed", "true")
   await expect(home.locator('[data-component="home-project-row"] [data-slot="home-row-label"]')).toHaveText([
     "Shared history",
     "Empty project",
@@ -1383,28 +1383,35 @@ test("Side bar switches between project navigation and a most-recent list with g
   await expectSessionTitle(page, a.title)
   const sidebar = page.locator('[data-slot="vertical-tabs-sidebar"]')
   const titles = sidebar.locator("[data-titlebar-tab-title]")
-  const mode = sidebar.getByRole("button", { name: /^Group sessions/ })
+  const byProject = sidebar.getByRole("button", { name: "By project", exact: true })
+  const list = sidebar.getByRole("button", { name: "List", exact: true })
   const addProject = sidebar.getByRole("button", { name: "Add project", exact: true })
   const newSession = sidebar.getByRole("button", { name: "New session", exact: true })
   await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
-  await expect(mode).toHaveText("By project")
+  await expect(byProject).toHaveAttribute("aria-pressed", "true")
   await expect(sidebar.getByTitle("3 projects", { exact: true })).toHaveText("3")
   await expect(addProject).toBeVisible()
   await expect(newSession).toHaveCount(0)
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Other", "Quiet", "Tabs"])
   await expect(titles).toHaveText([b.title, a.title, c.title])
 
+  const projectNewSessionIcon = await sidebar
+    .getByRole("button", { name: "New session in Tabs", exact: true, includeHidden: true })
+    .locator("svg use")
+    .getAttribute("href")
+
+  if (!projectNewSessionIcon) throw new Error("Missing project new-session icon")
   await sidebar.getByRole("heading", { name: "Other", exact: true }).hover()
   await sidebar.getByRole("button", { name: "Pin project Other", exact: true }).click()
   await sidebar.getByRole("button", { name: "Collapse project Other", exact: true }).click()
   await expect(titles).toHaveText([a.title, c.title])
-  await mode.click()
-  await page.getByRole("option", { name: "List", exact: true }).click()
-  await expect(mode).toHaveText("List")
+  await list.click()
+  await expect(list).toHaveAttribute("aria-pressed", "true")
   const counts = sidebar.getByText("1/3/3", { exact: true })
   await expect(counts).toBeVisible()
   await expect(addProject).toHaveCount(0)
   await expect(newSession).toBeVisible()
+  await expect(newSession.locator("svg use")).toHaveAttribute("href", projectNewSessionIcon)
   const [counterBox, buttonBox] = await Promise.all([counts.boundingBox(), newSession.boundingBox()])
   expect(buttonBox!.x).toBeGreaterThanOrEqual(counterBox!.x + counterBox!.width)
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveCount(0)
@@ -1412,18 +1419,87 @@ test("Side bar switches between project navigation and a most-recent list with g
   await page.keyboard.press("Control+1")
   await expectPath(page, sessionHref(c.id))
   await page.reload()
-  await expect(mode).toHaveText("List")
+  await expect(list).toHaveAttribute("aria-pressed", "true")
   await expect(titles).toHaveText([c.title, b.title, a.title])
   await newSession.click()
   await expect(page.locator('[data-component="new-session"]')).toBeVisible()
-  await mode.click()
-  await page.getByRole("option", { name: "By project", exact: true }).click()
+  await byProject.click()
+  await expect(byProject).toHaveAttribute("aria-pressed", "true")
   await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
   await expect(sidebar.getByTitle("3 projects", { exact: true })).toHaveText("3")
   await expect(addProject).toBeVisible()
   await expect(newSession).toHaveCount(0)
   await expect(sidebar.getByRole("button", { name: "Expand project Other", exact: true })).toBeVisible()
 })
+
+for (const [locale, title, grouping, projectMode, listMode, projectCount, addProject, newSession] of [
+  ["en", "Project sessions", "Group sessions", "By project", "List", "1 project", "Add project", "New session"],
+  ["zh", "项目会话", "会话分组", "按项目", "列表", "1 个项目", "添加项目", "新建会话"],
+] as const) {
+  test(`Side bar keeps project session controls on one line in ${locale}`, async ({ page }) => {
+    await mockWorkspace(page, {
+      name: "Compact sidebar",
+      sessions: [a],
+      seed: { locale, settings: { appearance: { tabLayout: "sidebar" } } },
+    })
+    await page.goto(sessionHref(a.id))
+    await expectSessionTitle(page, a.title)
+
+    const sidebar = page.locator('[data-slot="vertical-tabs-sidebar"]')
+    const heading = sidebar.getByRole("heading", { name: title, exact: true })
+    const mode = sidebar.getByRole("group", { name: grouping, exact: true })
+    const byProject = mode.getByRole("button", { name: projectMode, exact: true })
+    const list = mode.getByRole("button", { name: listMode, exact: true })
+    const count = sidebar.getByTitle(projectCount, { exact: true })
+    const add = sidebar.getByRole("button", { name: addProject, exact: true })
+
+    async function expectOneLine(count: Locator, action: Locator) {
+      await expect(action).toBeVisible()
+
+      const [titleBox, modeBox, countBox, actionBox, sidebarBox] = await Promise.all(
+        [heading, mode, count, action, sidebar].map((item) => item.boundingBox()),
+      )
+
+      if (!titleBox || !modeBox || !countBox || !actionBox || !sidebarBox) throw new Error("Incomplete Side bar header")
+      expect(titleBox.width).toBeGreaterThan(0)
+      expect(modeBox.width).toBeLessThanOrEqual(42)
+      const center = modeBox.y + modeBox.height / 2
+
+      for (const box of [titleBox, countBox, actionBox]) {
+        expect(Math.abs(box.y + box.height / 2 - center)).toBeLessThanOrEqual(1)
+      }
+
+      expect(modeBox.x + modeBox.width).toBeLessThanOrEqual(countBox.x)
+      expect(actionBox.x + actionBox.width).toBeLessThanOrEqual(sidebarBox.x + sidebarBox.width)
+    }
+
+    await expect(byProject).toHaveAttribute("aria-pressed", "true")
+    await expectOneLine(count, add)
+    expect(await heading.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
+
+    const handle = await sidebar.locator('[data-component="resize-handle"]').boundingBox()
+
+    if (!handle) throw new Error("Missing Side bar resize handle")
+    const x = handle.x + handle.width / 2
+    const y = handle.y + handle.height / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x - 200, y)
+    await page.mouse.up()
+    await expect(sidebar).toHaveCSS("width", "136px")
+    await expectOneLine(count, add)
+
+    await list.hover()
+    await expect(page.getByRole("tooltip")).toHaveText(listMode)
+    await list.press("Enter")
+    await expect(list).toHaveAttribute("aria-pressed", "true")
+    await expect(byProject).toHaveAttribute("aria-pressed", "false")
+    await expectOneLine(
+      sidebar.getByText("0/1/1", { exact: true }),
+      sidebar.getByRole("button", { name: newSession, exact: true }),
+    )
+  })
+}
 
 test("recently closed shows ten sessions and searches older closures in close order", async ({ page }) => {
   const sessions = Array.from({ length: 100 }, (_, index) => ({
