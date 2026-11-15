@@ -527,6 +527,7 @@ test("Side bar tracks unread results while project rows are collapsed", async ({
   const group = sidebar.getByRole("heading", { name: "Background", exact: true })
   const toggle = page.locator('[data-slot="collapsed-sidebar-toggle"]').getByRole("button")
   await expect(running.getByRole("button").filter({ hasText: "Background task" })).toBeVisible()
+  await expect(group.getByRole("img", { name: "Running sessions", exact: true })).toBeVisible()
   await sidebar.getByRole("button", { name: "Collapse project Background", exact: true }).click()
   await sidebar.getByRole("button", { name: "Collapse project UnreadCurrent", exact: true }).click()
   await expect(sidebar.locator("[data-titlebar-tab-slot]")).toHaveCount(0)
@@ -542,6 +543,7 @@ test("Side bar tracks unread results while project rows are collapsed", async ({
     },
   ])
   await expect(running.locator('[data-slot="active-sessions-empty"]')).toBeVisible()
+  await expect(group.getByRole("img", { name: "Running sessions", exact: true })).toHaveCount(0)
   await expect(group.getByRole("img", { name: "Unread sessions", exact: true })).toBeVisible()
   await sidebar.getByRole("button", { name: "Toggle sidebar", exact: true }).click()
   await expect(toggle).toHaveAttribute("aria-label", "Toggle sidebar, unread sessions")

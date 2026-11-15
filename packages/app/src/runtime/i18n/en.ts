@@ -1025,6 +1025,7 @@ export const dict = {
   "sidebar.project.pin": "Pin project {{project}}",
   "sidebar.project.unpin": "Unpin project {{project}}",
   "sidebar.project.unread": "Unread sessions",
+  "sidebar.project.running": "Running sessions",
   "sidebar.history.hide": "Hide from recent sessions",
   "sidebar.recent.more.one": "More ({{count}})",
   "sidebar.recent.more.other": "More ({{count}})",
