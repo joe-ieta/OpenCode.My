@@ -14,6 +14,13 @@
 
 `v2.3.0-my.5` 为 Windows 和 Linux 的正式发行，已设为 GitHub Latest。全部平台统一使用 GitHub 完整安装包，Gitee 已停用。需要独立下载源时可参考 [自建发布物存储](../KB/self-hosted-release-storage.md) 草案，当前尚未接入。历史源码标签不代表旧 Release 资产仍可下载。
 
+## v2.3.0-my.6 Windows x64 本地审核版
+
+- 本地构建标签指向 `30e8e40e5e2bf7acf227abbb4462990f87d77d88`，官方基线为 `upstream/dev@d432a06b9c`。本版供 Windows 手工安装审核，安装包和标签保存在本地。GitHub Latest 为 `v2.3.0-my.5`。
+- 合入 `720e6c35d5`。模型设置可对已保存的文本模型发起测试、取消或在失败后重试。合入上游 [#57161](https://github.com/anomalyco/opencode/pull/57161) 后，配置的 OpenAI Compatible Provider 可将发现的模型加入运行时目录，手工录入的模型 ID、限额、JSONC 及原有 Custom providers 界面继续沿用。保留 Side bar 的项目运行状态改动。
+- `bun run check` 35/35，lint 0 errors。Core 30/30、Server 19/19、Chromium 13/13，协议和生成客户端一致性检查通过。内置模型快照比对 8,777 个模型，CLI 服务发现和 V1 确认及历史迁移冒烟通过。
+- `dist/releases/v2.3.0-my.6/opencode-desktop-win-x64.exe` 为 282,162,294 字节，SHA256 为 `cd8a8111c0ed69b70e56f733a88cc727e8fc58a3c6059d754da8384d17988806`。NSIS、内嵌应用归档、ASAR 版本和 `latest.yml` 的 SHA512 及大小已核验。安装包未签名，Windows 安装后的界面待手工审核。
+
 ## v2.3.0-my.5 Windows x64 与 Linux amd64/arm64 正式发行
 
 - 构建标签对应 `29d0135d9b784a3cd7489ab9fd67edf7db45aa2c`，包含官方 `dev@d759c548aa`。用户已通过 Windows x64 安装验收，确认在矮窗口可滚动查看完整的模型名称、请求 ID 和上下文限额。[GitHub Release](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.5)
