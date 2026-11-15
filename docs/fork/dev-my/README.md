@@ -9,7 +9,7 @@
 - 2026-11-14，源码基线已同步至 V2 2.3.0 的 `dev@f0089856c0`，合入 227 个上游提交，保留共享项目历史、独立 Side bar、Running、升级迁移及桌面发行补丁。`dev-my` 是桌面维护主线，远端 `sidebar-mode` 保留为 PR 来源引用。二进制与源码同步记录见 [releases.md](releases.md)。
 - 2026-11-14，`dev-my-models` 已合入 `dev-my`，自定义 Provider 与模型管理成为桌面主线的一部分；后续功能不再在临时分支开发。与官方 `dev` 的产品、设计和实现差异汇总见 [dev-my 与官方 dev 的差异](differences.md)。
 - 最新正式发行来自 `09e804577b`。Side bar 悬停提示显示轮次、上下文用量、费用与相对时间，模型选择器新增内置集成连接和凭据移除入口。[v2.3.0-my.12](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.12)
-- Windows x64 已通过手工安装验收。Linux amd64 和 arm64 的 AppImage 与 deb 复用 Windows 的模型快照，通过模型目录比对、CLI 冒烟及解包核验。[发行记录](releases.md)
+- Windows x64、Linux amd64 和 Linux arm64 均已通过手工安装验收。Linux 的 AppImage 与 deb 复用 Windows 的模型快照，通过模型目录比对、CLI 冒烟及解包核验。[发行记录](releases.md)
 - macOS 暂无本 fork 发行验证；`release-my.ts` 支持 Windows x64 与 Linux x64/arm64。Linux arm64 可在 Ubuntu 24.04 x64 上通过 `qemu-user-static`、`libc6-dev-arm64-cross` 和 binfmt 交叉构建及 CLI 冒烟，正式 ARM64 GUI 验收仍需原生 arm64。完整环境准备、构建和排障见 [发布环境与多架构构建](../KB/release-environment.md)。
 - 历史正式版验证（`v2.2.3-dev-my.3`）：Windows 与 WSL Ubuntu 根检查均 35/35；Windows NSIS、ASAR/CLI 版本、7-Zip 完整性、`latest.yml` SHA512 通过；Linux x64/arm64 模型目录冒烟各 7,646 个模型，desktop CLI 冒烟均通过；两架构 ASAR/CLI、AppImage/deb 架构、deb 元数据、更新清单与 10 个资产的服务端 SHA256 均已核对。完整应用单元测试、browser 条件测试和 GUI 回归未在本轮重复运行；ARM64 GUI 尚未原生验收。详细结果见 [releases.md](releases.md)。
 
