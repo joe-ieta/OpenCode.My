@@ -3,8 +3,9 @@ import path from "node:path"
 import { expect } from "bun:test"
 import { Config } from "@opencode/core/config"
 import { Generate } from "@opencode/core/generate"
+import { Model } from "@opencode/schema/model"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
-import { Effect, Layer, Predicate } from "effect"
+import { Effect, Layer, Predicate, Schema } from "effect"
 import { tmpdir } from "../../core/test/fixture/tmpdir"
 import { it } from "../../core/test/lib/effect"
 import { ServerFetch } from "../src/fetch"
@@ -186,7 +187,17 @@ it.live("tests a saved model using its configured endpoint, request ID, and cred
       expect(key.status).toBe(200)
       const catalog = new URL("/api/model", server.base)
       catalog.searchParams.set("location[directory]", tmp.path)
-      expect((await fetch(catalog, { headers: server.headers })).status).toBe(200)
+      const decodeCatalog = Schema.decodeUnknownSync(Schema.Struct({ data: Schema.Array(Model.Info) }))
+      const deadline = Date.now() + 5000
+      // dev-my publishes providers asynchronously. Wait for the saved model as a client would.
+      while (true) {
+        const response = await fetch(catalog, { headers: server.headers })
+        expect(response.status).toBe(200)
+        const available = decodeCatalog(await response.json()).data
+        if (available.some((model) => model.providerID === "fixture" && model.id === "saved")) break
+        if (Date.now() >= deadline) throw new Error("Saved model did not reach the base catalog")
+        await Bun.sleep(75)
+      }
 
       const url = new URL("/api/experimental/generate/test-text", server.base)
       url.searchParams.set("location[directory]", project)
