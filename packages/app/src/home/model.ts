@@ -1,6 +1,6 @@
 import { useGlobal, useServerCtx, type ServerCtx } from "@/runtime/server/runtime"
 import { useSettings } from "@/settings/model"
-import { useLayout } from "@/shell/state/layout"
+import { useLayout, type HomeProjectSelection } from "@/shell/state/layout"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { isServerFailed } from "@/runtime/server/health-machine"
 import { usePluginServers } from "@/runtime/plugin/servers"
@@ -18,17 +18,51 @@ import {
   type HomeSelectionEvent,
 } from "./machine"
 
+// Side bar includes projects known to the server, even if this client has not used them.
+function homeProjects(ctx: ServerCtx | undefined, sidebar: boolean) {
+  return (sidebar ? ctx?.projects.visible() : ctx?.projects.used()) ?? []
+}
+
+export function createHomeSessionActions(selection: () => HomeProjectSelection) {
+  const global = useGlobal()
+  const servers = useServers()
+  const settings = useSettings()
+  const sessions = createProjectSessionActions()
+
+  const target = () => {
+    const current = selection()
+    const preferred = servers.visible.find((conn) => ServerConnection.key(conn) === current.server)
+    const conn = preferred ?? servers.visible[0]
+
+    if (!conn) return
+    const ctx = global.serverCtx(ServerConnection.key(conn))
+    const projects = homeProjects(ctx, settings.appearance.tabLayout() === "sidebar")
+    const directory = preferred && current.directory
+    const selected = directory ? projects.find((project) => pathKey(project.worktree) === pathKey(directory)) : undefined
+    const project = selected ?? ctx?.projects.last() ?? projects[0]
+
+    if (project) return { conn, project }
+  }
+
+  return {
+    ...sessions,
+    newSessionProject: () => target()?.project,
+    openNewSession: () => {
+      const value = target()
+
+      if (value) sessions.openProjectNewSession(value.conn, value.project.worktree)
+    },
+  }
+}
+
 export function createHomeController() {
   const layout = useLayout()
   const global = useGlobal()
   const servers = useServers()
   const pluginServers = usePluginServers()
-  const sessions = createProjectSessionActions()
   const settings = useSettings()
 
-  // Side bar includes projects known to the server, even if this client has not used them.
-  const projectsFor = (ctx: ServerCtx | undefined) =>
-    (settings.appearance.tabLayout() === "sidebar" ? ctx?.projects.visible() : ctx?.projects.used()) ?? []
+  const projectsFor = (ctx: ServerCtx | undefined) => homeProjects(ctx, settings.appearance.tabLayout() === "sidebar")
 
   const env = createMemo(
     (): HomeEnvSnapshot => ({
@@ -109,6 +143,7 @@ export function createHomeController() {
   onCleanup(() => dispatch({ type: "disposed" }))
 
   const selection = createMemo(() => selectHomeSelection(machine()), undefined, { equals: sameHomeSelection })
+  const sessions = createHomeSessionActions(selection)
 
   const focusedServer = createMemo(() => {
     const key = selection().server
@@ -125,8 +160,6 @@ export function createHomeController() {
 
     return directory ? projects().find((project) => pathKey(project.worktree) === pathKey(directory)) : undefined
   })
-
-  const newSessionProject = createMemo(() => selectedProject() ?? focusedServerCtx()?.projects.last() ?? projects()[0])
 
   return {
     selection: {
@@ -145,19 +178,13 @@ export function createHomeController() {
     project: {
       list: projects,
       selected: selectedProject,
-      newSession: newSessionProject,
+      newSession: sessions.newSessionProject,
       forServer: (conn: ServerConnection.Any) => projectsFor(global.serverCtx(ServerConnection.key(conn))),
       select: (conn: ServerConnection.Any, directory: string) =>
         send({ type: "project.toggled", server: ServerConnection.key(conn), directory }),
       add: (conn: ServerConnection.Any, directories: string[]) =>
         send({ type: "project.add", server: ServerConnection.key(conn), directories }),
-      openNewSession: () => {
-        const conn = focusedServer()
-        const project = newSessionProject()
-
-        if (!conn || !project) return
-        sessions.openProjectNewSession(conn, project.worktree)
-      },
+      openNewSession: sessions.openNewSession,
       openProjectNewSession: sessions.openProjectNewSession,
       openProjectSession: sessions.openProjectSession,
     },

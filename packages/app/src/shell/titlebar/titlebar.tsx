@@ -24,6 +24,7 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useSettings } from "@/settings/model"
+import { createHomeSessionActions } from "@/home/model"
 import { WindowsAppMenu } from "./windows-menu"
 import { createTitlebarHistory } from "./history"
 import { TitlebarTabStrip } from "@/shell/titlebar/tab-strip"
@@ -293,6 +294,8 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
             }
 
             const openNewTab = () => openDraft(uuid())
+            const homeSessions = createHomeSessionActions(layout.home.selection)
+            const sidebarMode = () => settings.appearance.tabLayout() === "sidebar"
 
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
 
@@ -796,14 +799,13 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                             </Show>
                             <div class="flex w-full shrink-0 flex-col gap-[3px]">
                               <Show when={!homeInSidebarHeader()}>{homeButton(true)}</Show>
-                              {searchButton(true)}
-                              <Show when={settings.appearance.tabLayout() !== "sidebar"}>
-                                <RecentlyClosedTabsMenu
-                                  vertical
-                                  onNewTab={openNewTab}
-                                  keybind={command.keybindParts("tab.new")}
-                                />
-                              </Show>
+                              <Show when={!sidebarMode()}>{searchButton(true)}</Show>
+                              <RecentlyClosedTabsMenu
+                                vertical
+                                onNewTab={() => (sidebarMode() ? homeSessions.openNewSession() : openNewTab())}
+                                keybind={sidebarMode() ? undefined : command.keybindParts("tab.new")}
+                              />
+                              <Show when={sidebarMode()}>{searchButton(true)}</Show>
                             </div>
                             <div class="h-4 w-full shrink-0" aria-hidden="true" />
                             <div class="flex min-h-0 flex-1 flex-col gap-1">

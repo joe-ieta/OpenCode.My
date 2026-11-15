@@ -18,7 +18,7 @@ import {
 import { openFileLauncher, reviewTabs } from "../utils/side-panel"
 import { mockServers } from "../utils/mock-server"
 import { fixture, mockStressTimeline } from "../utils/session-fixture"
-import { fileNode, mockWorkspace, openSession } from "../utils/workspace"
+import { fileNode, mockWorkspace, newSessionLocation, openSession } from "../utils/workspace"
 import { expectSessionTitle } from "../utils/waits"
 import { openWithDirection } from "../utils/direction"
 
@@ -607,7 +607,7 @@ test("Side bar keeps pinned projects fixed while the regular project list scroll
         '[data-action="vertical-tabs-home"], [data-action="vertical-tabs-new-session"], [data-action="vertical-tabs-search"]',
       )
       .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-action"))),
-  ).toEqual(["vertical-tabs-home", "vertical-tabs-search"])
+  ).toEqual(["vertical-tabs-home", "vertical-tabs-new-session", "vertical-tabs-search"])
   const heading = sidebar.getByRole("heading", { name: "Project 0", exact: true })
   const pin = sidebar.getByRole("button", { name: "Pin project Project 0", exact: true, includeHidden: true })
   const add = sidebar.getByRole("button", { name: "New session in Project 0", exact: true, includeHidden: true })
@@ -647,7 +647,7 @@ test("Side bar keeps pinned projects fixed while the regular project list scroll
     "Pinned projects",
     "Running sessions",
   ])
-  await expect(sidebar.getByTitle("13 projects", { exact: true })).toHaveText("13")
+  await expect(sidebar.getByText("6/12/13", { exact: true })).toBeVisible()
   await expect(pinned.getByTitle("2 pinned projects", { exact: true })).toHaveText("2")
   await expect
     .poll(() =>
@@ -1355,6 +1355,31 @@ test("sidebar grouping keeps servers separate and reorders only the chosen proje
   await expect(titles).toHaveText([c.title, a.title, b.title])
 })
 
+test("Side bar New session opens the project selected on Home", async ({ page }) => {
+  const other = "C:/OpenCode/Other"
+  await mockWorkspace(page, {
+    name: "Tabs",
+    projects: [
+      project({ id: "proj_tabs", directory: "C:/OpenCode/Tabs", name: "Tabs" }),
+      project({ id: "proj_other", directory: other, name: "Other project" }),
+    ],
+    sessions: [a, { ...b, directory: other, projectID: "proj_other" }],
+    seed: { settings: { appearance: { tabLayout: "sidebar" } } },
+  })
+  await page.goto("/")
+
+  const home = page.locator('[data-slot="home-panel"]')
+  const sidebar = page.locator('[data-slot="vertical-tabs-sidebar"]')
+  await home.locator('[data-component="home-project-row"]').filter({ hasText: "Other project" }).click()
+  await home.locator('[data-action="home-new-session"]').click()
+  await expect(newSessionLocation(page)).toContainText("Other project")
+
+  await sidebar.locator(`a[data-titlebar-tab-link][href="${sessionHref(a.id)}"]`).click()
+  await expectSessionTitle(page, a.title)
+  await sidebar.locator('[data-action="vertical-tabs-new-session"]').click()
+  await expect(newSessionLocation(page)).toContainText("Other project")
+})
+
 test("Side bar switches between project navigation and a most-recent list with global counts", async ({ page }) => {
   const directory = "C:/OpenCode/Tabs"
   const other = "C:/OpenCode/Other"
@@ -1386,10 +1411,11 @@ test("Side bar switches between project navigation and a most-recent list with g
   const byProject = sidebar.getByRole("button", { name: "By project", exact: true })
   const list = sidebar.getByRole("button", { name: "List", exact: true })
   const addProject = sidebar.getByRole("button", { name: "Add project", exact: true })
-  const newSession = sidebar.getByRole("button", { name: "New session", exact: true })
+  const newSession = sidebar.locator('[data-slot="vertical-tabs"]').getByRole("button", { name: "New session", exact: true })
+  const counts = sidebar.getByText("1/3/3", { exact: true })
   await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
   await expect(byProject).toHaveAttribute("aria-pressed", "true")
-  await expect(sidebar.getByTitle("3 projects", { exact: true })).toHaveText("3")
+  await expect(counts).toBeVisible()
   await expect(addProject).toBeVisible()
   await expect(newSession).toHaveCount(0)
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Other", "Quiet", "Tabs"])
@@ -1410,9 +1436,9 @@ test("Side bar switches between project navigation and a most-recent list with g
   await collapse.click()
   await expect(expand.locator(":scope > svg use")).toHaveAttribute("href", /^#opencode-v2-icon-(?:new-)?folder$/)
   await expect(titles).toHaveText([a.title, c.title])
+  await expect(counts).toBeVisible()
   await list.click()
   await expect(list).toHaveAttribute("aria-pressed", "true")
-  const counts = sidebar.getByText("1/3/3", { exact: true })
   await expect(counts).toBeVisible()
   await expect(addProject).toHaveCount(0)
   await expect(newSession).toBeVisible()
@@ -1431,7 +1457,7 @@ test("Side bar switches between project navigation and a most-recent list with g
   await byProject.click()
   await expect(byProject).toHaveAttribute("aria-pressed", "true")
   await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
-  await expect(sidebar.getByTitle("3 projects", { exact: true })).toHaveText("3")
+  await expect(counts).toBeVisible()
   await expect(addProject).toBeVisible()
   await expect(newSession).toHaveCount(0)
   await expect(expand).toBeVisible()
@@ -1439,9 +1465,9 @@ test("Side bar switches between project navigation and a most-recent list with g
   await expect(collapse.locator(":scope > svg use")).toHaveAttribute("href", /^#opencode-v2-icon-(?:new-)?folder-open$/)
 })
 
-for (const [locale, title, grouping, projectMode, listMode, projectCount, addProject, newSession] of [
-  ["en", "Project sessions", "Group sessions", "By project", "List", "1 project", "Add project", "New session"],
-  ["zh", "项目会话", "会话分组", "按项目", "列表", "1 个项目", "添加项目", "新建会话"],
+for (const [locale, title, grouping, projectMode, listMode, addProject, newSession] of [
+  ["en", "Project sessions", "Group sessions", "By project", "List", "Add project", "New session"],
+  ["zh", "项目会话", "会话分组", "按项目", "列表", "添加项目", "新建会话"],
 ] as const) {
   test(`Side bar keeps project session controls on one line in ${locale}`, async ({ page }) => {
     await mockWorkspace(page, {
@@ -1457,7 +1483,7 @@ for (const [locale, title, grouping, projectMode, listMode, projectCount, addPro
     const mode = sidebar.getByRole("group", { name: grouping, exact: true })
     const byProject = mode.getByRole("button", { name: projectMode, exact: true })
     const list = mode.getByRole("button", { name: listMode, exact: true })
-    const count = sidebar.getByTitle(projectCount, { exact: true })
+    const count = sidebar.getByText("0/1/1", { exact: true })
     const add = sidebar.getByRole("button", { name: addProject, exact: true })
 
     async function expectOneLine(count: Locator, action: Locator) {
@@ -1502,8 +1528,8 @@ for (const [locale, title, grouping, projectMode, listMode, projectCount, addPro
     await expect(list).toHaveAttribute("aria-pressed", "true")
     await expect(byProject).toHaveAttribute("aria-pressed", "false")
     await expectOneLine(
-      sidebar.getByText("0/1/1", { exact: true }),
-      sidebar.getByRole("button", { name: newSession, exact: true }),
+      count,
+      sidebar.locator('[data-slot="vertical-tabs"]').getByRole("button", { name: newSession, exact: true }),
     )
   })
 }

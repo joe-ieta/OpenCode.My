@@ -396,7 +396,6 @@ export function SidebarProjects(props: {
   const isRunning = (tab: Tab) => !!status[tabKey(tab)]?.loading
 
   const summary = createMemo(() => {
-    if (!listMode()) return { active: 0, sessions: 0, projects: 0 }
     const active = new Set(displayedTabs().filter(isRunning).map(tabKey))
 
     sidebar.sources().forEach(({ conn, ctx }) => {
@@ -932,22 +931,14 @@ export function SidebarProjects(props: {
                 }}
               </For>
             </div>
-            <Show when={listMode()}>
-              <span
-                class="ms-auto shrink-0 whitespace-nowrap text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
-                title={language.t("sidebar.projectSessions.summary", summary())}
-              >
-                {summary().active}/{summary().sessions}/{summary().projects}
-              </span>
-              {props.newSessionButton}
-            </Show>
+            <span
+              class="ms-auto shrink-0 whitespace-nowrap text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
+              title={language.t("sidebar.projectSessions.summary", summary())}
+            >
+              {summary().active}/{summary().sessions}/{summary().projects}
+            </span>
+            <Show when={listMode()}>{props.newSessionButton}</Show>
             <Show when={!listMode()}>
-              <span
-                class="ms-auto shrink-0 text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
-                title={language.plural("sidebar.projects.count", projectCount())}
-              >
-                {projectCount()}
-              </span>
               <Show
                 when={servers.visible.length === 1}
                 fallback={
