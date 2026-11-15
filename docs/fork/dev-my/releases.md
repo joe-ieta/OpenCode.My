@@ -6,17 +6,25 @@
 
 | 通道         | 版本              | 平台               | 下载                                                                               |
 | ------------ | ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| Windows | `v2.3.0-my.5` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.5) |
-| Linux | `v2.3.0-my.5` | Linux amd64/arm64 | [AppImage / deb](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.5) |
+| Windows | `v2.3.0-my.8` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.8) |
+| Linux | `v2.3.0-my.8` | Linux amd64/arm64 | [AppImage / deb](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.8) |
 | Windows 测试（历史，`dev-my`） | `v2.3.0-my.4` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.4) |
 | Windows 测试（历史，`dev-my`） | `v2.3.0-my.3` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.3) |
 | Windows 测试（历史，`dev-my-models`） | `v2.3.0-my.2` | Windows x64 | [NSIS 安装包](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.2) |
 
-`v2.3.0-my.5` 为 Windows 和 Linux 的正式发行，已设为 GitHub Latest。全部平台统一使用 GitHub 完整安装包，Gitee 已停用。需要独立下载源时可参考 [自建发布物存储](../KB/self-hosted-release-storage.md) 草案，当前尚未接入。历史源码标签不代表旧 Release 资产仍可下载。
+`v2.3.0-my.8` 为 Windows 和 Linux 的正式发行，已设为 GitHub Latest。全部平台统一使用 GitHub 完整安装包，Gitee 已停用。需要独立下载源时可参考 [自建发布物存储](../KB/self-hosted-release-storage.md) 草案，当前尚未接入。历史源码标签不代表旧 Release 资产仍可下载。
+
+## v2.3.0-my.8 Windows x64 与 Linux amd64/arm64 正式发行
+
+- 2026-11-15 公开为正式发行并设为 GitHub Latest。`origin/dev-my` 和发行标签均核对到源码提交 `9e7ae48438f7c1638cd686d5213b4c1572814264`。[GitHub Release](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.8)
+- Side bar 默认按项目分组，可用图标切换到按最近活动排序的列表。Home 项目行显示运行状态。模型设置新增已保存文本模型的测试、取消和重试，自动发现的模型进入运行时目录。
+- Windows 沿用已通过用户安装验收的 NSIS 安装包，282,168,224 字节，SHA256 为 `16adf124c1742d42d7bd2ae4553172553358e2edc49e5fcfa481c955c9ab2af1`。中英文默认模式专项 Chromium 回归 2/2 通过，Windows 和 WSL 的 `bun run check` 均为 35/35。
+- Linux amd64 和 arm64 各提供 AppImage 与 deb。四包均解包核对架构、桌面入口、ASAR 和 CLI 版本。两架构用 Windows 同一模型快照比对 8,639 个模型，包内 CLI 服务发现、V1 确认和历史迁移冒烟均通过。arm64 冒烟通过 QEMU 执行，Linux 桌面安装待手工验收。快照 SHA256 为 `98a4edfea42662f40c44f21f42c710e96d96328d03ef9ff7c524038e656afbbf`。
+- 三份更新清单的 SHA512 和大小与对应安装包一致。联合 `SHA256SUMS` 覆盖五个安装包，GitHub 公开发行的 10 个资产均已逐项核对大小和 SHA256。
 
 ## v2.3.0-my.6 Windows x64 本地审核版
 
-- 本地构建标签指向 `30e8e40e5e2bf7acf227abbb4462990f87d77d88`，官方基线为 `upstream/dev@d432a06b9c`。本版供 Windows 手工安装审核，安装包和标签保存在本地。GitHub Latest 为 `v2.3.0-my.5`。
+- 本地构建标签指向 `30e8e40e5e2bf7acf227abbb4462990f87d77d88`，官方基线为 `upstream/dev@d432a06b9c`。本版供 Windows 手工安装审核，安装包和标签保存在本地。当时的 GitHub Latest 为 `v2.3.0-my.5`。
 - 合入 `720e6c35d5`。模型设置可对已保存的文本模型发起测试、取消或在失败后重试。合入上游 [#57161](https://github.com/anomalyco/opencode/pull/57161) 后，配置的 OpenAI Compatible Provider 可将发现的模型加入运行时目录，手工录入的模型 ID、限额、JSONC 及原有 Custom providers 界面继续沿用。保留 Side bar 的项目运行状态改动。
 - `bun run check` 35/35，lint 0 errors。Core 30/30、Server 19/19、Chromium 13/13，协议和生成客户端一致性检查通过。内置模型快照比对 8,777 个模型，CLI 服务发现和 V1 确认及历史迁移冒烟通过。
 - `dist/releases/v2.3.0-my.6/opencode-desktop-win-x64.exe` 为 282,162,294 字节，SHA256 为 `cd8a8111c0ed69b70e56f733a88cc727e8fc58a3c6059d754da8384d17988806`。NSIS、内嵌应用归档、ASAR 版本和 `latest.yml` 的 SHA512 及大小已核验。安装包未签名，Windows 安装后的界面待手工审核。
