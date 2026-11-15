@@ -653,7 +653,7 @@ export function SidebarProjects(props: {
                 >
                   <Icon
                     name={collapsed[0].includes(key) ? "folder" : "folder-open"}
-                    class="shrink-0"
+                    class="shrink-0 text-v2-icon-icon-muted"
                   />
                   <Show
                     when={group().tabs.some(isRunning)}
