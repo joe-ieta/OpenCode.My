@@ -10,6 +10,7 @@ import {
   ProjectAvatar,
 } from "@opencode/ui/project-avatar"
 import { Icon } from "@opencode/ui/icon"
+import { ActivityRing } from "@opencode/ui/activity-ring"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Button } from "@opencode/ui/button"
 import { Loader } from "@opencode/ui/loader"
@@ -59,6 +60,7 @@ export type HomeProjectsViewProps = {
   collapsed: (server: ServerConnection.Any) => boolean
   canRevealProject: (server: ServerConnection.Any) => boolean
   hasUnread: (server: ServerConnection.Any, project: LocalProject) => boolean
+  projectRunning: (server: ServerConnection.Any, directory: string) => boolean
   onWheel: (event: WheelEvent) => void
   onChooseProject: (server: ServerConnection.Any) => void
   onFocusServer: (server: ServerConnection.Any) => void
@@ -600,6 +602,7 @@ function HomeProjectRow(
     },
 ) {
   const serverUnreachable = () => isServerFailed(props.serverHealth(props.server))
+  const running = () => props.projectRunning(props.server, props.project.worktree)
 
   const contextMenuID = () => projectContextMenuID(props.server, props.project.worktree)
   onCleanup(() => {
@@ -614,6 +617,7 @@ function HomeProjectRow(
       data-home-row
       data-dimmed={serverUnreachable()}
       data-selected={props.selected ? "" : undefined}
+      data-running={running() ? "" : undefined}
       onContextMenu={(event) => {
         event.preventDefault()
         props.onSetContextMenuOpen(contextMenuID(), true)
@@ -632,13 +636,23 @@ function HomeProjectRow(
         <span data-slot="home-row-label" class={HOME_PROJECT_NAV_LABEL}>
           {displayName(props.project)}
         </span>
+        <Show when={running()}>
+          <span
+            role="img"
+            aria-label={props.language.t("sidebar.project.running")}
+            class="flex size-3 shrink-0 items-center justify-center text-v2-icon-icon-muted"
+          >
+            <ActivityRing width={12} height={12} />
+          </span>
+        </Show>
       </HomeProjectNavButton>
       <div
         data-slot="home-row-actions"
         class={`
-          hover-reveal absolute bottom-0 right-1 top-0 flex items-center gap-1 rounded-r-[6px] pl-2
+          hover-reveal absolute bottom-0 top-0 flex items-center gap-1 rounded-e-[6px] ps-2
           group-hover/project:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100
         `}
+        classList={{ "end-5": running(), "end-1": !running() }}
         data-menu={props.contextMenuOpen(contextMenuID())}
       >
         <Menu

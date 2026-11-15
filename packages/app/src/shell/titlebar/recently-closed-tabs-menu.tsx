@@ -25,6 +25,7 @@ export function RecentlyClosedTabsMenu(props: {
   onNewTab: () => void
   tooltip?: JSX.Element
   vertical?: boolean
+  size?: "small" | "large"
   keybind?: string[]
 }) {
   const language = useLanguage()
@@ -98,7 +99,7 @@ export function RecentlyClosedTabsMenu(props: {
               as={IconButton}
               type="button"
               variant="ghost-muted"
-              size="large"
+              size={props.size ?? "large"}
               class="shrink-0"
               icon={<Icon name="plus" />}
               onClick={props.onNewTab}

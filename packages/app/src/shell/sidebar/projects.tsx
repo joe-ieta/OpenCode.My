@@ -1,7 +1,7 @@
 import { SidebarSessionRow, type SessionTabStatus } from "./session-row"
 import { SidebarDraftRow } from "./draft-row"
 import "./sidebar.css"
-import { createComputed, createEffect, createMemo, For, on, onCleanup, onMount, Show } from "solid-js"
+import { createComputed, createEffect, createMemo, For, type JSX, on, onCleanup, onMount, Show } from "solid-js"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { createStore } from "solid-js/store"
 import { DragDropProvider, PointerSensor } from "@dnd-kit/solid"
@@ -23,6 +23,7 @@ import { Button } from "@opencode/ui/button"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Icon } from "@opencode/ui/icon"
 import { Menu } from "@opencode/ui/menu"
+import { Select } from "@opencode/ui/select"
 import { displayName } from "@opencode/ui/project-avatar"
 import { pathKey } from "@/workspaces/path-key"
 import { setSidebarUnread } from "@/shell/sidebar-peek"
@@ -44,6 +45,7 @@ export function SidebarProjects(props: {
   currentTab: Tab | undefined
   onNavigate: (tab: Tab, el?: HTMLDivElement) => void
   onClose: (tab: Tab) => void
+  newSessionButton: JSX.Element
 }) {
   const global = useGlobal()
   const language = useLanguage()
@@ -88,6 +90,12 @@ export function SidebarProjects(props: {
   const sidebarOrder = persisted(Persist.window("sidebar.order"), Schema.Array(Schema.String), [])
   const collapsed = persisted(Persist.window("sidebar.collapsedProjects"), Schema.Array(Schema.String), [])
   const pinned = persisted(Persist.window("sidebar.pinnedProjects"), Schema.Array(Schema.String), [])
+  const view = persisted(
+    Persist.window("sidebar.projectSessionView"),
+    Schema.Struct({ mode: Schema.Literals(["project", "none"]) }),
+    { mode: "project" },
+  )
+  const listMode = () => view[0].mode === "none"
 
   const indexed = createMemo(
     () =>
@@ -166,6 +174,7 @@ export function SidebarProjects(props: {
 
     const order = [...candidates.values()].map((tab) => (tab.type === "draft" ? tabKey(tab) : recent.next().value!))
 
+    if (listMode()) return order.flatMap((key) => candidates.get(key) ?? [])
     return [...new Set([...(sidebarOrder[0] ?? []), ...order])].flatMap((key) => candidates.get(key) ?? [])
   }, [])
 
@@ -281,6 +290,7 @@ export function SidebarProjects(props: {
   })
 
   const groupsByKey = createMemo(() => new Map(groups().map((group) => [group.key, group])))
+  const projectCount = createMemo(() => groups().filter((group) => group.directory).length)
 
   const pinnedGroups = createMemo(() =>
     groups()
@@ -316,7 +326,7 @@ export function SidebarProjects(props: {
   // Save completed rows before the preview renders their history order.
   createComputed(
     on(projectActivity, (activity, previous) => {
-      if (!previous || !sidebarOrder[3]() || !sidebarOrder[0].length) return
+      if (listMode() || !previous || !sidebarOrder[3]() || !sidebarOrder[0].length) return
       const saved = sidebarOrder[0]
       const recorded = new Set(saved)
 
@@ -372,8 +382,11 @@ export function SidebarProjects(props: {
     () => new Map(groups().flatMap((group) => group.tabs.map((tab) => [tabKey(tab), group] as const))),
   )
 
-  const orderedTabs = createMemo(() => [...projectTabs().values()].flatMap((item) => item.rows))
+  const orderedTabs = createMemo(() =>
+    listMode() ? displayedTabs() : [...projectTabs().values()].flatMap((item) => item.rows),
+  )
   const visibleTabs = createMemo(() => orderedTabs().filter((tab) => tab.type === "draft" || visibility[tabKey(tab)]))
+  const visibleIndexes = createMemo(() => new Map(visibleTabs().map((tab, index) => [tabKey(tab), index])))
   const visibleTabIds = () => visibleTabs().map(tabKey)
 
   const isUnread = (tab: Tab) =>
@@ -381,6 +394,31 @@ export function SidebarProjects(props: {
 
   // A project runs while any of its sessions executes, the current one included.
   const isRunning = (tab: Tab) => !!status[tabKey(tab)]?.loading
+
+  const summary = createMemo(() => {
+    if (!listMode()) return { active: 0, sessions: 0, projects: 0 }
+    const active = new Set(displayedTabs().filter(isRunning).map(tabKey))
+
+    sidebar.sources().forEach(({ conn, ctx }) => {
+      const server = ServerConnection.key(conn)
+      if (ctx.sdk.connection.status() !== "connected") return
+      ctx.data.session.activity.active().forEach((id) => {
+        const session =
+          ctx.data.session.get(id) ?? indexed().get(tabKey({ type: "session", server, sessionId: id }))?.session
+        if (!session || session.parentID || session.time.archived !== undefined) return
+        const root = ctx.projects.forSession(session)?.worktree ?? session.location.directory
+        if (groupsByKey().has(JSON.stringify([server, pathKey(root)]))) {
+          active.add(tabKey({ type: "session", server, sessionId: id }))
+        }
+      })
+    })
+
+    return {
+      active: active.size,
+      sessions: groups().reduce((total, group) => total + group.total, 0),
+      projects: projectCount(),
+    }
+  })
 
   // Include collapsed projects and rows outside the recent preview, while excluding the current session.
   createEffect(() => {
@@ -470,12 +508,13 @@ export function SidebarProjects(props: {
     const id = tabKey(tab)
     let ref!: HTMLDivElement
     // Live metadata refreshes must not reset the sortable's in-flight index when the row order is unchanged.
-    const visibleIndex = createMemo(() => visibleTabs().findIndex((item) => tabKey(item) === id))
+    const visibleIndex = createMemo(() => visibleIndexes().get(id) ?? -1)
     // Hover reads this outside rendering, so own its computation with the row.
     const active = createMemo(() => currentKey() === id)
     const group = () => tabGroups().get(id)
 
     const sortDisabled = () =>
+      listMode() ||
       projectTabs()
         .get(group()?.key ?? "")
         ?.promoted.has(id)
@@ -834,7 +873,7 @@ export function SidebarProjects(props: {
         onDragEnd={(event) => {
           const source = event.operation.source
 
-          if (event.canceled || !isSortable(source)) return
+          if (listMode() || event.canceled || !isSortable(source)) return
           const group = tabGroups().get(source.id.toString())
           const promoted = group && projectTabs().get(group.key)?.promoted
           const visible = visibleTabIds()
@@ -856,55 +895,82 @@ export function SidebarProjects(props: {
         }}
       >
         <>
-          <div class="mb-2 flex h-7 shrink-0 items-center justify-between gap-2 [app-region:no-drag]">
-            <h2 class="min-w-0 flex-1 text-[13px] leading-4 font-medium text-v2-text-text-muted">
-              {language.t("home.projects")}
+          <div class="mb-2 flex min-h-7 shrink-0 flex-wrap items-center gap-x-1 [app-region:no-drag]">
+            <h2 class="min-w-0 truncate text-[13px] leading-4 font-medium text-v2-text-text-muted">
+              {language.t("sidebar.projectSessions.title")}
             </h2>
-            <span
-              class="shrink-0 rounded px-1 text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
-              title={language.plural("sidebar.projects.count", unpinnedGroups().length)}
-            >
-              {unpinnedGroups().length}
-            </span>
-            <Show
-              when={servers.visible.length === 1}
-              fallback={
-                <Menu gutter={6} modal={false} placement="bottom-end">
-                  <Menu.Trigger
-                    as={IconButton}
+            <div class="ms-auto flex min-w-0 items-center gap-1">
+              <Select
+                options={["project", "none"] as const}
+                current={view[0].mode}
+                appearance="small"
+                surface="invisible"
+                aria-label={language.t("sidebar.grouping.label")}
+                label={(option) => language.t(`sidebar.grouping.${option}`)}
+                onSelect={(option) => {
+                  if (!option || !view[3]()) return
+                  view[1](() => ({ mode: option }))
+                  scrollRef.scrollTop = 0
+                }}
+                class="min-w-0"
+              />
+              <Show when={listMode()}>
+                <span
+                  class="shrink-0 whitespace-nowrap px-1 text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
+                  title={language.t("sidebar.projectSessions.summary", summary())}
+                >
+                  {summary().active}/{summary().sessions}/{summary().projects}
+                </span>
+                {props.newSessionButton}
+              </Show>
+              <Show when={!listMode()}>
+                <span
+                  class="shrink-0 px-1 text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
+                  title={language.plural("sidebar.projects.count", projectCount())}
+                >
+                  {projectCount()}
+                </span>
+                <Show
+                  when={servers.visible.length === 1}
+                  fallback={
+                    <Menu gutter={6} modal={false} placement="bottom-end">
+                      <Menu.Trigger
+                        as={IconButton}
+                        variant="ghost-muted"
+                        size="small"
+                        icon={<Icon name="folder-add-left" />}
+                        aria-label={language.t("home.project.add")}
+                        disabled={!servers.visible.length}
+                      />
+                      <Menu.Portal>
+                        <Menu.Content>
+                          <For each={servers.visible}>
+                            {(conn) => (
+                              <Menu.Item
+                                disabled={isServerFailed(global.servers.health[ServerConnection.key(conn)])}
+                                onSelect={() => projectActions.choose(conn)}
+                              >
+                                {serverName(conn)}
+                              </Menu.Item>
+                            )}
+                          </For>
+                        </Menu.Content>
+                      </Menu.Portal>
+                    </Menu>
+                  }
+                >
+                  <IconButton
                     variant="ghost-muted"
                     size="small"
                     icon={<Icon name="folder-add-left" />}
                     aria-label={language.t("home.project.add")}
-                    disabled={!servers.visible.length}
+                    title={language.t("home.project.add")}
+                    disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
+                    onClick={() => projectActions.choose(servers.visible[0])}
                   />
-                  <Menu.Portal>
-                    <Menu.Content>
-                      <For each={servers.visible}>
-                        {(conn) => (
-                          <Menu.Item
-                            disabled={isServerFailed(global.servers.health[ServerConnection.key(conn)])}
-                            onSelect={() => projectActions.choose(conn)}
-                          >
-                            {serverName(conn)}
-                          </Menu.Item>
-                        )}
-                      </For>
-                    </Menu.Content>
-                  </Menu.Portal>
-                </Menu>
-              }
-            >
-              <IconButton
-                variant="ghost-muted"
-                size="small"
-                icon={<Icon name="folder-add-left" />}
-                aria-label={language.t("home.project.add")}
-                title={language.t("home.project.add")}
-                disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
-                onClick={() => projectActions.choose(servers.visible[0])}
-              />
-            </Show>
+                </Show>
+              </Show>
+            </div>
           </div>
         </>
         <div
@@ -923,10 +989,14 @@ export function SidebarProjects(props: {
             class="flex w-full min-w-0 flex-col items-stretch"
             ref={listRef}
           >
-            <For each={unpinnedGroups()}>{renderGroup}</For>
+            <Show when={listMode()} fallback={<For each={unpinnedGroups()}>{renderGroup}</For>}>
+              <div class="flex min-w-0 flex-col gap-1">
+                <For each={displayedTabs()}>{renderTab}</For>
+              </div>
+            </Show>
           </div>
         </div>
-        <Show when={pinnedGroups().length > 0}>
+        <Show when={!listMode() && pinnedGroups().length > 0}>
           <section
             aria-label={language.t("sidebar.pinned.title")}
             class="flex min-h-0 max-h-[40%] shrink-0 flex-col border-t border-v2-border-border-base pt-3 pb-3"

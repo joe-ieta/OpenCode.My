@@ -53,15 +53,20 @@ test("Home keeps the session list in every interface mode", async ({ page }) => 
   }
 })
 
-test("a working Home session keeps its project avatar and shows its activity ring at the end of the row", async ({
-  page,
-}) => {
+test("Home shows activity at the end of a working session row and its project row", async ({ page }) => {
   const working = { id: "ses_home_working", title: "Working session" }
-  const idle = { id: "ses_home_idle", title: "Idle session" }
-  await mockWorkspace(page, {
+  const idle = { id: "ses_home_idle", title: "Idle session", directory: "C:/OpenCode/Idle", projectID: "proj_idle" }
+  const status = { [working.id]: { type: "running" } }
+  const workspace = await mockWorkspace(page, {
     name: "HomeActivity",
+    project: { name: "Working project" },
+    projects: [
+      project({ id: "proj_homeactivity", directory: "C:/OpenCode/HomeActivity", name: "Working project" }),
+      project({ id: "proj_idle", directory: idle.directory, name: "Idle project" }),
+    ],
     sessions: [working, idle],
-    sessionStatus: { [working.id]: { type: "running" } },
+    sessionStatus: () => status,
+    seed: { usedProjects: { local: ["proj_homeactivity", "proj_idle"] } },
   })
   await page.goto("/")
   const ring = row(page, working.title).locator('[data-component="activity-ring"]')
@@ -73,6 +78,31 @@ test("a working Home session keeps its project avatar and shows its activity rin
   const title = await row(page, working.title).getByText(working.title, { exact: true }).boundingBox()
   const box = await ring.boundingBox()
   expect(box!.x).toBeGreaterThan(title!.x + title!.width)
+
+  const projects = page.locator('[data-component="home-project-row"]')
+  const workingProject = projects.filter({ hasText: "Working project" })
+  const projectRing = workingProject.getByRole("img", { name: "Running sessions", exact: true })
+  await expect(projectRing).toBeVisible()
+  await expect(projects.filter({ hasText: "Idle project" })).toBeVisible()
+  await expect(projects.filter({ hasText: "Idle project" }).getByRole("img", { name: "Running sessions" })).toHaveCount(
+    0,
+  )
+  await workingProject.hover()
+  const action = workingProject.locator("..").getByRole("button", { name: "New session", exact: true })
+  const [actionBox, projectRingBox] = await Promise.all([action.boundingBox(), projectRing.boundingBox()])
+  expect(projectRingBox!.x).toBeGreaterThanOrEqual(actionBox!.x + actionBox!.width)
+
+  status[working.id]!.type = "idle"
+  await workspace.push([
+    {
+      id: "evt_home_project_finished",
+      created: T0 + 1,
+      type: "session.execution.succeeded",
+      durable: { aggregateID: working.id, seq: 1, version: 1 },
+      data: { sessionID: working.id },
+    },
+  ])
+  await expect(projectRing).toHaveCount(0)
 })
 
 test("Home lists projects and sessions when stored state hides every server", async ({ page }) => {

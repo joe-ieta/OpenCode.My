@@ -3,12 +3,14 @@ import { useSettingsCommand } from "@/settings/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { ServerConnection } from "@/runtime/server/registry"
+import { useGlobal } from "@/runtime/server/runtime"
 import { Persist, persisted } from "@/runtime/persistence/storage"
-import { createResource } from "solid-js"
+import { createMemo, createResource } from "solid-js"
 import { Schema } from "effect"
 import { Persistence } from "@/runtime/persistence/schema"
 import type { HomeController } from "../model"
 import { createProjectActions } from "@/shell/projects/actions"
+import { pathKey } from "@/workspaces/path-key"
 
 export const HomeServersSchema = Schema.Struct({
   collapsed: Persistence.record(Persistence.fallback(Schema.Boolean, () => false)),
@@ -24,6 +26,28 @@ export function createHomeProjectsController(home: HomeController) {
   const serverManagement = useServerActionsController()
 
   const actions = createProjectActions()
+  const global = useGlobal()
+
+  const runningProjects = createMemo(
+    () =>
+      new Map(
+        home.server.list().map((conn) => {
+          const key = ServerConnection.key(conn)
+          const ctx = global.serverCtx(key)
+          const directories = new Set<string>()
+
+          if (ctx?.sdk.connection.status() === "connected") {
+            ctx.data.session.activity.active().forEach((id) => {
+              const session = ctx.data.session.get(id)
+              if (!session || session.time.archived !== undefined) return
+              directories.add(pathKey(ctx.projects.forSession(session)?.worktree ?? session.location.directory))
+            })
+          }
+
+          return [key, directories] as const
+        }),
+      ),
+  )
 
   const [_state, setState, _, ready] = persisted(Persist.global("home.servers"), HomeServersSchema, { collapsed: {} })
 
@@ -74,6 +98,8 @@ export function createHomeProjectsController(home: HomeController) {
       importSession: actions.importSession,
       edit: actions.edit,
       hasUnread: actions.hasUnread,
+      running: (conn: ServerConnection.Any, directory: string) =>
+        runningProjects().get(ServerConnection.key(conn))?.has(pathKey(directory)) ?? false,
       clearNotifications: actions.clearNotifications,
       choose: (conn: ServerConnection.Any) => actions.choose(conn, home.project.add),
       hide: actions.hide,

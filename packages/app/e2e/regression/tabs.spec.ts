@@ -81,7 +81,7 @@ test("Side bar keeps project history and running sessions separate from the offi
   const projectRows = page.locator('[data-component="home-project-row"] [data-slot="home-row-label"]')
   await expect(sidebar.locator("[data-titlebar-tab-title]")).toHaveText([a.title])
   await expect(running).toHaveCount(0)
-  await expect(sidebar.getByRole("heading", { name: "Projects", exact: true })).toHaveCount(0)
+  await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toHaveCount(0)
   await expect(sidebar.getByRole("button", { name: "Group sessions By project", exact: true })).toHaveCount(0)
   await sidebar.locator(`a[data-titlebar-tab-link][href="${sessionHref(a.id)}"]`).hover()
   const preview = page.locator('[data-component="session-tab-popover"]')
@@ -262,8 +262,8 @@ test("sidebar and Home share projects and history without opening session tabs",
   await expect(titles).toHaveText([a.title, b.title])
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Empty project", "Shared history"])
   await expect(sidebar.getByRole("button", { name: "Close tab", exact: true })).toHaveCount(0)
-  await expect(sidebar.getByRole("heading", { name: "Projects", exact: true })).toBeVisible()
-  await expect(sidebar.getByRole("button", { name: /^Group sessions/ })).toHaveCount(0)
+  await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
+  await expect(sidebar.getByRole("button", { name: /^Group sessions/ })).toHaveText("By project")
   await expect(home.locator('[data-component="home-project-row"] [data-slot="home-row-label"]')).toHaveText([
     "Shared history",
     "Empty project",
@@ -607,7 +607,7 @@ test("Side bar keeps pinned projects fixed while the regular project list scroll
         '[data-action="vertical-tabs-home"], [data-action="vertical-tabs-new-session"], [data-action="vertical-tabs-search"]',
       )
       .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-action"))),
-  ).toEqual(["vertical-tabs-home", "vertical-tabs-new-session", "vertical-tabs-search"])
+  ).toEqual(["vertical-tabs-home", "vertical-tabs-search"])
   const heading = sidebar.getByRole("heading", { name: "Project 0", exact: true })
   const pin = sidebar.getByRole("button", { name: "Pin project Project 0", exact: true, includeHidden: true })
   const add = sidebar.getByRole("button", { name: "New session in Project 0", exact: true, includeHidden: true })
@@ -643,11 +643,11 @@ test("Side bar keeps pinned projects fixed while the regular project list scroll
     pinned.getByRole("button", { name: "New session in Project 0", exact: true, includeHidden: true }),
   ).toBeHidden()
   await expect(sidebar.getByRole("heading", { level: 2 })).toHaveText([
-    "Projects",
+    "Project sessions",
     "Pinned projects",
     "Running sessions",
   ])
-  await expect(sidebar.getByTitle("11 projects", { exact: true })).toHaveText("11")
+  await expect(sidebar.getByTitle("13 projects", { exact: true })).toHaveText("13")
   await expect(pinned.getByTitle("2 pinned projects", { exact: true })).toHaveText("2")
   await expect
     .poll(() =>
@@ -1355,7 +1355,7 @@ test("sidebar grouping keeps servers separate and reorders only the chosen proje
   await expect(titles).toHaveText([c.title, a.title, b.title])
 })
 
-test("Side bar ignores legacy List preference and navigates in project display order", async ({ page }) => {
+test("Side bar switches between project navigation and a most-recent list with global counts", async ({ page }) => {
   const directory = "C:/OpenCode/Tabs"
   const other = "C:/OpenCode/Other"
   const sandbox = "C:/OpenCode/Tabs-worktree"
@@ -1365,32 +1365,64 @@ test("Side bar ignores legacy List preference and navigates in project display o
     projects: [
       project({ id: "proj_tabs", directory, name: "Tabs", sandboxes: [sandbox] }),
       project({ id: "proj_other", directory: other, name: "Other" }),
+      project({ id: "proj_quiet", directory: "C:/OpenCode/Quiet", name: "Quiet" }),
     ],
-    sessions: [a, { ...b, directory: other, projectID: "proj_other" }, { ...c, directory: sandbox }],
+    sessions: [
+      { ...a, time: { created: T0, updated: T0 } },
+      { ...b, directory: other, projectID: "proj_other", time: { created: T0, updated: T0 + 1_000 } },
+      { ...c, directory: sandbox, time: { created: T0, updated: T0 + 2_000 } },
+    ],
+    sessionStatus: { [b.id]: { type: "running" } },
     seed: {
       settings: { appearance: { tabLayout: "sidebar", tabGrouping: "none" } },
-      tabs: [a.id, b.id, c.id, { draft: "draft_grouped", directory: sandbox }],
+      tabs: [a.id, b.id, c.id],
+      storage: { "opencode.window.browser.dat:sidebar.order": [a, c, b].map((session) => tabKey(session.id)) },
     },
   })
   await page.goto(sessionHref(a.id))
+  await expectSessionTitle(page, a.title)
   const sidebar = page.locator('[data-slot="vertical-tabs-sidebar"]')
   const titles = sidebar.locator("[data-titlebar-tab-title]")
-  await expect(sidebar.getByRole("heading", { name: "Projects", exact: true })).toBeVisible()
-  await expect(sidebar.getByRole("button", { name: /^Group sessions/ })).toHaveCount(0)
-  await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Other", "Tabs"])
-  await expect(titles).toHaveText([b.title, a.title, c.title, "Draft (unsent)"])
-  await page.keyboard.press("Alt+ArrowDown")
-  await expectPath(page, sessionHref(c.id))
+  const mode = sidebar.getByRole("button", { name: /^Group sessions/ })
+  const addProject = sidebar.getByRole("button", { name: "Add project", exact: true })
+  const newSession = sidebar.getByRole("button", { name: "New session", exact: true })
+  await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
+  await expect(mode).toHaveText("By project")
+  await expect(sidebar.getByTitle("3 projects", { exact: true })).toHaveText("3")
+  await expect(addProject).toBeVisible()
+  await expect(newSession).toHaveCount(0)
+  await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Other", "Quiet", "Tabs"])
+  await expect(titles).toHaveText([b.title, a.title, c.title])
+
+  await sidebar.getByRole("heading", { name: "Other", exact: true }).hover()
+  await sidebar.getByRole("button", { name: "Pin project Other", exact: true }).click()
+  await sidebar.getByRole("button", { name: "Collapse project Other", exact: true }).click()
+  await expect(titles).toHaveText([a.title, c.title])
+  await mode.click()
+  await page.getByRole("option", { name: "List", exact: true }).click()
+  await expect(mode).toHaveText("List")
+  const counts = sidebar.getByText("1/3/3", { exact: true })
+  await expect(counts).toBeVisible()
+  await expect(addProject).toHaveCount(0)
+  await expect(newSession).toBeVisible()
+  const [counterBox, buttonBox] = await Promise.all([counts.boundingBox(), newSession.boundingBox()])
+  expect(buttonBox!.x).toBeGreaterThanOrEqual(counterBox!.x + counterBox!.width)
+  await expect(sidebar.getByRole("heading", { level: 3 })).toHaveCount(0)
+  await expect(titles).toHaveText([c.title, b.title, a.title])
   await page.keyboard.press("Control+1")
-  await expectPath(page, sessionHref(b.id))
+  await expectPath(page, sessionHref(c.id))
   await page.reload()
-  await expect(titles).toHaveText([b.title, a.title, c.title, "Draft (unsent)"])
-  await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Other", "Tabs"])
-  await sidebar
-    .locator(`[data-titlebar-tab-slot]:has(a[href="${sessionHref(c.id)}"])`)
-    .getByRole("button", { name: "Close tab", exact: true })
-    .click()
-  await expect(titles).toHaveText([b.title, a.title, "Draft (unsent)"])
+  await expect(mode).toHaveText("List")
+  await expect(titles).toHaveText([c.title, b.title, a.title])
+  await newSession.click()
+  await expect(page.locator('[data-component="new-session"]')).toBeVisible()
+  await mode.click()
+  await page.getByRole("option", { name: "By project", exact: true }).click()
+  await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
+  await expect(sidebar.getByTitle("3 projects", { exact: true })).toHaveText("3")
+  await expect(addProject).toBeVisible()
+  await expect(newSession).toHaveCount(0)
+  await expect(sidebar.getByRole("button", { name: "Expand project Other", exact: true })).toBeVisible()
 })
 
 test("recently closed shows ten sessions and searches older closures in close order", async ({ page }) => {
