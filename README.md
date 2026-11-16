@@ -2,7 +2,11 @@
 
 **English** · [简体中文](README.zh.md)
 
-A desktop AI coding workspace for everyday development. Built on OpenCode, it retains the full coding and agent capabilities while improving the interface, personal workflows, and local model experience. OpenCode My is maintained on `dev-my`.
+`OpenCode My` is a desktop AI coding workspace for everyday development and long-running tasks. Built on `opencode`, it helps developers stay in control, understand progress, and work with AI agents across multiple projects at once. It retains the full coding and agent capabilities of `opencode` while improving the interface, personal workflows, and the experience of running models locally. The desktop edition is maintained on `dev-my`.
+
+- **Control** · Manage projects and sessions, and use session summaries to steer long-running, system-level development.
+- **Understanding** · See facts, summaries, and rollups for project design, task breakdown, task progress, and session activity.
+- **Ease of use** · Work in a streamlined interface with personalization features and support for local deployments.
 
 ## Personalization features
 
@@ -39,4 +43,4 @@ _Screenshots use sample data._
 - **Model visibility.** Use **Manage models** to choose which models appear in the picker. Close the panel to return to the same picker.
 - **Built-in integrations.** Open **Connect an integration** from the picker footer or from the search field on desktop. Confirming removal deletes the integration's saved credentials and refreshes the model catalog.
 
-[Download OpenCode My](https://github.com/joe-ieta/opencode/releases/latest) · [Desktop maintenance](docs/fork/dev-my/README.md) · [Official OpenCode README](https://github.com/anomalyco/opencode#readme)
+[Download OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [Desktop maintenance](docs/fork/dev-my/README.md) · [Official OpenCode README](https://github.com/anomalyco/opencode#readme)

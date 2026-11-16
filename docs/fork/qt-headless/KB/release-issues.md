@@ -1,4 +1,4 @@
-> **分支资料归档（2026-10-30）**：来自 `qt-headless` 提交 [`81c50bd59a`](https://github.com/joe-ieta/opencode/blob/81c50bd59afb419c7fd3da1a0553b3d59d3cd473/packages/qtui/docs/KB/release-issues.md)，原路径 `packages/qtui/docs/KB/release-issues.md`。正文保留原记录及当时状态，仅调整文档链接；当前分支进度以上级 [项目总览](../../../../FORK.md)、[维护与发布方法](../../maintenance.md)及 [PR 跟踪](../../upstream-prs.md)为准。本文命令须在对应分支运行，不能直接套用到另一代内核。
+> **分支资料归档（2026-10-30）**：来自 `qt-headless` 提交 [`81c50bd59a`](https://github.com/joe-ieta/OpenCode.My/blob/81c50bd59afb419c7fd3da1a0553b3d59d3cd473/packages/qtui/docs/KB/release-issues.md)，原路径 `packages/qtui/docs/KB/release-issues.md`。正文保留原记录及当时状态，仅调整文档链接；当前分支进度以上级 [项目总览](../../../../FORK.md)、[维护与发布方法](../../maintenance.md)及 [PR 跟踪](../../upstream-prs.md)为准。本文命令须在对应分支运行，不能直接套用到另一代内核。
 
 # qtoc_core 编译发布问题记录（KB）：1.18.31.6 → 1.18.34.2 阶段
 
@@ -100,7 +100,7 @@ $env:GIT_MERGE_AUTOEDIT="no"   # 防止 merge 打开编辑器阻塞
 
 **处理**
 
-1. 失败后直接重跑对应任务（`gh run rerun <id> -R joe-ieta/opencode --failed`）；
+1. 失败后直接重跑对应任务（`gh run rerun <id> -R joe-ieta/OpenCode.My --failed`）；
 2. 2026-09-26 加固工作流（提交 `f66d3bc3a7`）：
    - `curl --connect-timeout 2 --max-time 5`（请求有界，不再挂满步骤）；
    - 服务输出重定向 `qtoc-smoke.log`，失败时打印内核日志；

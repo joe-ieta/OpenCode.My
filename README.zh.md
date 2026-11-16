@@ -43,4 +43,4 @@ _截图使用示例数据。_
 - **模型可见性**。在「管理模型」中选择哪些模型显示在选择器里，关闭管理面板后可返回原选择器。
 - **内置集成连接**。可从模型选择器底部打开「连接提供商」，桌面端搜索框旁也有入口。确认移除后会删除该集成已保存的凭据，并刷新模型目录。
 
-[下载 OpenCode My](https://github.com/joe-ieta/opencode/releases/latest) · [桌面维护说明](docs/fork/dev-my/README.md) · [官方 OpenCode README](https://github.com/anomalyco/opencode#readme)
+[下载 OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [桌面维护说明](docs/fork/dev-my/README.md) · [官方 OpenCode README](https://github.com/anomalyco/opencode#readme)

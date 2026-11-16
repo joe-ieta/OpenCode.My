@@ -33,4 +33,4 @@
 
 以上是自动检查和术语/语义核对，不等同于已完成 Windows 安装后的人工验收。发行来源、安装包和远端校验结果单独记录在 [发行记录](releases.md)。
 
-本次 Windows 测试包已发布为 [v2.2.3-dev-my.6](https://github.com/joe-ieta/opencode/releases/tag/v2.2.3-dev-my.6)，实际包内中文值、版本、完整性与远端资产已核验，尚未安装后人工验收。Linux `.5` 包未包含本次翻译。
+本次 Windows 测试包已发布为 [v2.2.3-dev-my.6](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.3-dev-my.6)，实际包内中文值、版本、完整性与远端资产已核验，尚未安装后人工验收。Linux `.5` 包未包含本次翻译。

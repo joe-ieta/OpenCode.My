@@ -1,4 +1,4 @@
-> **分支资料归档（2026-10-30）**：来自 `qt-headless` 提交 [`81c50bd59a`](https://github.com/joe-ieta/opencode/blob/81c50bd59afb419c7fd3da1a0553b3d59d3cd473/packages/qtui/docs/KB/history.md)，原路径 `packages/qtui/docs/KB/history.md`。正文保留原记录及当时状态，仅调整文档链接；当前分支进度以上级 [项目总览](../../../../FORK.md)、[维护与发布方法](../../maintenance.md)及 [PR 跟踪](../../upstream-prs.md)为准。本文命令须在对应分支运行，不能直接套用到另一代内核。
+> **分支资料归档（2026-10-30）**：来自 `qt-headless` 提交 [`81c50bd59a`](https://github.com/joe-ieta/OpenCode.My/blob/81c50bd59afb419c7fd3da1a0553b3d59d3cd473/packages/qtui/docs/KB/history.md)，原路径 `packages/qtui/docs/KB/history.md`。正文保留原记录及当时状态，仅调整文档链接；当前分支进度以上级 [项目总览](../../../../FORK.md)、[维护与发布方法](../../maintenance.md)及 [PR 跟踪](../../upstream-prs.md)为准。本文命令须在对应分支运行，不能直接套用到另一代内核。
 
 # qtui 问题处理历史（KB）
 

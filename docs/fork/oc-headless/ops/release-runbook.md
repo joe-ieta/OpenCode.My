@@ -1,4 +1,4 @@
-> **分支资料归档（2026-10-30）**：来自 `oc-headless` 提交 [`bd848794de`](https://github.com/joe-ieta/opencode/blob/bd848794de13cc596c4e73768f7fbb8fee889e43/packages/qtui/docs/ops/release-runbook.md)，原路径 `packages/qtui/docs/ops/release-runbook.md`。正文保留原记录及当时状态，仅调整文档链接；当前分支进度以上级 [项目总览](../../../../FORK.md)、[维护与发布方法](../../maintenance.md)及 [PR 跟踪](../../upstream-prs.md)为准。本文命令须在对应分支运行，不能直接套用到另一代内核。
+> **分支资料归档（2026-10-30）**：来自 `oc-headless` 提交 [`bd848794de`](https://github.com/joe-ieta/OpenCode.My/blob/bd848794de13cc596c4e73768f7fbb8fee889e43/packages/qtui/docs/ops/release-runbook.md)，原路径 `packages/qtui/docs/ops/release-runbook.md`。正文保留原记录及当时状态，仅调整文档链接；当前分支进度以上级 [项目总览](../../../../FORK.md)、[维护与发布方法](../../maintenance.md)及 [PR 跟踪](../../upstream-prs.md)为准。本文命令须在对应分支运行，不能直接套用到另一代内核。
 
 # oc_core 统一发布规范（V2 线 / oc-headless）
 
@@ -21,7 +21,7 @@
 | 项               | 要求/说明                                                                                                                                             |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Bun              | ≥ 1.4.2（V2 根 `packageManager` 声明；CI 用 latest）                                                                                                  |
-| 分支             | `oc-headless`，工作区干净；`origin`=joe-ieta/opencode，`upstream`=anomalyco/opencode                                                                  |
+| 分支             | `oc-headless`，工作区干净；`origin`=joe-ieta/OpenCode.My，`upstream`=anomalyco/opencode                                                                  |
 | 预推送钩子       | 钩子执行 `bun run check`（lint + typecheck）。本机 Node < 23.6 时需 `NODE_OPTIONS=--experimental-strip-types`（oxlint 加载 TS 插件）；CI 自带合适环境 |
 | Windows 符号链接 | 上游 `packages/app                                                                                                                                    | enterprise/src/custom-elements.d.ts`与多处`public/\*`为 symlink；无 symlink 权限的检出会得到占位内容，导致`app`/`enterprise`typecheck 误报`TS1128`。临时以目标内容替换（不提交）后跑检查，推送后 `git checkout --` 还原 |
 | git 身份         | 与 V1 线一致：合并/附注标签前注入 `GIT_AUTHOR_*`/`GIT_COMMITTER_*`（frank <48937772+joe-ieta@users.noreply.github.com>）；`GIT_MERGE_AUTOEDIT=no`     |
@@ -69,8 +69,8 @@ git push origin oc-headless-v2.0.26
 # 同一内核重发：新 tag oc-headless-v2.0.26.1；发行线 tag 用 -f 移动（如适用）
 
 # 5) CI 监控（tag 触发 oc-headless.yml 三平台矩阵）
-gh run list -R joe-ieta/opencode --workflow=oc-headless.yml --limit 5
-gh run watch <id> -R joe-ieta/opencode --exit-status
+gh run list -R joe-ieta/OpenCode.My --workflow=oc-headless.yml --limit 5
+gh run watch <id> -R joe-ieta/OpenCode.My --exit-status
 ```
 
 CI 通过标准：三平台构建成功并上传产物（含 `.sha256`）；Linux 冒烟通过；`bun run oc:trim`、`oc:contract` 与 Linux typecheck 通过。

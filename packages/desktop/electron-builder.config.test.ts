@@ -85,7 +85,7 @@ test.each(channels)("fork packaging overrides identity and update source for $ch
   const previous = names.map((name) => process.env[name])
   process.env.OPENCODE_DESKTOP_APP_ID = "ai.opencode.desktop.dev-my"
   process.env.OPENCODE_DESKTOP_PRODUCT_NAME = "OpenCode My"
-  process.env.OPENCODE_DESKTOP_UPDATE_URL = "https://github.com/joe-ieta/opencode/releases/download/v2.2.0-dev-my.1/"
+  process.env.OPENCODE_DESKTOP_UPDATE_URL = "https://github.com/joe-ieta/OpenCode.My/releases/download/v2.2.0-dev-my.1/"
 
   try {
     const config = load(channel, "windows-x64")
@@ -94,7 +94,7 @@ test.each(channels)("fork packaging overrides identity and update source for $ch
     expect(config.extraMetadata?.desktopName).toBe("ai.opencode.desktop.dev-my.desktop")
     expect(config.publish).toEqual({
       provider: "generic",
-      url: "https://github.com/joe-ieta/opencode/releases/download/v2.2.0-dev-my.1/",
+      url: "https://github.com/joe-ieta/OpenCode.My/releases/download/v2.2.0-dev-my.1/",
       channel: "latest",
     })
   } finally {
