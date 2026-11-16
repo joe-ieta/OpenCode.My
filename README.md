@@ -8,19 +8,16 @@
 - **Understanding** · See facts, summaries, and rollups for project design, task breakdown, task progress, and session activity.
 - **Ease of use** · Work in a streamlined interface with personalization features and support for local deployments.
 
+
 ## Personalization features
 
-- **Side bar** · Select **Side bar** under **Settings → General → Interface layout**. Pin or collapse projects, browse recent sessions by project, and see running work across connected servers, including background Shell tasks and subagents.
+### Side bar
+  desc.
+  
+### Custom models
+  desc.
 
-  <img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with project groups, recent sessions, and running work">
-
-- **Custom models** · Open **Custom providers** from the model picker to configure a global OpenAI-compatible provider. Discover and import models or enter them manually, set the display name, request ID, and context limit, and test text responses. Use **Manage models** to choose which models appear in the picker.
-
-  <img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider model form with the request ID, display name, context limit, and text test">
-
-_Screenshots use sample data._
-
-## New features in OpenCode My
+## New features in detail in `OpenCode My`
 
 ### Side bar
 
@@ -42,5 +39,17 @@ _Screenshots use sample data._
 - **Saved-model text test.** Send a small test request using the saved endpoint, credentials, and model ID. Inspect the result, cancel the test, or retry after an error.
 - **Model visibility.** Use **Manage models** to choose which models appear in the picker. Close the panel to return to the same picker.
 - **Built-in integrations.** Open **Connect an integration** from the picker footer or from the search field on desktop. Confirming removal deletes the integration's saved credentials and refreshes the model catalog.
+
+## Personalization features at a glance
+
+- **Side bar** · Select **Side bar** under **Settings → General → Interface layout**. Pin or collapse projects, browse recent sessions by project, and see running work across connected servers, including background Shell tasks and subagents.
+
+  <img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with project groups, recent sessions, and running work">
+
+- **Custom models** · Open **Custom providers** from the model picker to configure a global OpenAI-compatible provider. Discover and import models or enter them manually, set the display name, request ID, and context limit, and test text responses. Use **Manage models** to choose which models appear in the picker.
+
+  <img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider model form with the request ID, display name, context limit, and text test">
+
+_Screenshots use sample data._
 
 [Download OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [Desktop maintenance](docs/fork/dev-my/README.md) · [Official OpenCode README](https://github.com/anomalyco/opencode#readme)
