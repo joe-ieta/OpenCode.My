@@ -1,9 +1,9 @@
-> **分支资料归档（2026-10-30）**：来自 `qt-headless` 提交 [`81c50bd59a`](https://github.com/joe-ieta/opencode/blob/81c50bd59afb419c7fd3da1a0553b3d59d3cd473/packages/qtui/docs/ops/release-runbook.md)，原路径 `packages/qtui/docs/ops/release-runbook.md`。正文保留原记录及当时状态，仅调整文档链接；当前分支进度以上级 [项目总览](../../../../FORK.md)、[维护与发布方法](../../maintenance.md)及 [PR 跟踪](../../upstream-prs.md)为准。本文命令须在对应分支运行，不能直接套用到另一代内核。
+> **分支资料归档（2026-10-30）**：来自 `qt-headless` 提交 [`81c50bd59a`](https://github.com/joe-ieta/OpenCode.My/blob/81c50bd59afb419c7fd3da1a0553b3d59d3cd473/packages/qtui/docs/ops/release-runbook.md)，原路径 `packages/qtui/docs/ops/release-runbook.md`。正文保留原记录及当时状态，仅调整文档链接；当前分支进度以上级 [项目总览](../../../../FORK.md)、[维护与发布方法](../../maintenance.md)及 [PR 跟踪](../../upstream-prs.md)为准。本文命令须在对应分支运行，不能直接套用到另一代内核。
 
 # qtoc_core 统一发布规范（Release Runbook）
 
 > 定位：`qt-headless` 分支上 `qtoc_core`（headless opencode 内核）发布的**唯一操作规范**：发布目的、标准步骤、脚本命令、产物存放与推送、CI 矩阵、多平台注意事项、使用模式与验收清单。
-> 适用范围：本仓库（fork `joe-ieta/opencode`）qt-headless 分支的所有发布；人工或按技能 `qtoc-release` 由 AI 代理执行均可。
+> 适用范围：本仓库（fork `joe-ieta/OpenCode.My`）qt-headless 分支的所有发布；人工或按技能 `qtoc-release` 由 AI 代理执行均可。
 > 版本基线：opencode `1.19.3`（channel `qt-headless`；同步源 `upstream/v1`）；流程自 1.18.31 起持续验证（2026-10-18 更新）。
 > 关联文档：[qtoc-build.md](qtoc-build.md)（构建脚本/裁剪/冲突热点细节）、[qt-headless.md](qt-headless.md)（发行内容/冒烟清单）、[bun-install.md](bun-install.md)（Bun 安装）、[../KB/upstream.md](../KB/upstream.md)（同步与发布记录）、[../KB/architecture.md](../KB/architecture.md)（维护策略）、[../KB/data-agent-faq.md](../KB/data-agent-faq.md)（单二进制多配置使用模式）。
 
@@ -41,10 +41,10 @@
 | 项       | 要求                                                                                                                                                                         |
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 分支     | `qt-headless`，工作区干净                                                                                                                                                    |
-| 远端     | `origin` = `joe-ieta/opencode`（推送目标）；`upstream` = `anomalyco/opencode`，同步源为 **`v1`**（V1 维护线，1.19.x；`dev` 已于 2026-10-10 晋升 V2/2.x，不可作为本线同步源） |
+| 远端     | `origin` = `joe-ieta/OpenCode.My`（推送目标）；`upstream` = `anomalyco/opencode`，同步源为 **`v1`**（V1 维护线，1.19.x；`dev` 已于 2026-10-10 晋升 V2/2.x，不可作为本线同步源） |
 | Bun      | ≥ 1.3.14（仓库 `packageManager` 声明；CI 用 latest，本机验证 1.4.2）；安装见 [bun-install.md](bun-install.md)                                                                |
 | Git 身份 | 本机未配置全局身份：合并提交与附注标签前必须设置 `GIT_AUTHOR_*` / `GIT_COMMITTER_*` 环境变量（见第 4 节 Step 1），否则报 `Committer identity unknown`                        |
-| gh CLI   | 已登录（`gh auth status`）；监控/重跑 CI 时使用 `-R joe-ieta/opencode`                                                                                                       |
+| gh CLI   | 已登录（`gh auth status`）；监控/重跑 CI 时使用 `-R joe-ieta/OpenCode.My`                                                                                                       |
 | Windows  | 建议安装 Git（shell 工具依赖 Git Bash）；磁盘不足时设置 `BUN_INSTALL_CACHE_DIR`/`TMP`                                                                                        |
 | macOS    | 产物未签名/未公证；对外分发需另行 `codesign` + `notarytool`                                                                                                                  |
 
@@ -165,11 +165,11 @@ git push origin qt-headless-v1.18.36.1
 ### Step 4 监控 CI 并处理失败
 
 ```powershell
-gh run list -R joe-ieta/opencode --workflow=qtoc.yml --limit 5
-gh run watch <run-id> -R joe-ieta/opencode --exit-status --interval 30
-gh run rerun <run-id> -R joe-ieta/opencode --failed      # 失败任务重跑
-gh run view <run-id> -R joe-ieta/opencode --log-failed   # 失败日志
-gh run download <run-id> -R joe-ieta/opencode -n qtoc_core-Linux   # 下载产物
+gh run list -R joe-ieta/OpenCode.My --workflow=qtoc.yml --limit 5
+gh run watch <run-id> -R joe-ieta/OpenCode.My --exit-status --interval 30
+gh run rerun <run-id> -R joe-ieta/OpenCode.My --failed      # 失败任务重跑
+gh run view <run-id> -R joe-ieta/OpenCode.My --log-failed   # 失败日志
+gh run download <run-id> -R joe-ieta/OpenCode.My -n qtoc_core-Linux   # 下载产物
 ```
 
 - 通过标准：三平台（Linux/Windows/macOS）构建成功且产物已上传；Linux 冒烟通过。

@@ -1,9 +1,9 @@
 ## Repository Constraints (highest priority within this repository)
 
-- Repository: https://github.com/joe-ieta/opencode. `origin` fetch and push must use this GitHub repository only. The current transport is HTTPS; SSH to the same repository is also valid when configured.
+- Repository: https://github.com/joe-ieta/OpenCode.My. `origin` fetch and push must use this GitHub repository only. The current transport is HTTPS; SSH to the same repository is also valid when configured.
 - Official upstream: https://github.com/anomalyco/opencode. `upstream` must use the official GitHub repository; it is the source for official synchronization and upstream contributions.
 - These constraints supersede all older remote, synchronization, contribution, and release instructions in repository documents, archived notes, skills, and restored stashes. Gitee configuration and workflows are retired: do not configure a Gitee remote, mirror or push URL, publish assets there, or restore the former GitHub-fork-as-upstream mapping.
-- Publish source, tags, and release assets to `origin` (GitHub) only. All platforms use https://github.com/joe-ieta/opencode/releases; the official `upstream` is not a fork release destination.
+- Publish source, tags, and release assets to `origin` (GitHub) only. All platforms use https://github.com/joe-ieta/OpenCode.My/releases; the official `upstream` is not a fork release destination.
 - Maintain exactly three long-lived branches: `dev-my` (V2 desktop), `oc-headless` (V2 headless), and `qt-headless` (V1 headless). Track the same-named `origin` branches. Keep their code, builds, and release histories separate.
 - The default branch is `dev-my`. The `dev` branch is an upstream tracking mirror only: keep `origin/dev` identical to `upstream/dev`, with no fork-specific commits or sync merge commits. It is not a fourth maintenance line. Preserve any existing fork commits in a maintained branch or archive before realigning it.
 - For maintenance, base worktrees and comparisons on the matching `origin/<branch>`. Synchronize `dev-my` and `oc-headless` from `upstream/dev`, and `qt-headless` from `upstream/v1`, preserving local patches with merges.

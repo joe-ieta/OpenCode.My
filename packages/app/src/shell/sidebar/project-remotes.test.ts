@@ -2,7 +2,7 @@ import { expect, test } from "bun:test"
 import { compactRemote, projectRemoteHint } from "./project-remotes"
 
 test.each([
-  ["https://github.com/joe-ieta/opencode.git", "github.com/joe-ieta/opencode"],
+  ["https://github.com/joe-ieta/OpenCode.My.git", "github.com/joe-ieta/OpenCode.My"],
   ["git@github.com:team/project.git", "github.com/team/project"],
   ["ssh://git@github.com/team/project.git", "github.com/team/project"],
   [

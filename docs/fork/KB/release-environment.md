@@ -4,7 +4,7 @@
 > 实测环境：Windows 11 x64 + WSL2 Ubuntu 24.04.1 LTS；发布目标为 Windows x64 与 Ubuntu amd64/arm64。  
 > 本文面向需要复现 OpenCode My 发布环境的维护者。实际发行记录与哈希以 [dev-my 发行记录](../dev-my/releases.md) 为准。
 
-2026-11-03 起只使用 GitHub：`origin` 为 `joe-ieta/opencode`，`upstream` 为官方 `anomalyco/opencode`。Gitee 不再作为远端、源码镜像或发行目标；历史记录保留供追溯。
+2026-11-03 起只使用 GitHub：`origin` 为 `joe-ieta/OpenCode.My`，`upstream` 为官方 `anomalyco/opencode`。Gitee 不再作为远端、源码镜像或发行目标；历史记录保留供追溯。
 
 ## 1. 需求定义
 
@@ -126,7 +126,7 @@ bun install --frozen-lockfile --cpu=*
 本机 GitHub 推送使用临时凭据 helper，不写入全局配置：
 
 ```powershell
-git -c credential.helper= -c credential.helper='!gh auth git-credential' push https://github.com/joe-ieta/opencode.git refs/heads/dev-my
+git -c credential.helper= -c credential.helper='!gh auth git-credential' push https://github.com/joe-ieta/OpenCode.My.git refs/heads/dev-my
 ```
 
 ### 4.2 Ubuntu WSL 安装与迁移
@@ -257,7 +257,7 @@ curl -fsSI https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux
 ### 4.6 克隆与检查
 
 ```bash
-git clone --branch dev-my https://github.com/joe-ieta/opencode.git ~/opencode-my
+git clone --branch dev-my https://github.com/joe-ieta/OpenCode.My.git ~/opencode-my
 cd ~/opencode-my
 git config user.name frank
 git config user.email 48937772+joe-ieta@users.noreply.github.com
@@ -366,12 +366,12 @@ git push origin refs/tags/v<version>
 # upstream 是官方仓库，不接收本 fork 的发行分支或标签。
 
 # 2. 创建测试版 draft，上传本次实际构建的资产
-gh release create v<version> <assets...> --repo joe-ieta/opencode --verify-tag --draft `
+gh release create v<version> <assets...> --repo joe-ieta/OpenCode.My --verify-tag --draft `
   --prerelease --latest=false --title 'OpenCode My <version> (test)' `
   --notes-file <release-notes.md>
 
 # 3. 核对服务端大小与 SHA256 后再公开
-gh release edit v<version> --repo joe-ieta/opencode --draft=false --prerelease --latest=false
+gh release edit v<version> --repo joe-ieta/OpenCode.My --draft=false --prerelease --latest=false
 
 # 4. 单独提交发行记录文档，不改变已发布标签
 git add FORK.md docs/fork/dev-my docs/fork/maintenance.md

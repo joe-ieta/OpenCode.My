@@ -4,7 +4,7 @@
 
 以下约定自 2026-11-02 起生效，顶层约束见 [AGENTS.md](AGENTS.md)，覆盖仓库旧文档中的远端、同步和发布配置。
 
-- 本仓库及唯一发布远端 `origin`：[joe-ieta/opencode](https://github.com/joe-ieta/opencode)。
+- 本仓库及唯一发布远端 `origin`：[joe-ieta/OpenCode.My](https://github.com/joe-ieta/OpenCode.My)。
 - 官方上游 `upstream`：[anomalyco/opencode](https://github.com/anomalyco/opencode)。V2 跟踪 `upstream/dev`，V1 跟踪 `upstream/v1`。
 - 仅长期维护 `dev-my`、`oc-headless`、`qt-headless`，分别跟踪 `origin` 同名分支；三条发行线独立合并、构建和验证。
 - 源码、标签、所有平台发布物及下载统一使用本仓库 GitHub；停用旧 Gitee 配置及分卷发布流程。
@@ -18,7 +18,7 @@
 
 | 分支                                           | 定位与跟踪源                                                           | 当前进度                                                                                                                                                                                                                  |
 | ---------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [dev-my](docs/fork/dev-my/README.md) | V2 桌面维护主线，发行 OpenCode My | [v2.3.0-my.12 正式发行](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.12) 已设为 GitHub Latest。Windows x64、Linux amd64 和 Linux arm64 均已通过手工安装验收。 |
+| [dev-my](docs/fork/dev-my/README.md) | V2 桌面维护主线，发行 OpenCode My | [v2.3.0-my.12 正式发行](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.12) 已设为 GitHub Latest。Windows x64、Linux amd64 和 Linux arm64 均已通过手工安装验收。 |
 | [oc-headless](docs/fork/oc-headless/README.md) | 跟随官方 `upstream/dev`，发行 V2 `oc_core`，供 Qt/C++ 或其他客户端接入 | 已同步至 V2 2.2.0；标签 `oc-headless-v2.2.0`，本地 Windows 构建、协议门禁和冒烟通过；Qt 传输与会话测试已完成，GUI 权限/表单人工验收仍待完成                                                                               |
 | [qt-headless](docs/fork/qt-headless/README.md) | 跟随官方 `upstream/v1`，维护 V1 `qtoc_core` 和 Qt 集成                 | 已同步至 V1 1.19.5；迭代标签 `qt-headless-v1.19.5.1`；Windows 构建、类型检查和服务冒烟通过，后续以 V1 修复维护为主                                                                                                        |
 

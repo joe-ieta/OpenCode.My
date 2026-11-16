@@ -39,4 +39,4 @@ _Screenshots use sample data._
 - **Model visibility.** Use **Manage models** to choose which models appear in the picker. Close the panel to return to the same picker.
 - **Built-in integrations.** Open **Connect an integration** from the picker footer or from the search field on desktop. Confirming removal deletes the integration's saved credentials and refreshes the model catalog.
 
-[Download OpenCode My](https://github.com/joe-ieta/opencode/releases/latest) · [Desktop maintenance](docs/fork/dev-my/README.md) · [Official OpenCode README](https://github.com/anomalyco/opencode#readme)
+[Download OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [Desktop maintenance](docs/fork/dev-my/README.md) · [Official OpenCode README](https://github.com/anomalyco/opencode#readme)

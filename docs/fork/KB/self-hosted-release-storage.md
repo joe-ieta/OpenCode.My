@@ -250,7 +250,7 @@ https://dl.example.com/latest/windows/
 
 ```ts
 process.env.OPENCODE_DESKTOP_UPDATE_URL =
-  process.env.OPENCODE_DESKTOP_UPDATE_URL ?? `https://github.com/joe-ieta/opencode/releases/download/${tag}/`
+  process.env.OPENCODE_DESKTOP_UPDATE_URL ?? `https://github.com/joe-ieta/OpenCode.My/releases/download/${tag}/`
 ```
 
 在未修改发布脚本前，建议只把自建服务器用于手动下载，GitHub 继续负责自动更新。所有安装包保持完整文件，不使用分卷。

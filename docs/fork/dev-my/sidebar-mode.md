@@ -69,13 +69,13 @@ Live 连接组件已实连安装包原进程并读到相同的 17 个工程、56
 
 ## 当前状态
 
-- 当前 Windows x64 测试版为 [v2.3.0-my.4](https://github.com/joe-ieta/opencode/releases/tag/v2.3.0-my.4)，源码 `09fc39f73b`；`dev-my-models` 已合入 `dev-my`，自定义 Provider、模型管理、语言系统跟随随本版进入桌面主线，Side bar 行为保持不变。四个发布文件已通过本地、服务端及公开下载核验。安装后人工验收待完成。详见[发行记录](releases.md)与[与官方差异](differences.md)。
+- 当前 Windows x64 测试版为 [v2.3.0-my.4](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.4)，源码 `09fc39f73b`；`dev-my-models` 已合入 `dev-my`，自定义 Provider、模型管理、语言系统跟随随本版进入桌面主线，Side bar 行为保持不变。四个发布文件已通过本地、服务端及公开下载核验。安装后人工验收待完成。详见[发行记录](releases.md)与[与官方差异](differences.md)。
 
 - 本版验证 Inbox 状态机在活动快照延迟时等待，并复测底部 Running、后台 Shell 和折叠提示。贡献稿 [#60867](https://github.com/anomalyco/opencode/pull/60867) 当前 head 为 `2de04af2cd`，保持 Draft。
 
 - Linux 两架构的 AppImage/deb 使用同一源码 `3777b783c5`、Ubuntu 24.04 基线构建，均通过 CLI、目录、迁移和实际安装包核验；Linux 与原生 ARM64 GUI 尚未人工验收。
 
-- 历史 Windows 人工验收版本：[v2.2.3-dev-my.4 源码](https://github.com/joe-ieta/opencode/tree/v2.2.3-dev-my.4)，构建源码 `0b82c40bff`，基于 V2 2.2.3，用户曾确认人工测试通过；发行资产已由 `.6` 替代并清理。
+- 历史 Windows 人工验收版本：[v2.2.3-dev-my.4 源码](https://github.com/joe-ieta/OpenCode.My/tree/v2.2.3-dev-my.4)，构建源码 `0b82c40bff`，基于 V2 2.2.3，用户曾确认人工测试通过；发行资产已由 `.6` 替代并清理。
 - 既有贡献：[#60867](https://github.com/anomalyco/opencode/pull/60867)，`joe-ieta:sidebar-mode` → `anomalyco:dev`；当前来源 `703db47378ab63960fc53899b0ae389b9dc3994d`，基线 `dev@3ba597f776`。差异为 41 个界面、图标和客户端缓存相关文件，不包含 fork 品牌、发行工具、内核补丁或并行 Session activity/goal 协议；验证详见 [发行记录](releases.md)。
 - 旧 Side tabs PR [#60446](https://github.com/anomalyco/opencode/pull/60446) 已由作者关闭，顶部保留原说明并链接新 PR；关闭不表示其功能已被上游合并。
 - 新 PR 为 **Draft，等待上游设计评审**。`CONTRIBUTING.md` 要求新界面先获得设计批准；本地人工测试通过、自动检查通过、可合并和设计获批是不同状态。
@@ -137,4 +137,4 @@ Live 连接组件已实连安装包原进程并读到相同的 17 个工程、56
 - [原需求更新](https://github.com/anomalyco/opencode/issues/60241#issuecomment-6542697449)与[项目分组需求帖测试入口](https://github.com/anomalyco/opencode/issues/55446#issuecomment-6542697849)：公开邀请更多关注该功能的人员参与。
 - 反馈建议包含 OS、准确构建/提交、模式、预期/实际行为和复现步骤，重点测试多项目/worktree、同名路径、四模式切换、未打开的运行/等待会话、子会话、隐藏后重新打开及重载后的排序。
 
-新的 [v2.2.5-dev-my.2 测试版](https://github.com/joe-ieta/opencode/releases/tag/v2.2.5-dev-my.2) 已公开 Windows x64 与同源码 Linux amd64/arm64 安装包，全部远端摘要与公开下载入口已核验。后续优化只进入 `dev-my`；`sidebar-mode` 的远端引用保留以维持现有 PR，不再作为开发或发行分支。
+新的 [v2.2.5-dev-my.2 测试版](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.5-dev-my.2) 已公开 Windows x64 与同源码 Linux amd64/arm64 安装包，全部远端摘要与公开下载入口已核验。后续优化只进入 `dev-my`；`sidebar-mode` 的远端引用保留以维持现有 PR，不再作为开发或发行分支。

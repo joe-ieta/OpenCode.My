@@ -6,7 +6,7 @@
 
 ## 1. 环境、分支与检查
 
-- `origin`：`https://github.com/joe-ieta/opencode.git`（本仓库唯一发布远端）；`upstream`：`https://github.com/anomalyco/opencode.git`（官方上游）。当前沿用已认证的 HTTPS 传输；配置好 SSH 后可使用同一 GitHub 仓库的 SSH 地址。顶层 [AGENTS.md](../../AGENTS.md) 的仓库约束覆盖旧配置。
+- `origin`：`https://github.com/joe-ieta/OpenCode.My.git`（本仓库唯一发布远端）；`upstream`：`https://github.com/anomalyco/opencode.git`（官方上游）。当前沿用已认证的 HTTPS 传输；配置好 SSH 后可使用同一 GitHub 仓库的 SSH 地址。顶层 [AGENTS.md](../../AGENTS.md) 的仓库约束覆盖旧配置。
 - 源码、标签及全部平台发布物只发布到 `origin` 的 GitHub；Windows 使用完整安装包，停用 Gitee 与分卷发布流程。
 - GitHub 默认分支为 `dev-my`；`dev` 仅镜像官方 `upstream/dev`，不放 fork 改动或额外同步合并提交。三条维护线仍为 `dev-my`、`oc-headless`、`qt-headless`。对齐镜像前核对独有提交归属并保留归档，更新时使用明确旧 SHA 的 `--force-with-lease`，不改写三条维护线。
 - 使用当前分支根 `package.json` 的 `packageManager` 指定 Bun；本次三个分支均为 **bun@1.4.4**。切换 V1/V2 后重新安装对应 lockfile，不共享一份假定兼容的依赖目录。
@@ -28,8 +28,8 @@ git log -1 --oneline origin/qt-headless
 
 ```powershell
 git ls-remote --tags origin 'v*-dev-my.*' 'oc-headless-v*' 'qt-headless-v*'
-gh release list --repo joe-ieta/opencode --limit 20
-gh release view v2.2.1-dev-my.2 --repo joe-ieta/opencode --json tagName,isDraft,assets
+gh release list --repo joe-ieta/OpenCode.My --limit 20
+gh release view v2.2.1-dev-my.2 --repo joe-ieta/OpenCode.My --json tagName,isDraft,assets
 ```
 
 不要因上游“Latest Release”当前展示 V1 而误判 V2 代码版本；同步目标由分支定位确定。
@@ -181,13 +181,13 @@ bun run release:desktop:my --version=2.2.3-dev-my.3 --arch=all
 git tag -a v2.2.3-dev-my.3 <build.json中的源码提交> -m 'OpenCode My 2.2.3-dev-my.3'
 git push origin dev-my
 git push origin refs/tags/v2.2.3-dev-my.3
-gh release create v2.2.3-dev-my.3 dist/releases/v2.2.3-dev-my.3/opencode-desktop-win-x64.exe dist/releases/v2.2.3-dev-my.3/opencode-desktop-linux-x86_64.AppImage dist/releases/v2.2.3-dev-my.3/opencode-desktop-linux-amd64.deb dist/releases/v2.2.3-dev-my.3/opencode-desktop-linux-arm64.AppImage dist/releases/v2.2.3-dev-my.3/opencode-desktop-linux-arm64.deb dist/releases/v2.2.3-dev-my.3/latest.yml dist/releases/v2.2.3-dev-my.3/latest-linux.yml dist/releases/v2.2.3-dev-my.3/latest-linux-arm64.yml dist/releases/v2.2.3-dev-my.3/SHA256SUMS dist/releases/v2.2.3-dev-my.3/build.json --repo joe-ieta/opencode --verify-tag --draft --title 'OpenCode My 2.2.3-dev-my.3 (Windows amd64 + Ubuntu amd64/arm64)' --notes-file <release-notes.md>
+gh release create v2.2.3-dev-my.3 dist/releases/v2.2.3-dev-my.3/opencode-desktop-win-x64.exe dist/releases/v2.2.3-dev-my.3/opencode-desktop-linux-x86_64.AppImage dist/releases/v2.2.3-dev-my.3/opencode-desktop-linux-amd64.deb dist/releases/v2.2.3-dev-my.3/opencode-desktop-linux-arm64.AppImage dist/releases/v2.2.3-dev-my.3/opencode-desktop-linux-arm64.deb dist/releases/v2.2.3-dev-my.3/latest.yml dist/releases/v2.2.3-dev-my.3/latest-linux.yml dist/releases/v2.2.3-dev-my.3/latest-linux-arm64.yml dist/releases/v2.2.3-dev-my.3/SHA256SUMS dist/releases/v2.2.3-dev-my.3/build.json --repo joe-ieta/OpenCode.My --verify-tag --draft --title 'OpenCode My 2.2.3-dev-my.3 (Windows amd64 + Ubuntu amd64/arm64)' --notes-file <release-notes.md>
 # 上传完成，核对资产大小和服务端 SHA256 digest 后再公开
-gh release edit v2.2.3-dev-my.3 --repo joe-ieta/opencode --draft=false --prerelease=false --latest
+gh release edit v2.2.3-dev-my.3 --repo joe-ieta/OpenCode.My --draft=false --prerelease=false --latest
 
 ```
 
-`gh release create` 只对本仓库 `joe-ieta/opencode` 执行，全部平台安装包及更新清单统一使用本仓库 GitHub Release。不要向官方 `upstream` 推送 fork 发行提交、标签或发布物。
+`gh release create` 只对本仓库 `joe-ieta/OpenCode.My` 执行，全部平台安装包及更新清单统一使用本仓库 GitHub Release。不要向官方 `upstream` 推送 fork 发行提交、标签或发布物。
 
 只列入实际完成构建与验收的架构和清单；不把未构建的平台记成通过。Linux 按架构提供 `latest-linux.yml` / `latest-linux-arm64.yml`。GUI appId 独立，后台渠道仍为 `dev`；配置、服务/历史和 tag 固定更新源约定见 [dev-my](dev-my/README.md)。
 
@@ -201,10 +201,10 @@ gh release edit v2.2.3-dev-my.3 --repo joe-ieta/opencode --draft=false --prerele
 先记录源提交、内核版本、平台、文件大小和哈希、协议变化及冒烟结果，再打标签、推分支/标签并核验 Actions。当前工作流发布的是有保留期限的 Actions artifacts；不要把它写成永久 GitHub Release 资产。
 
 ```powershell
-gh api repos/joe-ieta/opencode/actions/permissions
-gh run list --repo joe-ieta/opencode --workflow oc-headless.yml --limit 5
-gh run list --repo joe-ieta/opencode --workflow qtoc.yml --limit 5
-gh run view <run-id> --repo joe-ieta/opencode
+gh api repos/joe-ieta/OpenCode.My/actions/permissions
+gh run list --repo joe-ieta/OpenCode.My --workflow oc-headless.yml --limit 5
+gh run list --repo joe-ieta/OpenCode.My --workflow qtoc.yml --limit 5
+gh run view <run-id> --repo joe-ieta/OpenCode.My
 ```
 
 工作流可能只存在于 headless 分支；调用时先确认该 ref 的文件与注册状态，必要时指定 workflow ID 和实际 ref。缺少记录或 CI 尚未运行，就明确记为待补。本次只查询状态，没有重新 dispatch 构建。
