@@ -8,14 +8,15 @@
 - **Understanding** · See facts, summaries, and rollups for project design, task breakdown, task progress, and session activity.
 - **Ease of use** · Work in a streamlined interface with personalization features and support for local deployments.
 
-
 ## Personalization features
 
 ### Side bar
-  desc.
-  
+
+Browse sessions by project or recent activity, and see which tasks are running or waiting across connected servers. The Side bar keeps project navigation and session activity visible while you work.
+
 ### Custom models
-  desc.
+
+Connect an OpenAI-compatible provider from the model picker. Import models or add them manually, test saved models, and choose which ones appear in the picker.
 
 ## New features in detail in `OpenCode My`
 

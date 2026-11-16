@@ -10,17 +10,15 @@
 
 ## 个性化功能
 
-- **侧栏（Side bar）** · 在 **设置 → 常规 → 界面布局** 中选择 **侧栏**。可置顶或收起项目，按项目浏览最近会话，并集中查看已连接服务器上的运行活动，包括后台 Shell 和子智能体。
+### 侧栏（Side bar）
 
-  <img src="docs/fork/dev-my/side-bar-zh.png" alt="侧栏中的项目分组、最近会话和运行中任务">
+可按项目或最近活动浏览会话，并查看各服务器上正在运行或等待处理的任务。在工作时也能随时看到项目导航和会话状态。
 
-- **自定义模型（Custom models）** · 在模型选择器中打开 **自定义 Provider**，配置全局 OpenAI 兼容 Provider。可发现并导入模型，也可手动添加，设置模型显示名称、请求 ID 与上下文限额，并测试文本响应。通过 **管理模型** 选择在模型选择器中显示的模型。
+### 自定义模型（Custom models）
 
-  <img src="docs/fork/dev-my/custom-models-zh.png" alt="自定义 Provider 表单，显示请求模型 ID、模型名称、上下文限额和文本测试">
+从模型选择器连接 OpenAI 兼容 Provider。可导入或手动添加模型，测试已保存的模型，并选择哪些模型显示在选择器中。
 
-_截图使用示例数据。_
-
-## OpenCode My 新特性
+## OpenCode My 新特性详解
 
 ### 侧栏（Side bar）
 
@@ -42,5 +40,17 @@ _截图使用示例数据。_
 - **已保存模型的文本测试**。使用已保存的地址、凭据和模型 ID 发出最小测试请求，可查看结果、取消测试或在失败后重试。
 - **模型可见性**。在「管理模型」中选择哪些模型显示在选择器里，关闭管理面板后可返回原选择器。
 - **内置集成连接**。可从模型选择器底部打开「连接提供商」，桌面端搜索框旁也有入口。确认移除后会删除该集成已保存的凭据，并刷新模型目录。
+
+## 个性化功能一览
+
+- **侧栏（Side bar）** · 在 **设置 → 常规 → 界面布局** 中选择 **侧栏**。可置顶或收起项目，按项目浏览最近会话，并集中查看已连接服务器上的运行活动，包括后台 Shell 和子智能体。
+
+  <img src="docs/fork/dev-my/side-bar-zh.png" alt="侧栏中的项目分组、最近会话和运行中任务">
+
+- **自定义模型（Custom models）** · 在模型选择器中打开 **自定义 Provider**，配置全局 OpenAI 兼容 Provider。可发现并导入模型，也可手动添加，设置模型显示名称、请求 ID 与上下文限额，并测试文本响应。通过 **管理模型** 选择在模型选择器中显示的模型。
+
+  <img src="docs/fork/dev-my/custom-models-zh.png" alt="自定义 Provider 表单，显示请求模型 ID、模型名称、上下文限额和文本测试">
+
+_截图使用示例数据。_
 
 [下载 OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [桌面维护说明](docs/fork/dev-my/README.md) · [官方 OpenCode README](https://github.com/anomalyco/opencode#readme)
