@@ -18,6 +18,7 @@
 - 同步子代理状态、Claude Agent 上下文限额、时间线布局和侧栏预览间距修复，保留 OpenCode My 的 Side bar 和自定义模型功能。
 - Windows x64 NSIS 安装包已通过用户手工安装验收，SHA256 为 `7d5508cb81858b5b0a4ab30efbc14cdacdf488445c2050505270bc2134aa2575`。
 - Linux amd64、arm64 各提供 AppImage 和 deb，复用 Windows 的同一模型快照，SHA256 为 `8d47c44895578a09cee270341aa8164d394bd588735d91b98167e41543c45a9d`。两种架构均比对 8,652 个内置模型，通过服务发现、V1 升级确认和历史迁移冒烟。四个 Linux 包均已解包核验，arm64 冒烟通过 QEMU 执行。
+- 2026-11-17，用户确认 Linux amd64 和 arm64 安装测试均已通过，中英文发布说明已补记验收结果。
 - 联合 `SHA256SUMS` 覆盖五个安装包，三份更新清单的 SHA512 和大小已核验。GitHub 的 10 个附件均已逐项核对大小和 SHA256。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.13/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.13/build.json)
 
 ## v2.3.0-my.17 Windows x64 本地测试构建（未上传）
