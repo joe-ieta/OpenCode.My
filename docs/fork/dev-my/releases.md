@@ -20,6 +20,7 @@
 - Linux amd64、arm64 各提供 AppImage 和 deb，复用 Windows 的同一模型快照，SHA256 为 `8d47c44895578a09cee270341aa8164d394bd588735d91b98167e41543c45a9d`。两种架构均比对 8,652 个内置模型，通过服务发现、V1 升级确认和历史迁移冒烟。四个 Linux 包均已解包核验，arm64 冒烟通过 QEMU 执行。
 - 2026-11-17，用户确认 Linux amd64 和 arm64 安装测试均已通过，中英文发布说明已补记验收结果。
 - 联合 `SHA256SUMS` 覆盖五个安装包，三份更新清单的 SHA512 和大小已核验。GitHub 的 10 个附件均已逐项核对大小和 SHA256。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.13/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.13/build.json)
+- 2026-11-17 清理 `v2.3.0` 系列旧附件，移除 `v2.3.0-my.12` 的 10 个附件。该系列现仅本版保留 10 个附件，旧版本的发行页、发布说明和源码标签均已核对保留。
 
 ## v2.3.0-my.17 Windows x64 本地测试构建（未上传）
 
@@ -38,7 +39,7 @@
 - Linux 两种架构各提供 AppImage 和 deb，使用与 Windows 同一源码和模型快照。快照 SHA256 为 `1622400c83bc3333bd75ac3b814874e27dbbf0ae9df4e5c001b359e6bb513acc`。
 - `bun run check` 35/35，相关 Chromium 回归 38/38。两种 Linux 架构均比对 8,633 个模型，通过桌面 CLI 冒烟和解包核验。arm64 自动冒烟使用 QEMU。
 - 2026-11-16，用户确认 Linux amd64 和 arm64 的安装测试均已通过，中英文发布说明已更新。
-- 联合 `SHA256SUMS` 覆盖五个安装包。三份更新清单的 SHA512 和大小已校验，10 个远端附件均已核对大小和 SHA256。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.12/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.12/build.json)
+- 联合 `SHA256SUMS` 覆盖五个安装包。发行时核验了三份更新清单的 SHA512 和大小，并核对了 10 个远端附件的大小和 SHA256。
 - 本次清理了 8 个桌面过程版本的 56 个附件。发行页、发布说明和源码标签均已核对保留，三个系列末版各保留 10 个附件。
 
 ## v2.3.0-my.10 Windows x64 与 Linux amd64/arm64 正式发行
