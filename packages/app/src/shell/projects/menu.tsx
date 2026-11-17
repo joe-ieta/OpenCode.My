@@ -2,9 +2,10 @@ import { Show } from "solid-js"
 import { Menu } from "@opencode/ui/menu"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
-import type { ServerConnection } from "@/runtime/server/registry"
+import { ServerConnection } from "@/runtime/server/registry"
 import type { LocalProject } from "@/shell/state/layout"
 import { fileManagerApp } from "./file-manager"
+import type { ProjectBrowserTarget } from "@/home/projects/browse"
 import { writeClipboard } from "@opencode/session-ui/copy"
 import { showToast } from "@/shell/notifications/toast"
 
@@ -12,6 +13,7 @@ export function ProjectMenuItems(props: {
   server: ServerConnection.Any
   project: LocalProject
   unread: boolean
+  onViewHistory?: (target: ProjectBrowserTarget) => void
   canImportSession: boolean
   importingSession?: boolean
   canRevealProject: (server: ServerConnection.Any) => boolean
@@ -42,6 +44,15 @@ export function ProjectMenuItems(props: {
       <Menu.Item onSelect={() => props.onOpenProjectNewSession(props.server, props.project.worktree)}>
         {language.t("command.session.new")}
       </Menu.Item>
+      <Show when={props.onViewHistory} keyed>
+        {(open) => (
+          <Menu.Item
+            onSelect={() => open({ server: ServerConnection.key(props.server), directory: props.project.worktree })}
+          >
+            {language.t("project.browse.history")}
+          </Menu.Item>
+        )}
+      </Show>
       <Show when={props.canImportSession}>
         <Menu.Item
           disabled={props.importingSession}

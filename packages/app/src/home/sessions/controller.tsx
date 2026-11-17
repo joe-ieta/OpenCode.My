@@ -3,7 +3,7 @@ import { useDialog } from "@opencode/ui/context/dialog"
 import { Button } from "@opencode/ui/button"
 import { DialogFooter, DialogHeader, DialogTitleGroup, Dialog } from "@opencode/ui/dialog"
 import { prefersReducedMotion } from "@opencode/ui/motion"
-import { hashKey, onlineManager, useQueryClient } from "@tanstack/solid-query"
+import { hashKey, onlineManager, useQuery, useQueryClient } from "@tanstack/solid-query"
 import {
   type Accessor,
   createEffect,
@@ -16,14 +16,7 @@ import {
 } from "solid-js"
 import { notifySessionTabsRemoved } from "@/shell/titlebar/session-events"
 import { useCommand } from "@/shell/commands/command"
-import {
-  type SessionIndex,
-  SESSION_INDEX_LIMIT,
-  SESSION_LIST_LIMIT,
-  mergeSessionIndex,
-  retainSessions,
-} from "@/runtime/server/session-index"
-import type { LocalProject } from "@/shell/state/layout"
+import { HOME_SESSION_LIMIT, mergeHomeSessionIndex, retainHomeSessions } from "@/home/sessions/index"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ServerConnection } from "@/runtime/server/registry"
 import { useGlobal } from "@/runtime/server/runtime"
@@ -45,7 +38,7 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { sessionLabel, sessionTitle } from "@/session/title"
 import { showToast } from "@/shell/notifications/toast"
 import { archiveHomeSession } from "./archive"
-import { removeIndexedSessions, renameIndexedSession, sessionIndexQuery } from "@/runtime/server/session-queries"
+import { homeSessionsQuery, lookupHomeSession, projectSessionDirectories, projectSessionsQuery } from "./queries"
 import {
   HOME_SESSIONS_STALE_MS,
   INITIAL_HOME_SESSIONS_LOAD_STATE,
@@ -85,7 +78,7 @@ export function createHomeSessionsController(home: HomeController) {
     if (!selected) return
     const project = home.project.selected()
 
-    return project ? directories(project) : [selected]
+    return project ? projectSessionDirectories(project) : [selected]
   })
 
   const [load, setLoad] = createSignal(INITIAL_HOME_SESSIONS_LOAD_STATE)
@@ -125,7 +118,7 @@ export function createHomeSessionsController(home: HomeController) {
 
   function homeSessionsTarget(current = focus()): HomeSessionsTarget | undefined {
     if (!current) return
-    const cache = queryClient.getQueryState<SessionIndex>(["home-sessions", current.conn])
+    const cache = queryClient.getQueryState<SessionInfo[]>(["home-sessions", current.conn])
     const cached = cache?.data !== undefined
 
     return {
@@ -186,7 +179,7 @@ export function createHomeSessionsController(home: HomeController) {
     }
 
     // Through the shared query, so a fetch the sidebar already started is joined and the result lands in its cache.
-    void queryClient.fetchQuery({ ...sessionIndexQuery(conn, ctx), staleTime: 0 }).then(
+    void queryClient.fetchQuery({ ...homeSessionsQuery(conn, ctx), staleTime: 0 }).then(
       () => dispatchLoad({ type: "fetch.succeeded", attempt, reducedMotion: prefersReducedMotion() }),
       (cause) =>
         dispatchLoad({
@@ -232,45 +225,12 @@ export function createHomeSessionsController(home: HomeController) {
     load()
     const conn = home.server.focused()
 
-    return (conn && queryClient.getQueryData<SessionIndex>(["home-sessions", conn])?.sessions) || []
+    return (conn && queryClient.getQueryData<SessionInfo[]>(["home-sessions", conn])) || []
   })
 
-  // The shared index holds one bounded page of the newest sessions. A project scoped to older history asks the server
-  // for that directory's newest sessions directly, so selecting a quiet project still lists its sessions.
-  const [scopedSessions, setScopedSessions] = createSignal<SessionInfo[]>([])
-  let scopedKey: string | undefined
-
-  createEffect(() => {
-    const directories = projectDirectories()
-    const conn = home.server.focused()
-    const ctx = home.server.focusedContext()
-
-    if (!directories || !conn || !ctx) {
-      scopedKey = undefined
-      setScopedSessions([])
-
-      return
-    }
-
-    const key = `${ServerConnection.key(conn)}\0${directories.map(pathKey).join("\0")}`
-
-    if (key === scopedKey) return
-    scopedKey = key
-    const controller = new AbortController()
-    setScopedSessions([])
-    void Promise.allSettled(
-      directories.map((directory) =>
-        ctx.sdk.api.session.list(
-          { directory, limit: SESSION_INDEX_LIMIT, order: "desc", parentID: null },
-          { signal: controller.signal },
-        ),
-      ),
-    ).then((results) => {
-      if (controller.signal.aborted) return
-      setScopedSessions(results.flatMap((result) => (result.status === "fulfilled" ? result.value.data : [])))
-    })
-    onCleanup(() => controller.abort())
-  })
+  const scoped = useQuery(() =>
+    projectSessionsQuery(home.server.focused(), home.server.focusedContext(), projectDirectories()),
+  )
 
   const indexedSessions = createMemo(() => {
     const ctx = home.server.focusedContext()
@@ -278,9 +238,14 @@ export function createHomeSessionsController(home: HomeController) {
 
     if (!ctx || !conn) return []
 
-    return retainSessions(
-      ctx.data.session.apply(mergeSessionIndex([...fetchedSessions(), ...scopedSessions()], ctx.data.session.known())),
-      SESSION_LIST_LIMIT,
+    return retainHomeSessions(
+      ctx.data.session.apply(
+        mergeHomeSessionIndex(
+          [...fetchedSessions(), ...(scoped.isPending ? [] : (scoped.data?.().sessions ?? []))],
+          ctx.data.session.known(),
+        ),
+      ),
+      HOME_SESSION_LIMIT,
       Date.now(),
     )
   })
@@ -294,7 +259,7 @@ export function createHomeSessionsController(home: HomeController) {
     }),
   )
 
-  const records = createMemo(() => allRecords().slice(0, SESSION_LIST_LIMIT))
+  const records = createMemo(() => allRecords().slice(0, HOME_SESSION_LIMIT))
   const groups = createMemo(() => groupSessions(records(), language))
   const prefetched = new Set<string>()
 
@@ -389,8 +354,10 @@ export function createHomeSessionsController(home: HomeController) {
       .update({ sessionID: session.id, title: next }, { signal })
       .then(() => {
         ctx.data.session.remember({ ...(ctx.data.session.get(session.id) ?? session), title: next })
-        // Rename changes the title now; ordering follows the next list reload.
-        renameIndexedSession(queryClient, conn, session.id, next)
+        // Rename advances time.updated server-side; like the iOS app, the session moves when the list next reloads.
+        queryClient.setQueryData<SessionInfo[]>(["home-sessions", conn], (current) =>
+          current?.map((item) => (item.id === session.id ? { ...item, title: next } : item)),
+        )
 
         return true
       })
@@ -458,7 +425,10 @@ export function createHomeSessionsController(home: HomeController) {
       if (effect.type === "session.removed") {
         const conn = serverContext(props.server)?.conn
 
-        if (conn) removeIndexedSessions(queryClient, conn, effect.target.removedIDs)
+        if (conn)
+          queryClient.setQueryData<SessionInfo[]>(["home-sessions", conn], (current) =>
+            current?.filter((item) => !effect.target.removedIDs.includes(item.id)),
+          )
         notifySessionTabsRemoved({
           server: props.server,
           directory: props.session.location.directory,
@@ -541,9 +511,9 @@ export function createHomeSessionsController(home: HomeController) {
         const ctx = home.server.focusedContext()
 
         if (!ctx) return
-        const result = await ctx.sdk.api.session.get({ sessionID }, { signal })
+        const result = await lookupHomeSession(ctx, sessionID, signal)
 
-        if (result.time.archived) return
+        if (!result) return
 
         return buildHomeSessionRecords({
           sessions: () => [result],
@@ -611,10 +581,6 @@ export function createHomeSessionsController(home: HomeController) {
       },
     },
   }
-}
-
-function directories(project: LocalProject) {
-  return [project.worktree, ...(project.sandboxes ?? [])]
 }
 
 const HOME_ROW_SELECTOR = '[data-component="home-session-row-container"]'
