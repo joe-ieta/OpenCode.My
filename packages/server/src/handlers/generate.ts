@@ -109,7 +109,6 @@ export const GenerateHandler = HttpApiBuilder.group(Api, "server.generate", (han
     const videoCreate = Effect.fn("server.generate.video.create")(
       function* (request: { readonly payload: VideoRequest }) {
         yield* videoEnabled
-        yield* awaitPlugins
         return { data: yield* videos.start(request.payload).pipe(Effect.mapError(generateError)) }
       },
       Effect.provide(services),
