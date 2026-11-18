@@ -4,6 +4,23 @@
 
 > 当前仓库关系以顶层 [AGENTS.md](../../AGENTS.md) 为准：`origin` 是本仓库 GitHub，`upstream` 是官方 GitHub；同步及官方贡献使用官方对应分支。
 
+## 本仓库 PR 复核（2026-11-18）
+
+已拉取官方 `upstream/dev` 至 [`d412042beb`](https://github.com/anomalyco/opencode/commit/d412042beb9821ed61c73466406f7dbfdadc04e0)（北京时间 2026-11-18 18:11），比两个 PR 原基线 `a9a35b4b4c` 新增 74 个提交。`origin/dev` 没有独有提交，已快进并核验与该上游提交完全一致。本次未合并三个维护分支，也未更新两个 PR 的来源分支。
+
+| 本仓库 Issue / PR | 最新上游结论 | 补丁对照验证 |
+| --- | --- | --- |
+| [Issue #9](https://github.com/joe-ieta/OpenCode.My/issues/9) / [PR #11](https://github.com/joe-ieta/OpenCode.My/pull/11) | **仍存在**。origin 改名后 ID 改变，未写入 `.git/opencode`；已有 worktree 行仍阻止再次发布用于收养会话的事件。 | PR head `7b31a6fa0c` 可无冲突应用到最新上游。项目测试 29 项通过，原有相关会话测试 5 项通过；但新增双 clone 隔离用例失败，**不能据此认定补丁可直接合并**。 |
+| [Issue #10](https://github.com/joe-ieta/OpenCode.My/issues/10) / [PR #12](https://github.com/joe-ieta/OpenCode.My/pull/12) | **仍存在**。Home 仍以共享项目的 canonical worktree 处理新增结果，恢复非 canonical clone 时会清空选择。 | PR head `2ac79bfad1` 可无冲突应用到最新上游；Home、workspaces、titlebar 相关测试 **454 项通过**，包含 PR 的 clone 选择回归用例。 |
+
+复核使用最新上游的独立工作树及 Bun 1.4.4。先仅移入 PR 的回归测试：Core 的缓存写入、无 marker 的 origin 改名、已有新 worktree 行三项均失败；Home 状态机 12 项通过、clone 回归项失败。再应用生产补丁作对照。当前 `dev-my@afa7429af7` 的 `project.ts`、`session/projector.ts`、`home/machine.ts` 与最新上游相同，因此不能依据 Issue 中历史 downstream 修复评论认定当前维护线已解决问题。
+
+PR #11 的新增失败场景：两个 clone 共享旧项目 ID，A 是 canonical 目录；只改 A 的 origin 后，B 的会话也被改成新项目 ID。该用例在纯上游通过，在补丁上失败。原因是补丁把 Git 历史项目 ID 放入 `Worktree.Event.Resolved.adopted`，而现有 Session projector 对 `adopted` 按整个旧项目选择会话，并以旧项目的 canonical 目录判断归属；这一语义原用于 markerless 项目的收养，不保证 Git clone 的目录隔离。后续应先修正该边界，再评估合并。
+
+Core 与 App 的 `bun typecheck` 均通过；App 在隔离工作树使用与原符号链接等价的临时导入。候选的根目录 `bun run check` 停在未改动的 `script/check-greys.ts`：Windows 反斜杠路径未匹配例外规则，报 172 项。同步镜像时现有 `dev-my` 的 pre-push 完整检查通过（35 个任务）；该结果不替代最新上游候选的全量检查。本次未运行桌面 UI / Playwright 端到端测试。
+
+两个 PR 目前都指向本仓库 `dev`。按现行分支约束，`dev` 只能镜像官方代码，不能直接合入这些 fork 修复；维护线修复应适配 `dev-my`（Core 按需同步到 `oc-headless`），正式官方贡献另以 `anomalyco/opencode:dev` 为目标。问题仍然存在，不应因本次同步而关闭 Issue。
+
 ## 当前 PR
 
 | PR / 分支                                                                         | 核对状态                                                                                            | 本地与后续策略                                                                                                                                                              |
