@@ -4,7 +4,23 @@
 
 > 当前仓库关系以顶层 [AGENTS.md](../../AGENTS.md) 为准：`origin` 是本仓库 GitHub，`upstream` 是官方 GitHub；同步及官方贡献使用官方对应分支。
 
-## 本仓库 PR 复核（2026-11-18）
+## 本轮修复与官方提交（2026-11-18）
+
+已将官方 dev `d412042beb` 合入 `dev-my`（同步提交 `62a06611ed`），并推送 origin。`origin/dev` 仍与此次拉取的 `upstream/dev` 完全一致。
+
+- [本仓库 PR #11](https://github.com/joe-ieta/OpenCode.My/pull/11) 已改为目标 `dev-my` 并合并（`ea49fb226f`），Issue #9 已关闭。Git 会话按自身目录迁移，保留其他 clone 的会话；相邻目录名不再触发重复迁移事件。最终修正提交为 `5690778cf6`。
+- [本仓库 PR #12](https://github.com/joe-ieta/OpenCode.My/pull/12) 已改为目标 `dev-my` 并合并（`e5237b1f6f`），Issue #10 已关闭。选择的 clone 目录在添加、重载及新建会话时保持一致；清单恢复纳入 Home 状态机，并适配 fork 的共享项目控制器及 Side bar。
+- 最终整合的根目录 `bun run check` 35/35 通过，App 单元测试 2776/2776 通过。Core 项目与会话创建测试 81/81 通过；双 clone 两个方向重复 10 次通过；Home 状态机重复测试 140/140；构建模式浏览器 clone 回归以 5 个 worker、零重试运行 10 次通过，dev-my 适配后两项 keeper 回归也通过。
+- 两个独立官方分支均从官方 dev 建立，未包含 fork 品牌、发布工具或其他补丁；各自完整 lint/typecheck 35/35 通过。官方工作树检查使用了临时 Windows 路径归一化和符号链接声明的等价导入，之后均已撤回。独立 `typecheck:e2e` 仍报告未改动用例及 CSS/Vite ambient 类型问题，新增 Home 用例没有诊断；实际构建和浏览器测试通过。
+
+| 官方问题 | 已验证的独立贡献分支 | 提交状态 |
+| --- | --- | --- |
+| [#64643](https://github.com/anomalyco/opencode/issues/64643) | [`origin-session-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:origin-session-fix)，`65b39d7234`，4 个文件 | Issue 已提交；机器人按 [#57985](https://github.com/anomalyco/opencode/issues/57985) 的重复报告关闭。PR 尚未创建，准备同时关联这两个记录。 |
+| [#64644](https://github.com/anomalyco/opencode/issues/64644) | [`clone-selection-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:clone-selection-fix)，`ba69969b54`，10 个文件 | Issue 已提交且开放；PR 尚未创建。浏览器截图保存在独立 `clone-review-proof` 证据分支，不在贡献补丁中。 |
+
+GitHub 拒绝创建两个官方 PR：CLI GraphQL 返回 `joe-ieta does not have the correct permissions to execute CreatePullRequest`，REST 返回 404，连接器返回 integration 403。当前账号仍有 [#62845](https://github.com/anomalyco/opencode/pull/62845)、[#62850](https://github.com/anomalyco/opencode/pull/62850)、[#62851](https://github.com/anomalyco/opencode/pull/62851) 三个开放 PR，与下文记录的历史名额限制一致。已请求用户指定是否关闭其中两个，尚未关闭或更改这些旧 PR。完整提交说明保存在本机 `.cache/upstream-origin-pr.md` 和 `.cache/upstream-clone-pr.md`，待名额/权限解除后提交。
+
+## 初次复核记录（2026-11-18，修正前）
 
 已拉取官方 `upstream/dev` 至 [`d412042beb`](https://github.com/anomalyco/opencode/commit/d412042beb9821ed61c73466406f7dbfdadc04e0)（北京时间 2026-11-18 18:11），比两个 PR 原基线 `a9a35b4b4c` 新增 74 个提交。`origin/dev` 没有独有提交，已快进并核验与该上游提交完全一致。本次未合并三个维护分支，也未更新两个 PR 的来源分支。
 
