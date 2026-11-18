@@ -42,6 +42,7 @@ import type {
   WebSearchProvider,
 } from "../promise"
 import { Worktree } from "@opencode/schema/worktree"
+import { createSessionActivity } from "./session-activity"
 import { SessionID } from "@opencode/schema/session-id"
 import { SessionMessage } from "@opencode/schema/session-message"
 import {
@@ -359,7 +360,31 @@ export function createData(config: CreateDataInput) {
   const stored = (message: SessionMessageInfo) => (omitFiles() ? omitMessageFileData(message) : message)
   const sync = createSync()
   let activeUpdates: Map<string, DataSessionStatus | undefined> | undefined
+  const [executionAvailability, setExecutionAvailability] = createSignal<"loading" | "ready" | "unavailable">("loading")
   const pendingUpdates = new Map<string, Map<string, SessionInboxInfo | SessionInbox.Delivery | undefined>>()
+
+  const activity = createSessionActivity({
+    load: () => api().experimental.session.activity(),
+    execution: executionAvailability,
+    executing: () => Object.entries(store.session.active).flatMap(([id, status]) => (status === "running" ? [id] : [])),
+    observed: () =>
+      Object.values(store.location).flatMap((location) =>
+        Object.values(location.shell ?? {}).flatMap((shell) => {
+          if (shell.status !== "running" || typeof shell.metadata.sessionID !== "string") return []
+          return [
+            {
+              id: `shell:${shell.id}`,
+              sessionID: shell.metadata.sessionID,
+              kind: "shell" as const,
+              title: shell.command,
+              startedAt: shell.time.started,
+            },
+          ]
+        }),
+      ),
+    session: (id) => store.session.info[id],
+    hydrate: (id) => result.session.sync(id),
+  })
 
   function setSessionActive(sessionID: string, status: DataSessionStatus) {
     activeUpdates?.set(sessionID, status)
@@ -739,8 +764,15 @@ export function createData(config: CreateDataInput) {
   }
 
   function handleEvent(event: OpenCodeEvent) {
+    if (event.type === "shell.created" || event.type === "shell.exited" || event.type === "shell.deleted")
+      refresh(() => activity.invalidate())
     switch (event.type) {
+      case "experimental.session.activity.changed":
+        refresh(() => activity.invalidate())
+        return
       case "server.connected": {
+        setExecutionAvailability("loading")
+        refresh(() => activity.reconnect())
         const updates = new Map<string, DataSessionStatus | undefined>()
         activeUpdates = updates
         refresh(() =>
@@ -756,6 +788,7 @@ export function createData(config: CreateDataInput) {
               })
               activeUpdates = undefined
               setStore("session", "active", reconcile(Object.fromEntries(snapshot)))
+              setExecutionAvailability("ready")
               // Sessions created before this connection (while disconnected, or before the client started)
               // never delivered `session.created`; without their info a running child never joins its root's family.
               snapshot.forEach((status, id) => {
@@ -763,7 +796,9 @@ export function createData(config: CreateDataInput) {
               })
             })
             .catch(() => {
-              if (activeUpdates === updates) activeUpdates = undefined
+              if (activeUpdates !== updates) return
+              activeUpdates = undefined
+              setExecutionAvailability("unavailable")
             }),
         )
         refresh(() =>
@@ -795,6 +830,7 @@ export function createData(config: CreateDataInput) {
         return
       case "session.deleted":
         markDeleted(event.data.sessionID)
+        refresh(() => activity.invalidate())
         return
       case "session.usage.updated":
         if (store.session.info[event.data.sessionID])
@@ -1540,6 +1576,7 @@ export function createData(config: CreateDataInput) {
     on: config.event.on,
     listen: config.event.listen,
     session: {
+      activity,
       list() {
         return sessions()
       },
@@ -1591,6 +1628,7 @@ export function createData(config: CreateDataInput) {
       status(sessionID: string) {
         return store.session.active[sessionID] ?? "idle"
       },
+      activeReady: () => executionAvailability() !== "loading",
       active() {
         return Object.entries(store.session.active).flatMap(([sessionID, status]) =>
           status === "running" ? [sessionID] : [],
@@ -2209,6 +2247,11 @@ export function createData(config: CreateDataInput) {
 
   createEffect(() => {
     if (config.connection?.status() === "connected") return
+    if (config.connection) {
+      activeUpdates = undefined
+      setExecutionAvailability("loading")
+      activity.disconnect()
+    }
     sync.invalidate()
   })
 

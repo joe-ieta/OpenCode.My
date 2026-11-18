@@ -7,7 +7,7 @@ import { Button } from "@opencode/ui/button"
 import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { displayName } from "@opencode/ui/project-avatar"
-import { homeSessionsQuery } from "@/home/sessions/queries"
+import { sessionIndexQuery } from "@/runtime/server/session-queries"
 import { useLanguage } from "@/runtime/i18n/language"
 import { Persistence } from "@/runtime/persistence/schema"
 import { Persist, persisted } from "@/runtime/persistence/storage"
@@ -18,11 +18,11 @@ import { projectSettingsKey, useSettings } from "@/settings/model"
 import { sessionStatus } from "@/shell/layout/project-avatar-state"
 import { ProjectIcon } from "@/shell/layout/project-icon"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
-import { tabKey, useTabs, type Tab } from "@/shell/tabs/tabs"
+import { tabKey, useTabs, type SessionTab, type Tab } from "@/shell/tabs/tabs"
 import { ProjectSessionRow } from "./project-session-row"
 import { createSidebarActivityListener } from "./sidebar-organized"
 import { mergeSidebarSessions } from "./sidebar-sessions"
-import type { TabStripSection } from "./tab-strip"
+import type { TabStripLeading, TabStripSection } from "./tab-strip"
 import { SidebarViewMenu } from "./sidebar-view-menu"
 import {
   SIDEBAR_GROUPINGS,
@@ -95,8 +95,11 @@ function samePlans(a: SectionPlan[], b: SectionPlan[]) {
 
 export type SidebarStripGrouping = {
   sections: TabStripSection[]
-  tabFooter: (tab: Tab) => JSX.Element | undefined
-  tabLabel: (tab: Tab) => string | undefined
+  tabFooter?: (tab: Tab) => JSX.Element | undefined
+  tabLabel?: (tab: Tab) => string | undefined
+  tabMenu?: (tab: SessionTab) => JSX.Element
+  tabMuted?: (tab: SessionTab) => boolean
+  leading?: TabStripLeading
 }
 
 /** The "Customize" vertical sidebar: open tabs and recent sessions from every server, grouped, sorted and filtered. */
@@ -149,7 +152,7 @@ export function SidebarCustomized(props: {
   }
 
   const recentQueries = useQueries(() => ({
-    queries: connected().map((conn) => homeSessionsQuery(conn, ctxOf(ServerConnection.key(conn)))),
+    queries: connected().map((conn) => sessionIndexQuery(conn, ctxOf(ServerConnection.key(conn)))),
   }))
 
   // Server groupings only separate anything once a second server is added; the saved choice returns with it.
@@ -245,7 +248,7 @@ export function SidebarCustomized(props: {
       const ctx = ctxOf(server)
 
       if (!ctx) return []
-      const recent = recentQueries[index]?.data?.() ?? []
+      const recent = recentQueries[index]?.data?.()?.sessions ?? []
 
       // `apply` drops sessions being deleted or already deleted, which the fetched lists still hold until they refetch.
       const indexed = ctx.data.session.apply(mergeSidebarSessions(recent, ctx.data.session.known()))
@@ -500,7 +503,6 @@ export function SidebarCustomized(props: {
 
       result().groups.forEach((parent) => {
         if (parent.collapsed) return
-
         ;(parent.children ?? [parent]).forEach((group) => {
           if (group.collapsed) return
 
@@ -539,9 +541,7 @@ export function SidebarCustomized(props: {
   }
 
   function GroupHeader(headerProps: { groupKey: string }) {
-    return (
-      <Show when={groupByKey().get(headerProps.groupKey)}>{(group) => <GroupHeaderView group={group()} />}</Show>
-    )
+    return <Show when={groupByKey().get(headerProps.groupKey)}>{(group) => <GroupHeaderView group={group()} />}</Show>
   }
 
   function GroupHeaderView(headerProps: { group: SidebarGroup<Row> }) {
@@ -611,7 +611,6 @@ export function SidebarCustomized(props: {
               fallback={
                 <Icon
                   name={group().kind === "server" ? "server" : "outline-dots"}
-                  size="small"
                   class="text-v2-icon-icon-muted"
                 />
               }

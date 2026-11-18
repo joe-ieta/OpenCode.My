@@ -4,7 +4,7 @@ import { Select } from "@opencode/ui/select"
 import { Switch } from "@opencode/ui/switch"
 import { Icon } from "@opencode/ui/icon"
 import { TimelineDetailControl } from "@/settings/timeline-detail"
-import { useLanguage } from "@/runtime/i18n/language"
+import { useLanguage, type Locale } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
 import { ExternalLink } from "@/runtime/platform/external-link"
 import { PluginSettingsSections } from "@/runtime/plugin/settings-page-view"
@@ -200,11 +200,18 @@ const TimelineWidthSetting = () => {
 const LanguageSetting = () => {
   const language = useLanguage()
 
-  const options = createMemo(() =>
-    language.locales.map((locale) => ({
+  const options = createMemo((): { value: "system" | Locale; label: string }[] => [
+    { value: "system", label: language.t("settings.general.row.language.system") },
+    ...language.locales.map((locale) => ({
       value: locale,
       label: language.label(locale),
     })),
+  ])
+
+  const current = createMemo(() =>
+    language.system()
+      ? options()[0]
+      : options().find((option) => option.value === language.locale()),
   )
 
   return (
@@ -217,10 +224,20 @@ const LanguageSetting = () => {
         options={options()}
         placement="bottom-end"
         gutter={6}
-        current={options().find((option) => option.value === language.locale())}
+        current={current()}
         value={(option) => option.value}
         label={(option) => option.label}
-        onSelect={(option) => option && language.setLocale(option.value)}
+        onSelect={(option) => {
+          if (!option) return
+
+          if (option.value === "system") {
+            language.setSystem()
+
+            return
+          }
+
+          language.setLocale(option.value)
+        }}
       />
     </SettingsRow>
   )
@@ -348,6 +365,20 @@ export const SettingsGeneral: Component = () => {
             <TimelineWidthSetting />
             <BackgroundActivitySetting />
             <SettingsRow
+              title={language.t("settings.timeline.row.foldUserMessages.title")}
+              description={language.t("settings.timeline.row.foldUserMessages.description")}
+            >
+              <div data-action="settings-fold-user-messages">
+                <Switch
+                  checked={settings.general.foldUserMessages()}
+                  onChange={(checked) => settings.general.setFoldUserMessages(checked)}
+                  hideLabel
+                >
+                  {language.t("settings.timeline.row.foldUserMessages.title")}
+                </Switch>
+              </div>
+            </SettingsRow>
+            <SettingsRow
               title={language.t("settings.timeline.row.turnDiffs.title")}
               description={language.t("settings.timeline.row.turnDiffs.description")}
             >
@@ -355,6 +386,17 @@ export const SettingsGeneral: Component = () => {
                 <Switch
                   checked={settings.general.showTurnDiffs()}
                   onChange={(checked) => settings.general.setShowTurnDiffs(checked)}
+                />
+              </div>
+            </SettingsRow>
+            <SettingsRow
+              title={language.t("settings.timeline.row.wrapCodeBlocks.title")}
+              description={language.t("settings.timeline.row.wrapCodeBlocks.description")}
+            >
+              <div data-action="settings-wrap-code-blocks">
+                <Switch
+                  checked={settings.general.wrapCodeBlocks()}
+                  onChange={(checked) => settings.general.setWrapCodeBlocks(checked)}
                 />
               </div>
             </SettingsRow>

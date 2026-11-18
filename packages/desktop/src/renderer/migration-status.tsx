@@ -2,7 +2,10 @@ import { OpenCode } from "@opencode/client/promise"
 import { useLanguage } from "@opencode/app/desktop"
 import { Loader } from "@opencode/ui/loader"
 import { showToast, toaster, Toast } from "@opencode/ui/toast"
-import { createEffect, createRoot, createSignal, onCleanup, onMount } from "solid-js"
+import { Button } from "@opencode/ui/button"
+import { useDialog } from "@opencode/ui/context/dialog"
+import { Dialog, DialogFooter, DialogHeader, DialogTitleGroup } from "@opencode/ui/dialog"
+import { createEffect, createRoot, createSignal, createUniqueId, onCleanup, onMount } from "solid-js"
 import type { ServerReadyData } from "../shared/ipc-contract"
 import {
   createMigrationState,
@@ -18,6 +21,9 @@ type ToastHandle = { id: number; closed: boolean; dispose: (() => void) | undefi
 
 export function MigrationStatus(props: { server: ServerReadyData }) {
   const language = useLanguage()
+  const dialog = useDialog()
+  const confirmationId = createUniqueId()
+  const lifecycle = new AbortController()
   const initial = createMigrationState()
   const [state, setState] = createSignal(initial.state)
   // The main process credentials sidecar requests; see `wireRendererHeaders`.
@@ -99,6 +105,57 @@ export function MigrationStatus(props: { server: ServerReadyData }) {
   }
 
   const run = (effect: MigrationEffect) => {
+    if (effect.type === "show-confirmation") {
+      void dialog.show(
+        () => {
+          const [pending, setPending] = createSignal(false)
+          const accept = () => {
+            setPending(true)
+            void client.experimental.migration.v1
+              .accept({ acknowledged: true }, { signal: lifecycle.signal })
+              .then(
+                () => {
+                  if (lifecycle.signal.aborted) return
+                  dispatch({ type: "confirmation.closed", attempt: effect.attempt, accepted: true })
+                  dialog.close(confirmationId)
+                },
+                (error) => {
+                  if (lifecycle.signal.aborted) return
+                  showToast({
+                    variant: "error",
+                    title: language.t("toast.migration.failed.title"),
+                    description: error instanceof Error ? error.message : String(error),
+                  })
+                },
+              )
+              .finally(() => setPending(false))
+          }
+          return (
+            <Dialog fit preventBackdropDismiss>
+              <DialogHeader hideClose>
+                <DialogTitleGroup
+                  title={language.t("migration.v1.title")}
+                  description={language.t("migration.v1.description")}
+                />
+              </DialogHeader>
+              <DialogFooter>
+                <Button variant="ghost" disabled={pending()} onClick={() => dialog.close(confirmationId)}>
+                  {language.t("common.cancel")}
+                </Button>
+                <Button disabled={pending()} onClick={accept}>
+                  {language.t("migration.v1.confirm")}
+                </Button>
+              </DialogFooter>
+            </Dialog>
+          )
+        },
+        () => dispatch({ type: "confirmation.closed", attempt: effect.attempt, accepted: false }),
+        confirmationId,
+        lifecycle.signal,
+      )
+      return
+    }
+
     if (effect.type === "start-wait") {
       clearTimeout(timer)
       timer = setTimeout(() => dispatch({ type: "poll.due", attempt: effect.attempt }), effect.delayMs)
@@ -155,7 +212,9 @@ export function MigrationStatus(props: { server: ServerReadyData }) {
   onMount(() => initial.effects.forEach(run))
 
   onCleanup(() => {
+    lifecycle.abort()
     dispatch({ type: "disposed" })
+    dialog.close(confirmationId)
     hide()
   })
 

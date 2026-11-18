@@ -16,7 +16,8 @@ export type MigrationState =
       readonly failures: number
       readonly progress: MigrationProgress | undefined
     }
-  | { readonly status: "completed" }
+  | { readonly status: "confirming"; readonly attempt: number }
+  | { readonly status: "completed" | "dismissed" }
   | { readonly status: "failed"; readonly error: string }
   | { readonly status: "disposed" }
 
@@ -25,6 +26,7 @@ export type MigrationEvent =
   | { readonly type: "poll.succeeded"; readonly attempt: number; readonly output: ExperimentalMigrationV1StatusOutput }
   | { readonly type: "poll.failed"; readonly attempt: number }
   | { readonly type: "poll.timed-out"; readonly attempt: number }
+  | { readonly type: "confirmation.closed"; readonly attempt: number; readonly accepted: boolean }
   | { readonly type: "disposed" }
 
 export type MigrationEffect =
@@ -32,6 +34,7 @@ export type MigrationEffect =
   | { readonly type: "start-poll"; readonly attempt: number; readonly timeoutMs: number }
   | { readonly type: "cancel-timer" }
   | { readonly type: "abort-poll" }
+  | { readonly type: "show-confirmation"; readonly attempt: number }
   | { readonly type: "show-error"; readonly error: string }
 
 export type MigrationTransition = {
@@ -58,6 +61,12 @@ export function transitionMigration(state: MigrationState, event: MigrationEvent
     return { state: { status: "disposed" }, effects: [] }
   }
 
+  if (event.type === "confirmation.closed") {
+    if (state.status !== "confirming" || state.attempt !== event.attempt) return unchanged(state)
+    if (!event.accepted) return { state: { status: "dismissed" }, effects: [] }
+    return wait(state.attempt + 1, 0, undefined, [])
+  }
+
   if (event.type === "poll.due") {
     if (state.status !== "waiting" || state.attempt !== event.attempt) return unchanged(state)
     const attempt = state.attempt + 1
@@ -73,6 +82,11 @@ export function transitionMigration(state: MigrationState, event: MigrationEvent
   if (event.type === "poll.succeeded") {
     const output = event.output
 
+    if (output.status === "confirmation_required")
+      return {
+        state: { status: "confirming", attempt: state.attempt },
+        effects: [{ type: "cancel-timer" }, { type: "show-confirmation", attempt: state.attempt }],
+      }
     if (output.status === "completed") return { state: { status: "completed" }, effects: [{ type: "cancel-timer" }] }
 
     if (output.status === "error")

@@ -137,6 +137,26 @@ export const Entry = Schema.Union([Document, Directory]).annotate({
 })
 export type Entry = typeof Entry.Type
 
+/** A model declared in a saved config document, including normalized legacy configs. */
+export function hasSavedModel(
+  entries: readonly (
+    | { readonly type: "directory" }
+    | {
+        readonly type: "document"
+        readonly path?: string
+        readonly info: { readonly providers?: Readonly<Record<string, { readonly models?: object }>> }
+      }
+  )[],
+  model: { providerID: string; id: string },
+) {
+  return entries.some(
+    (entry) =>
+      entry.type === "document" &&
+      entry.path !== undefined &&
+      Object.hasOwn(entry.info.providers?.[model.providerID]?.models ?? {}, model.id),
+  )
+}
+
 const Updated = ephemeral({
   type: "config.updated",
   schema: {},

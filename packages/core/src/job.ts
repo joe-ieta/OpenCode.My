@@ -22,8 +22,14 @@ import { type Recovery, RecoverySchema } from "./job/recovery.js"
 import { JobTable } from "./job/sql.js"
 import { SessionMessage } from "./session/message.js"
 import { SessionSchema } from "./session/schema.js"
+import { SessionActivitySource } from "./session/activity-source.js"
 
 export type { Recovery }
+
+/** A session-wide background request releases the outer blocker; its nested waits keep their own deadlines. */
+export const BlockingParent = Context.Reference<string | undefined>("@opencode/Job/BlockingParent", {
+  defaultValue: () => undefined,
+})
 
 const Background = Schema.Struct({
   id: Schema.String,
@@ -196,6 +202,7 @@ function recoveryTitle(job: Active, recovery: Recovery): string | null {
   if (job.info.title !== undefined) return job.info.title
   if (recovery.kind === "shell") return recovery.command
   if (recovery.kind === "subagent") return recovery.description
+  if (recovery.kind === "codemode") return "Code Mode script"
   return recovery.path
 }
 
@@ -237,11 +244,34 @@ function decrementSession(input: Map<SessionSchema.ID, number>, sessionID: Sessi
  */
 export const make = Effect.gen(function* () {
   const db = (yield* Database.Service).db
+  const activity = yield* SessionActivitySource.Service
   const state: State = {
     jobs: yield* SynchronizedRef.make(new Map()),
     generations: yield* Ref.make(0),
     scope: yield* Scope.Scope,
   }
+
+  // Shell processes have their own source, including user shells that never create a Job.
+  // A subagent Job and its child execution share one identity in the observation layer.
+  yield* activity.register(
+    SynchronizedRef.get(state.jobs).pipe(
+      Effect.map((jobs) =>
+        [...jobs.values()].flatMap((job) => {
+          const recovery = job.recovery
+          if (job.info.status !== "running" || !recovery || recovery.kind === "shell") return []
+          return [
+            {
+              id: recovery.kind === "subagent" ? `session:${recovery.childSessionID}` : `job:${job.info.id}`,
+              sessionID: recovery.kind === "subagent" ? recovery.childSessionID : recovery.sessionID,
+              kind: recovery.kind === "codemode" ? ("job" as const) : recovery.kind,
+              title: job.info.title,
+              startedAt: job.info.started_at,
+            },
+          ]
+        }),
+      ),
+    ),
+  )
 
   const consume = (id: string, generation: Scope.Closeable) =>
     SynchronizedRef.update(state.jobs, (jobs) => {
@@ -337,6 +367,7 @@ export const make = Effect.gen(function* () {
         return [{ info: snapshot(next), done: job.done, scope: job.scope }, new Map(jobs).set(id, next)]
       }),
     )
+    if (result.done) yield* activity.changed
     if (result.info && result.done) yield* Deferred.succeed(result.done, result.info)
     if (result.scope) {
       yield* Scope.close(result.scope, Exit.void).pipe(Effect.forkIn(state.scope, { startImmediately: true }))
@@ -398,6 +429,7 @@ export const make = Effect.gen(function* () {
             return [{ info: snapshot(job), job }, new Map(jobs).set(input.id, job)]
           }),
         )
+        if ("job" in result) yield* activity.changed
         if ("job" in result)
           yield* restore(input.run).pipe(
             Effect.exit,
@@ -440,6 +472,8 @@ export const make = Effect.gen(function* () {
   })
 
   const block: Interface["block"] = Effect.fnUntraced(function* (input) {
+    const parent = yield* BlockingParent
+    const tracksSession = parent === undefined || parent === input.id
     const result = yield* SynchronizedRef.modify(state.jobs, (jobs): readonly [BlockStart, Map<string, Active>] => {
       const job = jobs.get(input.id)
       if (!job) return [{ type: "missing" }, jobs]
@@ -447,10 +481,12 @@ export const make = Effect.gen(function* () {
       if (job.isBackgrounded) return [{ type: "backgrounded", info: snapshot(job) }, jobs]
       return [
         { type: "wait", wait: { done: job.done, backgrounded: job.backgrounded, generation: job.scope } },
-        new Map(jobs).set(input.id, {
-          ...job,
-          blockingSessions: incrementSession(job.blockingSessions, input.sessionID),
-        }),
+        tracksSession
+          ? new Map(jobs).set(input.id, {
+              ...job,
+              blockingSessions: incrementSession(job.blockingSessions, input.sessionID),
+            })
+          : jobs,
       ]
     })
     if (result.type === "missing") return undefined
@@ -464,7 +500,7 @@ export const make = Effect.gen(function* () {
       Deferred.await(result.wait.backgrounded).pipe(Effect.map((info) => ({ type: "backgrounded" as const, info }))),
     ).pipe(
       Effect.tap((outcome) => (outcome.type === "finished" ? consume(input.id, result.wait.generation) : Effect.void)),
-      Effect.ensuring(removeBlock(input)),
+      Effect.ensuring(tracksSession ? removeBlock(input) : Effect.void),
     )
   })
 
@@ -550,6 +586,7 @@ export const make = Effect.gen(function* () {
     )
     if (result.cancel) yield* result.cancel
     if (result.info && result.done) yield* Deferred.succeed(result.done, result.info)
+    if (result.done) yield* activity.changed
     if (result.scope) yield* Scope.close(result.scope, Exit.void)
     if (result.generation) yield* consume(id, result.generation)
     return result.info
@@ -727,4 +764,4 @@ export const make = Effect.gen(function* () {
 
 const layer = Layer.effect(Service, make)
 
-export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node] })
+export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node, SessionActivitySource.node] })

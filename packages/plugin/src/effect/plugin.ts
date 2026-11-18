@@ -35,8 +35,8 @@ export interface Context {
   readonly event: EventDomain
   readonly experimental: {
     readonly terminal: Pick<ExperimentalApi<unknown>["persistentPty"], "read">
-    /** Stateless generation with a model and a prompt: no session, history or tools. Video jobs are server-only for now. */
-    readonly generate: Omit<ExperimentalGenerateApi<unknown>, "video">
+    /** Stateless generation with a model and a prompt: no session, history or tools. Text tests and video jobs are server-only for now. */
+    readonly generate: Omit<ExperimentalGenerateApi<unknown>, "testText" | "video">
     readonly artifact: ExperimentalArtifactDomain
   }
   readonly integration: IntegrationDomain

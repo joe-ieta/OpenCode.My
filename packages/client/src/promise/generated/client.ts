@@ -91,6 +91,7 @@ import type {
   ExperimentalSessionImportOutput,
   ExperimentalSessionExportInput,
   ExperimentalSessionExportOutput,
+  ExperimentalSessionActivityOutput,
   ExperimentalSessionSkillInput,
   ExperimentalSessionSkillOutput,
   ExperimentalSessionWaitInput,
@@ -111,6 +112,8 @@ import type {
   ModelDefaultOutput,
   ExperimentalGenerateTextInput,
   ExperimentalGenerateTextOutput,
+  ExperimentalGenerateTestTextInput,
+  ExperimentalGenerateTestTextOutput,
   ExperimentalGenerateImageInput,
   ExperimentalGenerateImageOutput,
   ExperimentalGenerateVideoCreateInput,
@@ -315,6 +318,8 @@ import type {
   DebugLocationEvictInput,
   DebugLocationEvictOutput,
   ExperimentalMigrationV1StatusOutput,
+  ExperimentalMigrationV1AcceptInput,
+  ExperimentalMigrationV1AcceptOutput,
   WebsearchProvidersInput,
   WebsearchProvidersOutput,
   WebsearchQueryInput,
@@ -326,6 +331,14 @@ import type {
   ConfigShellsOutput,
   ExperimentalConfigUpdateInput,
   ExperimentalConfigUpdateOutput,
+  ExperimentalConfigProvidersListInput,
+  ExperimentalConfigProvidersListOutput,
+  ExperimentalConfigProvidersUpdateInput,
+  ExperimentalConfigProvidersUpdateOutput,
+  ExperimentalConfigProvidersDiscoverInput,
+  ExperimentalConfigProvidersDiscoverOutput,
+  ExperimentalConfigProvidersTestInput,
+  ExperimentalConfigProvidersTestOutput,
 } from "./types.js"
 import { ClientError } from "./client-error.js"
 
@@ -1102,6 +1115,17 @@ export function make(options: ClientOptions) {
             },
             requestOptions,
           ).then((value) => value.data),
+        activity: (requestOptions?: RequestOptions) =>
+          request<{ readonly data: ExperimentalSessionActivityOutput }>(
+            {
+              method: "GET",
+              path: `/api/experimental/session/activity`,
+              successStatus: 200,
+              declaredStatuses: [400, 401],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
         skill: (input: ExperimentalSessionSkillInput, requestOptions?: RequestOptions) =>
           request<ExperimentalSessionSkillOutput>(
             {
@@ -1192,6 +1216,18 @@ export function make(options: ClientOptions) {
             },
             requestOptions,
           ).then((value) => value.data),
+        testText: (input: ExperimentalGenerateTestTextInput, requestOptions?: RequestOptions) =>
+          request<ExperimentalGenerateTestTextOutput>(
+            {
+              method: "POST",
+              path: `/api/experimental/generate/test-text`,
+              body: { model: input["model"] },
+              successStatus: 204,
+              declaredStatuses: [400, 401, 404, 422, 502, 503],
+              empty: true,
+            },
+            requestOptions,
+          ),
         image: (input: ExperimentalGenerateImageInput, requestOptions?: RequestOptions) =>
           request<{ readonly data: ExperimentalGenerateImageOutput }>(
             {
@@ -1769,6 +1805,18 @@ export function make(options: ClientOptions) {
               },
               requestOptions,
             ),
+          accept: (input: ExperimentalMigrationV1AcceptInput, requestOptions?: RequestOptions) =>
+            request<ExperimentalMigrationV1AcceptOutput>(
+              {
+                method: "POST",
+                path: `/api/experimental/migration/v1/accept`,
+                body: { acknowledged: input["acknowledged"] },
+                successStatus: 200,
+                declaredStatuses: [400, 401],
+                empty: true,
+              },
+              requestOptions,
+            ),
         },
       },
       usage: {
@@ -1798,6 +1846,64 @@ export function make(options: ClientOptions) {
             },
             requestOptions,
           ),
+        providers: {
+          list: (input?: ExperimentalConfigProvidersListInput, requestOptions?: RequestOptions) =>
+            request<ExperimentalConfigProvidersListOutput>(
+              {
+                method: "GET",
+                path: `/api/experimental/config/providers`,
+                query: { location: input?.["location"] },
+                successStatus: 200,
+                declaredStatuses: [400, 401, 404, 500],
+                empty: false,
+              },
+              requestOptions,
+            ),
+          update: (input: ExperimentalConfigProvidersUpdateInput, requestOptions?: RequestOptions) =>
+            request<ExperimentalConfigProvidersUpdateOutput>(
+              {
+                method: "PATCH",
+                path: `/api/experimental/config/providers/${encodeURIComponent(input.providerID)}`,
+                query: { location: input["location"] },
+                body: {
+                  mode: input["mode"],
+                  revision: input["revision"],
+                  patch: input["patch"],
+                  credential: input["credential"],
+                },
+                successStatus: 200,
+                declaredStatuses: [400, 401, 404, 409, 500],
+                empty: false,
+              },
+              requestOptions,
+            ),
+          discover: (input: ExperimentalConfigProvidersDiscoverInput, requestOptions?: RequestOptions) =>
+            request<ExperimentalConfigProvidersDiscoverOutput>(
+              {
+                method: "POST",
+                path: `/api/experimental/config/providers/discover`,
+                query: { location: input["location"] },
+                body: { target: input["target"], api: input["api"], metadata: input["metadata"] },
+                successStatus: 200,
+                declaredStatuses: [400, 401, 404, 409, 500],
+                empty: false,
+              },
+              requestOptions,
+            ),
+          test: (input: ExperimentalConfigProvidersTestInput, requestOptions?: RequestOptions) =>
+            request<ExperimentalConfigProvidersTestOutput>(
+              {
+                method: "POST",
+                path: `/api/experimental/config/providers/test`,
+                query: { location: input["location"] },
+                body: { target: input["target"], modelID: input["modelID"] },
+                successStatus: 200,
+                declaredStatuses: [400, 401, 404, 409, 500],
+                empty: false,
+              },
+              requestOptions,
+            ),
+        },
       },
     },
     message: {

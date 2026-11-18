@@ -1,5 +1,7 @@
+import type { CustomProvider } from "@opencode/schema/custom-provider"
 import type { Page } from "@playwright/test"
-import type { OpenCodeEvent, SessionMessageInfo } from "@opencode/client/promise"
+import type { OpenCodeEvent, SessionMessageInfo, SessionActivityInfo } from "@opencode/client/promise"
+import type { TextTestRequest } from "@opencode/schema/generate"
 import { Permission } from "@opencode/schema/permission"
 import { artifactKind, artifactMime } from "@opencode/util/artifact"
 import { Model } from "@opencode/schema/model"
@@ -56,12 +58,22 @@ export interface MockServerConfig {
   onCredentialActivate?: (credentialID: string) => void
   // Runs on PATCH /api/credential/:id with the request body; the fixture applies the new label.
   onCredentialUpdate?: (credentialID: string, body: { label?: string }) => void
+  // Runs on DELETE /api/credential/:id; the fixture drops the account so the next sync reflects it.
+  onCredentialRemove?: (credentialID: string) => void
   // Runs on POST /api/integration/:id/connect/key; returning `{ error }` rejects the key with a 400 and that message.
   onConnectKey?: (input: { integrationID: string; body: unknown }) => void | { error: string }
   // Terminal shells the settings offer (`/api/config/shell`).
   shells?: unknown[]
+  customProviders?: Resolvable<CustomProvider.Listing>
+  onCustomProviderTest?: (input: CustomProvider.TextTestRequest) => CustomProvider.TextTest
+  onCustomProviderDiscover?: (
+    target: CustomProvider.DiscoveryInput,
+    options?: Pick<CustomProvider.DiscoveryRequest, "api" | "metadata">,
+  ) => CustomProvider.Discovery
+  onCustomProviderUpdate?: (id: string, body: CustomProvider.Update) => CustomProvider.Saved
   // Background shell commands (`GET /api/shell`).
   shellCommands?: Resolvable<unknown[]>
+  sessionActivity?: Resolvable<SessionActivityInfo[]> | false
   // All output a shell command has captured so far in `directory`, or undefined for an unknown command (404
   // ShellNotFoundError). The mock pages it like the server: from the request's byte `cursor`, at most `limit` bytes
   // (default 65,536).
@@ -70,6 +82,7 @@ export interface MockServerConfig {
   // Without it, writes answer 501 MockUnsupported.
   onFileWrite?: (input: { path: string; directory: string; body: string }) => void
   configEntries?: unknown[]
+  onTestModel?: (input: TextTestRequest) => Promise<void | { error: string }>
   directory: string
   project: unknown
   // Replaces the `/api/project` inventory, which defaults to `[project]`. A location inside a listed project
@@ -802,6 +815,15 @@ function mockHandlers(
                 : { persistentPty: state.persistentPty.capability },
           }),
         config: () => Effect.succeed(configEntries),
+        modelTestText: (ctx) => {
+          const testModel = config.onTestModel
+
+          if (!testModel) return unsupported("test a saved model", "onTestModel")
+
+          return Effect.promise(() => testModel(ctx.payload)).pipe(
+            Effect.flatMap((result) => (result ? Effect.fail(new MockInternal({ message: result.error })) : noContent)),
+          )
+        },
         reference: () => Effect.succeed({ location: location(config), data: [] }),
         // `beforeAgentsResponse` holds the Location's agent list, as a cold Location does while its plugins activate.
         agent: (ctx) =>
@@ -902,7 +924,8 @@ function mockHandlers(
           Effect.sync(() => config.onCredentialUpdate?.(ctx.params.credentialID, ctx.payload)).pipe(
             Effect.andThen(noContent),
           ),
-        credentialRemove: () => noContent,
+        credentialRemove: (ctx) =>
+          Effect.sync(() => config.onCredentialRemove?.(ctx.params.credentialID)).pipe(Effect.andThen(noContent)),
         command: (ctx) =>
           Effect.sync(() => ({
             location: location(config, requestDirectory(config, ctx.request)),
@@ -941,6 +964,27 @@ function mockHandlers(
             id: ctx.params.projectID,
             canonical: projectSeed(config)?.canonical ?? config.directory,
           }),
+        customProviders: () =>
+          config.customProviders
+            ? Effect.sync(() => resolve(config.customProviders!))
+            : unsupported("edit custom providers", "customProviders"),
+        customProviderUpdate: (ctx) =>
+          config.onCustomProviderUpdate
+            ? Effect.sync(() => config.onCustomProviderUpdate!(ctx.params.providerID, ctx.payload))
+            : unsupported("save custom providers", "onCustomProviderUpdate"),
+        customProviderTest: (ctx) =>
+          config.onCustomProviderTest
+            ? Effect.sync(() => config.onCustomProviderTest!(ctx.payload))
+            : unsupported("test provider text response", "onCustomProviderTest"),
+        customProviderDiscover: (ctx) =>
+          config.onCustomProviderDiscover
+            ? Effect.sync(() =>
+                config.onCustomProviderDiscover!(ctx.payload.target, {
+                  api: ctx.payload.api,
+                  metadata: ctx.payload.metadata,
+                }),
+              )
+            : unsupported("discover provider models", "onCustomProviderDiscover"),
         configShells: () => Effect.succeed(config.shells ?? []),
         configUpdate: () => noContent,
         websearchProviders: () =>
@@ -1229,6 +1273,10 @@ function mockHandlers(
                   message: `The mock server has no ${ctx.params.rpcID}.${ctx.params.method} RPC`,
                 }),
               ),
+        sessionActivity: () =>
+          config.sessionActivity === false
+            ? Effect.fail(new MockNotFound({ message: "Activity endpoint is not available" }))
+            : Effect.succeed({ data: resolve(config.sessionActivity ?? []) }),
         sessionActive: () => {
           const status = resolve(config.sessionStatus ?? {})
 

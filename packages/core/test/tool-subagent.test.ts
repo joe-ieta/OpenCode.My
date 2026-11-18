@@ -19,6 +19,7 @@ import { Provider } from "@opencode/core/provider"
 import { AbsolutePath } from "@opencode/core/schema"
 import { Agent } from "@opencode/core/agent"
 import { Job } from "@opencode/core/job"
+import { SessionActivitySource } from "@opencode/core/session/activity-source"
 import { JobTable } from "@opencode/core/job/sql"
 import { KV } from "@opencode/core/kv"
 import { LocationServiceMap } from "@opencode/core/location-service-map"
@@ -140,6 +141,7 @@ const nodes = LayerNode.group([
   Database.node,
   Bus.node,
   Job.node,
+  SessionActivitySource.node,
   Session.node,
   SessionExecution.node,
   LocationServiceMap.node,

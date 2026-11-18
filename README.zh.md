@@ -1,113 +1,56 @@
-<p align="center">
-  <a href="https://opencode.ai">
-    <picture>
-      <source srcset=".github/assets/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset=".github/assets/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src=".github/assets/logo-ornate-light.svg" alt="OpenCode logo">
-    </picture>
-  </a>
-</p>
-<p align="center">开源的 AI Coding Agent。</p>
-<p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/@opencode/cli"><img alt="npm" src="https://img.shields.io/npm/v/@opencode/cli?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/release.yml?style=flat-square&branch=dev" /></a>
-</p>
+# OpenCode My
 
-<p align="center">
-  <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
-  <a href="README.zht.md">繁體中文</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.de.md">Deutsch</a> |
-  <a href="README.es.md">Español</a> |
-  <a href="README.fr.md">Français</a> |
-  <a href="README.it.md">Italiano</a> |
-  <a href="README.da.md">Dansk</a> |
-  <a href="README.ja.md">日本語</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.ru.md">Русский</a> |
-  <a href="README.bs.md">Bosanski</a> |
-  <a href="README.ar.md">العربية</a> |
-  <a href="README.no.md">Norsk</a> |
-  <a href="README.br.md">Português (Brasil)</a> |
-  <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a> |
-  <a href="README.uk.md">Українська</a> |
-  <a href="README.bn.md">বাংলা</a> |
-  <a href="README.gr.md">Ελληνικά</a> |
-  <a href="README.vi.md">Tiếng Việt</a>
-</p>
+[English](README.md) · **简体中文**
 
-[![OpenCode Terminal UI](services/site/public/v1/docs/assets/lander/screenshot.png)](https://opencode.ai)
+`OpenCode My` 是面向日常开发的桌面 AI 长程编程工作台。基于 `opencode`，核心关注多项目并发、长程编程任务中的可控、可理解和易用性，提供更好的人-机协同编码工作环境。`OpenCode My` 保留 `opencode`完整的编程与智能体能力，重点优化使用界面、个性化流程和本地模型体验。桌面版在 `dev-my` 分支维护。
 
----
+- **可控** · 提供更优的项目管理、会话管理、会话摘要总结，提供系统级、长程程序开发的可控能力。
+- **理解** · 从项目设计、任务划分、任务状态监控、会话管控与理解等维度提供事实、摘要、汇总、总结视图。
+- **易用** · 裁剪、优化用户交互界面，研发个性化能力，提供简洁的使用环境；关注本地部署应用体验。
 
-### 安装
+## 个性化功能
 
-```bash
-# 直接安装 (YOLO)
-curl -fsSL https://opencode.ai/v2/install | bash
+### 侧栏（Side bar）
 
-# 软件包管理器
-npm i -g @opencode/cli@latest      # 也可使用 bun/pnpm/yarn
-brew install anomalyco/tap/opencode-v2 # macOS 和 Linux（推荐，始终保持最新）
-brew install opencode              # macOS 和 Linux（官方 brew formula，更新频率较低）
-sudo pacman -S opencode            # Arch Linux (Stable)
-paru -S opencode-beta              # Arch Linux (Latest from AUR)
-mise use -g opencode               # 任意系统
-nix run github:anomalyco/opencode  # Nix
-```
+可按项目或最近活动浏览会话，并查看各服务器上正在运行或等待处理的任务。在工作时也能随时看到项目导航和会话状态。
 
-> [!TIP]
-> 安装前请先移除 0.1.x 之前的旧版本。
+### 自定义模型（Custom models）
 
-### 桌面应用程序 (BETA)
+从模型选择器连接 OpenAI 兼容 Provider。可导入或手动添加模型，测试已保存的模型，并选择哪些模型显示在选择器中。
 
-OpenCode 也提供桌面版应用。可从 [opencode.ai/download](https://opencode.ai/download) 下载。
+## OpenCode My 新特性详解
 
-| 平台                  | 下载文件                           |
-| --------------------- | ---------------------------------- |
-| macOS (Apple Silicon) | `opencode-desktop-mac-arm64.dmg`   |
-| macOS (Intel)         | `opencode-desktop-mac-x64.dmg`     |
-| Windows               | `opencode-desktop-win-x64.exe`     |
-| Linux                 | `.deb`、`.rpm` 或 AppImage         |
+### 侧栏（Side bar）
 
-```bash
-# macOS (Homebrew Cask)
-brew install --cask opencode-desktop
-```
+- **按项目与列表视图**。默认「按项目」将会话按项目分组。「列表」将跨项目会话按最近活动从新到旧排列。
+- **项目操作**。可置顶项目，通过文件夹图标展开或收起项目，并查看可用的分支、工作树与远端信息。
+- **项目与会话菜单**。首页与侧栏共用导入会话、编辑项目、复制路径、清除通知和关闭项目等操作。侧栏项目菜单可用右键或 **Shift+F10** 打开。关闭项目会保留历史会话与未发送草稿，会话菜单支持导出。
+- **统一计数**。两种视图都显示所有可见项目的「活跃会话数 / 会话总数 / 项目总数」。例如 `2/20/5` 表示 5 个项目共有 20 个会话，其中 2 个活跃。
+- **首页与新建会话**。首页与侧栏共享项目历史，首页项目行显示运行状态。「首页」下方的「新建会话」使用首页选中的项目，项目行也能直接在对应项目中新建会话。
+- **运行中的会话**。跨已连接服务器集中显示运行中、等待输入和等待批准的任务，包含后台 Shell 与子智能体，也能看到工作区中未打开的会话。
+- **会话悬停详情**。显示分支、工作树、上次运行结束时间、已加载历史中的用户消息轮次、最近有效上下文用量和会话费用。近期运行以相对时间显示。
 
-#### 安装目录
+### 自定义模型（Custom models）
 
-安装脚本将 OpenCode 安装到 `$HOME/.opencode/bin`。
+- **Provider 管理**。通过「自定义 Provider」新增、编辑或删除全局 OpenAI 兼容 Provider，在表单中填写显示名称、Provider ID 和 Base URL。
+- **凭据管理**。在独立的凭据存储中保存或替换 API Key。编辑 Provider 时保留 JSONC 注释和表单以外的配置字段。
+- **模型发现**。通过 OpenAI 兼容 `/models` 或 Ollama、LM Studio 原生 API 预览模型，可勾选导入并保留手工填写的字段。发现的模型可进入运行时目录。
+- **手动录入模型**。可填写显示名称、请求模型 ID、上下文与输入输出限额，以及工具和图像能力。矮窗口下表单可滚动查看。
+- **高级选项**。支持配置请求与流式响应超时、推理和兼容选项、价格阶梯以及模型变体。
+- **已保存模型的文本测试**。使用已保存的地址、凭据和模型 ID 发出最小测试请求，可查看结果、取消测试或在失败后重试。
+- **模型可见性**。在「管理模型」中选择哪些模型显示在选择器里，关闭管理面板后可返回原选择器。
+- **内置集成连接**。可从模型选择器底部打开「连接提供商」，桌面端搜索框旁也有入口。确认移除后会删除该集成已保存的凭据，并刷新模型目录。
 
-### Agents
+## 个性化功能一览
 
-OpenCode 内置两种 Agent，可用 `Tab` 键快速切换：
+- **侧栏（Side bar）** · 在 **设置 → 常规 → 界面布局** 中选择 **侧栏**。可置顶或收起项目，按项目浏览最近会话，并集中查看已连接服务器上的运行活动，包括后台 Shell 和子智能体。
 
-- **build** - 默认模式，具备完整权限，适合开发工作
-- **plan** - 只读模式，适合代码分析与探索
-  - 默认拒绝修改文件
-  - 运行 bash 命令前会询问
-  - 便于探索未知代码库或规划改动
+  <img src="docs/fork/dev-my/side-bar-zh.png" alt="侧栏中的项目分组、最近会话和运行中任务">
 
-另外还包含一个 **general** 子 Agent，用于复杂搜索和多步任务，内部使用，也可在消息中输入 `@general` 调用。
+- **自定义模型（Custom models）** · 在模型选择器中打开 **自定义 Provider**，配置全局 OpenAI 兼容 Provider。可发现并导入模型，也可手动添加，设置模型显示名称、请求 ID 与上下文限额，并测试文本响应。通过 **管理模型** 选择在模型选择器中显示的模型。
 
-了解更多 [Agents](https://opencode.ai/docs/agents) 相关信息。
+  <img src="docs/fork/dev-my/custom-models-zh.png" alt="自定义 Provider 表单，显示请求模型 ID、模型名称、上下文限额和文本测试">
 
-### 文档
+_截图使用示例数据。_
 
-更多配置说明请查看我们的 [**官方文档**](https://opencode.ai/docs)。
-
-### 参与贡献
-
-如有兴趣贡献代码，请在提交 PR 前阅读 [贡献指南 (Contributing Docs)](./CONTRIBUTING.md)。
-
-### 基于 OpenCode 进行开发
-
-如果你在项目名中使用了 “opencode”（如 “opencode-dashboard” 或 “opencode-mobile”），请在 README 里注明该项目不是 OpenCode 团队官方开发，且不存在隶属关系。
-
----
-
-**加入我们的社区** [飞书](https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=52ao9352-5623-4fa0-b7dd-3407c392c1af&qr_code=true) | [X.com](https://x.com/opencode)
+[下载 OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [桌面维护说明](docs/fork/dev-my/README.md) · [官方 OpenCode README](https://github.com/anomalyco/opencode#readme)

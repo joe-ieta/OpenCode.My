@@ -18,6 +18,8 @@ import { BlobStore } from "@opencode/core/blob-store"
 import { VideoGeneration } from "@opencode/core/video-generation"
 import { Worktree } from "@opencode/core/worktree"
 import { Session } from "@opencode/core/session"
+import { SessionActivitySource } from "@opencode/core/session/activity-source"
+import { SessionStore } from "@opencode/core/session/store"
 import { Instance } from "@opencode/core/instance/service"
 import { SessionTransfer } from "@opencode/core/session/transfer"
 import { InstructionEntry } from "@opencode/core/session/instruction-entry"
@@ -60,6 +62,7 @@ import type { ServerOptions } from "./options"
 const applicationServiceNodes = [
   App.node,
   Global.node,
+  ModelsDev.node,
   FSUtil.node,
   Database.node,
   KV.node,
@@ -76,6 +79,8 @@ const applicationServiceNodes = [
   Project.sweepNode,
   Worktree.node,
   Session.node,
+  SessionActivitySource.node,
+  SessionStore.node,
   Instance.node,
   SessionTransfer.node,
   InstructionEntry.node,
@@ -153,7 +158,12 @@ function makeRoutes<AuthError, AuthServices>(
         content: options.config?.content,
       }),
     ),
-    InstructionDiscovery.node.replace(InstructionDiscovery.configured({ project: options.config?.project })),
+    InstructionDiscovery.node.replace(
+      InstructionDiscovery.configured({
+        project: options.config?.project,
+        claude: options.instructions?.claude,
+      }),
+    ),
     ShellSelect.node.replace(ShellSelect.configured({ gitbash: options.windows?.gitbash })),
     Mcp.node.replace(
       Mcp.configured({
@@ -189,6 +199,8 @@ function makeRoutes<AuthError, AuthServices>(
         Layer.succeedContext(
           Context.pick(
             Database.Service,
+            SessionActivitySource.Service,
+            SessionStore.Service,
             Credential.Service,
             PermissionSaved.Service,
             PluginUpdate.Service,

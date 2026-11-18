@@ -10,6 +10,11 @@ import { PositiveInt, optional, statics } from "./schema.js"
 
 const description = (text: string) => ({ description: text })
 
+export interface TextTestRequest extends Schema.Schema.Type<typeof TextTestRequest> {}
+export const TextTestRequest = Schema.Struct({
+  model: Schema.Struct({ providerID: Model.Ref.fields.providerID, id: Schema.String }),
+}).annotate({ identifier: "Generate.TextTestRequest" })
+
 // ---------------------------------------------------------------------------
 // Shared
 // ---------------------------------------------------------------------------
@@ -131,7 +136,7 @@ export const VideoRequest = Schema.Struct({
 export const VideoErrorReason = Schema.Literals(["failed", "cancelled", "expired", "unknown"]).annotate({
   identifier: "Generate.VideoErrorReason",
   description:
-    "failed: the provider failed the job. cancelled: the provider cancelled it. expired: the provider expired it. unknown: the provider gave no result in time",
+    "failed: the provider failed the job. cancelled: the provider cancelled it. expired: the provider expired it. unknown: the provider gave no result in time, or the server stopped while submitting the job",
 })
 export type VideoErrorReason = typeof VideoErrorReason.Type
 

@@ -27,7 +27,7 @@ import { containsDirectory, getFilename } from "@opencode/util/path"
 import { useServer } from "@/runtime/server/current"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { ServerLabel } from "@/servers/registry/label"
-import { fileManagerApp } from "@/home/projects/file-manager"
+import { fileManagerApp } from "@/shell/projects/file-manager"
 import { useProjectBrowser } from "@/home/projects/browse"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
@@ -330,7 +330,7 @@ export function SessionLocation(props: {
                     <Menu.Portal>
                       <Menu.SubContent class="w-max min-w-[172px] max-w-[calc(100vw-32px)]" aria-label={name()}>
                         <Menu.Item onSelect={() => void copyText(name())}>
-                          <Icon name="outline-copy" class="text-v2-icon-icon-muted" />
+                          <Icon name="copy" class="text-v2-icon-icon-muted" />
                           {language.t("session.location.copyBranch")}
                         </Menu.Item>
                         <Show when={props.context}>
@@ -401,7 +401,7 @@ export function SessionLocation(props: {
                   <Menu.Portal>
                     <Menu.SubContent class="w-max max-w-[calc(100vw-32px)]" aria-label={directory()}>
                       <Menu.Item onSelect={() => void copyText(directory())}>
-                        <Icon name="outline-copy" class="text-v2-icon-icon-muted" />
+                        <Icon name="copy" class="text-v2-icon-icon-muted" />
                         {language.t("session.location.copyPath")}
                       </Menu.Item>
                       <Show when={canReveal()}>

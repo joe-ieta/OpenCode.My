@@ -35,6 +35,7 @@ import { SessionReadMenuItem } from "@/session/session-read-menu-item"
 import { RenameDialog } from "./project-session-row"
 import { createSessionInbox, inboxArchived, type InboxEntry, type InboxStatus } from "./inbox-model"
 import { compareWorking, workingSince } from "./inbox-working"
+import { elapsedTime } from "@/shell/sessions/duration"
 
 const RECENT_LIMIT = 10
 
@@ -106,23 +107,23 @@ export function SidebarInbox() {
   const sections = createMemo(() => {
     const list = inbox.entries()
 
-    // Archived sessions are available through the Archived search dialog, not in the sidebar list.
-    const active = list.filter((entry) => !inboxArchived(entry))
+    // Archived history is available through the Archived search dialog.
+    const history = list.filter((entry) => !inboxArchived(entry))
 
-    const needs = active
+    const needs = list
       .filter((entry) => entry.status === "approval" || entry.status === "input")
       .toSorted((a, b) => (a.since ?? Infinity) - (b.since ?? Infinity))
 
-    const unread = active
+    const unread = history
       .filter((entry) => entry.status === "done" || entry.status === "failed")
       .toSorted((a, b) => (b.since ?? 0) - (a.since ?? 0))
 
-    const read = active.filter((entry) => entry.status === "ready").toSorted((a, b) => (b.since ?? 0) - (a.since ?? 0))
+    const read = history.filter((entry) => entry.status === "ready").toSorted((a, b) => (b.since ?? 0) - (a.since ?? 0))
 
     const recent = state.recentExpanded ? read : read.slice(0, RECENT_LIMIT)
 
     // `time.updated` moves with every message of a run, so keep Working ordered by run start.
-    const working = active.filter((entry) => entry.status === "working").toSorted(compareWorking)
+    const working = list.filter((entry) => entry.status === "working").toSorted(compareWorking)
 
     const current = list.find((entry) => inbox.selected(entry))
 
@@ -536,7 +537,6 @@ function SectionHeader(props: {
       <Show when={props.onToggle}>
         <Icon
           name="fill-triangle-down"
-          size="small"
           class="shrink-0 transition-transform"
           classList={{ "-rotate-90 rtl:rotate-90": !props.expanded }}
         />
@@ -550,7 +550,7 @@ function SectionHeader(props: {
       fallback={
         <div
           id={props.id}
-          class="flex h-6 shrink-0 items-center gap-1.5 px-2 text-[13px] leading-4 font-medium text-v2-text-text-muted"
+          class="flex h-6 shrink-0 items-center gap-1.5 px-1.5 text-[13px] leading-4 font-medium text-v2-text-text-muted"
         >
           {content()}
         </div>
@@ -561,7 +561,7 @@ function SectionHeader(props: {
           id={props.id}
           type="button"
           aria-expanded={props.expanded}
-          class="flex h-6 w-full shrink-0 items-center gap-1.5 rounded-[6px] px-2 text-start text-[13px] leading-4 font-medium text-v2-text-text-muted hover:text-v2-text-text-base focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
+          class="flex h-6 w-full shrink-0 items-center gap-1.5 rounded-[6px] px-1.5 text-start text-[13px] leading-4 font-medium text-v2-text-text-muted hover:text-v2-text-text-base focus-visible:outline-none focus-visible:bg-v2-overlay-simple-overlay-hover"
           onClick={toggle()}
         >
           {content()}
@@ -595,14 +595,6 @@ export function InboxSessionCard(props: {
 
   const status = () => props.status
 
-  const compact = (seconds: number) => {
-    if (seconds < 3600) return language.plural("sidebar.inbox.elapsed.minutes", Math.floor(seconds / 60))
-
-    if (seconds < 86_400) return language.plural("sidebar.inbox.elapsed.hours", Math.floor(seconds / 3600))
-
-    return language.plural("sidebar.inbox.elapsed.days", Math.floor(seconds / 86_400))
-  }
-
   const statusLabel = (value: InboxStatus) =>
     value === "ready" ? undefined : language.t(`sidebar.inbox.status.${value}`)
 
@@ -611,9 +603,9 @@ export function InboxSessionCard(props: {
 
     const seconds = Math.max(0, Math.floor((props.now - props.since) / 1000))
 
-    if (status() === "working" && seconds < 60) return language.plural("sidebar.inbox.elapsed.seconds", seconds)
-
-    return seconds < 60 ? language.t("sidebar.inbox.time.now") : compact(seconds)
+    return status() !== "working" && seconds < 60
+      ? language.t("sidebar.inbox.time.now")
+      : elapsedTime(seconds, language)
   }
 
   return (

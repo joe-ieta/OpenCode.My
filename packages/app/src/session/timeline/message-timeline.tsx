@@ -633,10 +633,10 @@ function MessageTimelineView(
                 </Show>
               )}
             >
+              <SessionWorkingIndicator sessionID={sessionID()} />
               <Show when={parentID() && childTitle()}>
                 {(value) => (
                   <>
-                    <SessionWorkingIndicator sessionID={sessionID()} />
                     <h1
                       data-slot="session-title-child"
                       dir="auto"

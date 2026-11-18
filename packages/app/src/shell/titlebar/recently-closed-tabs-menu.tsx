@@ -14,8 +14,8 @@ import { ServerConnection } from "@/runtime/server/registry"
 import { useGlobal, useServerCtx } from "@/runtime/server/runtime"
 import { SessionTabAvatarView } from "@/shell/layout/session-tab-avatar"
 import { compareSessionTime } from "@/shell/layout/helpers"
-import { mergeHomeSessionIndex } from "@/home/sessions/index"
-import { homeSessionsQuery } from "@/home/sessions/queries"
+import { mergeSessionIndex } from "@/runtime/server/session-index"
+import { sessionIndexQuery } from "@/runtime/server/session-queries"
 import { listClosedTabs, type ClosedTab } from "@/shell/tabs/closed"
 import { sessionIDHasOpenTab, useTabs } from "@/shell/tabs/tabs"
 import { sessionTabTitle } from "./tab-title"
@@ -25,6 +25,8 @@ export function RecentlyClosedTabsMenu(props: {
   onNewTab: () => void
   tooltip?: JSX.Element
   vertical?: boolean
+  size?: "small" | "large"
+  icon?: JSX.Element
   keybind?: string[]
 }) {
   const language = useLanguage()
@@ -56,7 +58,7 @@ export function RecentlyClosedTabsMenu(props: {
       const ctx = global.serverCtx(ServerConnection.key(conn))
 
       return {
-        ...homeSessionsQuery(conn, ctx),
+        ...sessionIndexQuery(conn, ctx),
         enabled: state.open && recent().length < 10 && ctx?.sdk.connection.status() === "connected",
       }
     }),
@@ -74,7 +76,7 @@ export function RecentlyClosedTabsMenu(props: {
         if (!ctx) return []
 
         return ctx.data.session
-          .apply(mergeHomeSessionIndex(sessions[index]?.data?.() ?? [], ctx.data.session.known()))
+          .apply(mergeSessionIndex(sessions[index]?.data?.()?.sessions ?? [], ctx.data.session.known()))
           .filter((session) => !sessionIDHasOpenTab(tabs.store, server, session.id))
           .filter(
             (session) => !recent().some((entry) => entry.tab.server === server && entry.tab.sessionId === session.id),
@@ -98,9 +100,9 @@ export function RecentlyClosedTabsMenu(props: {
               as={IconButton}
               type="button"
               variant="ghost-muted"
-              size="large"
+              size={props.size ?? "large"}
               class="shrink-0"
-              icon={<Icon name="plus" />}
+              icon={props.icon ?? <Icon name="plus" />}
               onClick={props.onNewTab}
               aria-label={language.t("command.session.new")}
             />
@@ -141,9 +143,9 @@ export function RecentlyClosedTabsMenu(props: {
                 ref={search}
                 type="search"
                 dir="auto"
-                leadingIcon={<Icon name="magnifying-glass" size="small" />}
+                leadingIcon={<Icon name="magnifying-glass" />}
                 showClearButton
-                clearIcon="circle-xmark"
+                clearIcon="close"
                 onClearClick={() => {
                   setState("query", "")
                   search?.focus()

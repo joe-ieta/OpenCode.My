@@ -1,5 +1,6 @@
 import { Flag } from "@opencode/core/flag"
 import { Generate } from "@opencode/core/generate"
+import { Config } from "@opencode/core/config"
 import { VideoGeneration } from "@opencode/core/video-generation"
 import { Location } from "@opencode/core/location"
 import { LocationServiceMap } from "@opencode/core/location-services"
@@ -13,13 +14,14 @@ import {
   ServiceUnavailableError,
   UnsupportedModelError,
 } from "@opencode/protocol/errors"
-import type { DecisionRequest, VideoID, ImageRequest, VideoRequest } from "@opencode/schema/generate"
+import type { DecisionRequest, VideoID, ImageRequest, TextTestRequest, VideoRequest } from "@opencode/schema/generate"
 import { Global } from "@opencode/util/global"
 import { Model } from "@opencode/schema/model"
+import { hasSavedModel } from "@opencode/schema/config"
 import { Effect } from "effect"
-import { HttpApiBuilder } from "effect/http-api"
+import { HttpApiBuilder, HttpApiSchema } from "effect/http-api"
 import { Api } from "../api"
-import { awaitPlugins, locationErrors } from "../location"
+import { locationErrors } from "../location"
 
 export const GenerateHandler = HttpApiBuilder.group(Api, "server.generate", (handlers) =>
   Effect.gen(function* () {
@@ -29,7 +31,6 @@ export const GenerateHandler = HttpApiBuilder.group(Api, "server.generate", (han
     const services = locations.get(Location.Ref.make({ directory: AbsolutePath.make(global.config) }))
     const text = Effect.fn("server.generate.text")(
       function* (request: { readonly payload: { readonly prompt: string; readonly model?: Model.Ref } }) {
-        yield* awaitPlugins
         const generate = yield* Generate.Service
         return { data: { text: yield* generate.text(request.payload).pipe(Effect.mapError(generateError)) } }
       },
@@ -38,9 +39,50 @@ export const GenerateHandler = HttpApiBuilder.group(Api, "server.generate", (han
     )
     const image = Effect.fn("server.generate.image")(
       function* (request: { readonly payload: ImageRequest }) {
-        yield* awaitPlugins
         const generate = yield* Generate.Service
         return { data: yield* generate.image(request.payload).pipe(Effect.mapError(generateError)) }
+      },
+      Effect.provide(services),
+      locationErrors,
+    )
+    const testText = Effect.fn("server.generate.testText")(
+      function* (request: { readonly payload: TextTestRequest }) {
+        const model = Model.Ref.make({
+          providerID: request.payload.model.providerID,
+          id: Model.ID.make(request.payload.model.id),
+        })
+        const config = yield* Config.Service
+        const entries = yield* config.entries()
+        if (!hasSavedModel(entries, model))
+          return yield* new ModelNotFoundError({
+            providerID: model.providerID,
+            modelID: model.id,
+            message: "The model must be saved in the server's base configuration",
+          })
+        const generate = yield* Generate.Service
+        const text = yield* generate
+          .text({ model, prompt: "Reply with just OK." }, { maxTokens: 32, retry: false })
+          .pipe(
+            Effect.mapError(testTextError),
+            Effect.timeoutOrElse({
+              duration: "15 seconds",
+              orElse: () =>
+                Effect.fail(
+                  new ProviderRequestError({
+                    providerID: model.providerID,
+                    reason: "provider",
+                    message: "The text test timed out.",
+                  }),
+                ),
+            }),
+          )
+        if (!text.trim())
+          return yield* new ProviderRequestError({
+            providerID: model.providerID,
+            reason: "provider",
+            message: "The model returned no text.",
+          })
+        return HttpApiSchema.NoContent.make()
       },
       Effect.provide(services),
       locationErrors,
@@ -53,7 +95,6 @@ export const GenerateHandler = HttpApiBuilder.group(Api, "server.generate", (han
             message: "Decision question names must be unique",
             field: "questions",
           })
-        yield* awaitPlugins
         const generate = yield* Generate.Service
         return { data: yield* generate.decisions(request.payload).pipe(Effect.mapError(generateError)) }
       },
@@ -68,7 +109,6 @@ export const GenerateHandler = HttpApiBuilder.group(Api, "server.generate", (han
     const videoCreate = Effect.fn("server.generate.video.create")(
       function* (request: { readonly payload: VideoRequest }) {
         yield* videoEnabled
-        yield* awaitPlugins
         return { data: yield* videos.start(request.payload).pipe(Effect.mapError(generateError)) }
       },
       Effect.provide(services),
@@ -88,12 +128,26 @@ export const GenerateHandler = HttpApiBuilder.group(Api, "server.generate", (han
     return handlers
       .handle("generate.text", text)
       .handle("generate.textLegacy", text)
+      .handle("generate.testText", testText)
       .handle("generate.image", image)
       .handle("generate.decisions", decisions)
       .handle("generate.video.create", videoCreate)
       .handle("generate.video.get", videoGet)
   }),
 )
+
+function testTextError(error: Generate.Error) {
+  if (error._tag !== "Generate.ProviderRequestError") return generateError(error)
+
+  return new ProviderRequestError({
+    providerID: error.providerID,
+    reason: error.reason,
+    message:
+      error.reason === "authentication"
+        ? "The provider rejected the saved credentials."
+        : "The provider could not complete the text test.",
+  })
+}
 
 function generateError(error: Generate.Error) {
   switch (error._tag) {

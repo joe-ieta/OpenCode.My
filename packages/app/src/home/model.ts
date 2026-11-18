@@ -1,12 +1,13 @@
-import { useGlobal, useServerCtx } from "@/runtime/server/runtime"
-import { useLayout } from "@/shell/state/layout"
+import { useGlobal, useServerCtx, type ServerCtx } from "@/runtime/server/runtime"
+import { useSettings } from "@/settings/model"
+import { useLayout, type HomeProjectSelection } from "@/shell/state/layout"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { isServerFailed } from "@/runtime/server/health-machine"
 import { usePluginServers } from "@/runtime/plugin/servers"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { batch, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
 import { pathKey } from "@/workspaces/path-key"
-import { addProjects } from "./projects/add"
+import { addProjects } from "@/shell/projects/add"
 import {
   INITIAL_HOME_SELECTION_STATE,
   sameHomeSelection,
@@ -17,12 +18,51 @@ import {
   type HomeSelectionEvent,
 } from "./machine"
 
+// Side bar includes projects known to the server, even if this client has not used them.
+function homeProjects(ctx: ServerCtx | undefined, sidebar: boolean) {
+  return (sidebar ? ctx?.projects.visible() : ctx?.projects.used()) ?? []
+}
+
+export function createHomeSessionActions(selection: () => HomeProjectSelection) {
+  const global = useGlobal()
+  const servers = useServers()
+  const settings = useSettings()
+  const sessions = createProjectSessionActions()
+
+  const target = () => {
+    const current = selection()
+    const preferred = servers.visible.find((conn) => ServerConnection.key(conn) === current.server)
+    const conn = preferred ?? servers.visible[0]
+
+    if (!conn) return
+    const ctx = global.serverCtx(ServerConnection.key(conn))
+    const projects = homeProjects(ctx, settings.appearance.tabLayout() === "sidebar")
+    const directory = preferred && current.directory
+    const selected = directory ? projects.find((project) => pathKey(project.worktree) === pathKey(directory)) : undefined
+    const project = selected ?? ctx?.projects.last() ?? projects[0]
+
+    if (project) return { conn, project }
+  }
+
+  return {
+    ...sessions,
+    newSessionProject: () => target()?.project,
+    openNewSession: () => {
+      const value = target()
+
+      if (value) sessions.openProjectNewSession(value.conn, value.project.worktree)
+    },
+  }
+}
+
 export function createHomeController() {
   const layout = useLayout()
   const global = useGlobal()
   const servers = useServers()
   const pluginServers = usePluginServers()
-  const sessions = createProjectSessionActions()
+  const settings = useSettings()
+
+  const projectsFor = (ctx: ServerCtx | undefined) => homeProjects(ctx, settings.appearance.tabLayout() === "sidebar")
 
   const env = createMemo(
     (): HomeEnvSnapshot => ({
@@ -37,7 +77,7 @@ export function createHomeController() {
           failed: isServerFailed(global.servers.health[key]),
           connected: ctx?.sdk.connection.status() === "connected",
           projectsReady: !!ctx?.sync.project.ready() && servers.projects.forServer(key).legacy() === undefined,
-          usedProjects: (ctx?.projects.used() ?? []).map((project) => ({ id: project.id, worktree: project.worktree })),
+          usedProjects: projectsFor(ctx).map((project) => ({ id: project.id, worktree: project.worktree })),
         }
       }),
     }),
@@ -103,6 +143,7 @@ export function createHomeController() {
   onCleanup(() => dispatch({ type: "disposed" }))
 
   const selection = createMemo(() => selectHomeSelection(machine()), undefined, { equals: sameHomeSelection })
+  const sessions = createHomeSessionActions(selection)
 
   const focusedServer = createMemo(() => {
     const key = selection().server
@@ -112,16 +153,13 @@ export function createHomeController() {
 
   const focusedServerCtx = useServerCtx(focusedServer)
   const focusedSync = () => focusedServerCtx()?.sync
-  // Home lists the server's projects this client has used.
-  const projects = createMemo(() => focusedServerCtx()?.projects.used() ?? [])
+  const projects = createMemo(() => projectsFor(focusedServerCtx()))
 
   const selectedProject = createMemo(() => {
     const directory = selection().directory
 
     return directory ? projects().find((project) => pathKey(project.worktree) === pathKey(directory)) : undefined
   })
-
-  const newSessionProject = createMemo(() => selectedProject() ?? focusedServerCtx()?.projects.last() ?? projects()[0])
 
   return {
     selection: {
@@ -140,19 +178,13 @@ export function createHomeController() {
     project: {
       list: projects,
       selected: selectedProject,
-      newSession: newSessionProject,
-      forServer: (conn: ServerConnection.Any) => global.serverCtx(ServerConnection.key(conn))?.projects.used() ?? [],
+      newSession: sessions.newSessionProject,
+      forServer: (conn: ServerConnection.Any) => projectsFor(global.serverCtx(ServerConnection.key(conn))),
       select: (conn: ServerConnection.Any, directory: string) =>
         send({ type: "project.toggled", server: ServerConnection.key(conn), directory }),
       add: (conn: ServerConnection.Any, directories: string[]) =>
         send({ type: "project.add", server: ServerConnection.key(conn), directories }),
-      openNewSession: () => {
-        const conn = focusedServer()
-        const project = newSessionProject()
-
-        if (!conn || !project) return
-        sessions.openProjectNewSession(conn, project.worktree)
-      },
+      openNewSession: sessions.openNewSession,
       openProjectNewSession: sessions.openProjectNewSession,
       openProjectSession: sessions.openProjectSession,
     },

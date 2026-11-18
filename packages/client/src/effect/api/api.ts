@@ -26,8 +26,8 @@ import type { Workspace } from "@opencode/schema/workspace"
 import type { Instruction } from "@opencode/schema/instruction"
 import type { Snapshot } from "@opencode/schema/snapshot"
 import type { Shell } from "@opencode/schema/shell"
-import type { Generate } from "@opencode/schema/generate"
 import type { Provider } from "@opencode/schema/provider"
+import type { Generate } from "@opencode/schema/generate"
 import type { Integration } from "@opencode/schema/integration"
 import type { Mcp } from "@opencode/schema/mcp"
 import type { PtyTicket } from "@opencode/schema/pty-ticket"
@@ -46,6 +46,7 @@ import type { Vcs } from "@opencode/schema/vcs"
 import type { WebSearch } from "@opencode/schema/websearch"
 import type { UsageLimits } from "@opencode/schema/usage-limits"
 import type { Config } from "@opencode/schema/config"
+import type { CustomProvider } from "@opencode/schema/custom-provider"
 
 export type ServerInfoOutput = {
   readonly version: string
@@ -570,6 +571,16 @@ export type ExperimentalSessionExportOutput = {
 export type ExperimentalSessionExportOperation<E = never> = (
   input: ExperimentalSessionExportInput,
 ) => Effect.Effect<ExperimentalSessionExportOutput, E>
+
+export type ExperimentalSessionActivityOutput = ReadonlyArray<{
+  readonly id: string
+  readonly sessionID: Session.ID
+  readonly kind: "shell" | "subagent" | "image" | "job"
+  readonly title?: string | undefined
+  readonly startedAt: number
+  readonly ancestors: ReadonlyArray<Session.ID>
+}>
+export type ExperimentalSessionActivityOperation<E = never> = () => Effect.Effect<ExperimentalSessionActivityOutput, E>
 
 export type ExperimentalSessionSkillInput = {
   readonly sessionID: Session.ID
@@ -1444,6 +1455,7 @@ export interface ExperimentalSessionApi<E = never> {
   readonly stats: ExperimentalSessionStatsOperation<E>
   readonly import: ExperimentalSessionImportOperation<E>
   readonly export: ExperimentalSessionExportOperation<E>
+  readonly activity: ExperimentalSessionActivityOperation<E>
   readonly skill: ExperimentalSessionSkillOperation<E>
   readonly wait: ExperimentalSessionWaitOperation<E>
   readonly instructions: {
@@ -1507,6 +1519,14 @@ export type ExperimentalGenerateTextOperation<E = never> = (
   input: ExperimentalGenerateTextInput,
 ) => Effect.Effect<ExperimentalGenerateTextOutput, E>
 
+export type ExperimentalGenerateTestTextInput = {
+  readonly model: { readonly providerID: Provider.ID; readonly id: string }
+}
+export type ExperimentalGenerateTestTextOutput = void
+export type ExperimentalGenerateTestTextOperation<E = never> = (
+  input: ExperimentalGenerateTestTextInput,
+) => Effect.Effect<ExperimentalGenerateTestTextOutput, E>
+
 export type ExperimentalGenerateImageInput = {
   readonly model: Model.Ref
   readonly prompt: string
@@ -1554,6 +1574,7 @@ export type ExperimentalGenerateDecisionsOperation<E = never> = (
 
 export interface ExperimentalGenerateApi<E = never> {
   readonly text: ExperimentalGenerateTextOperation<E>
+  readonly testText: ExperimentalGenerateTestTextOperation<E>
   readonly image: ExperimentalGenerateImageOperation<E>
   readonly video: {
     readonly create: ExperimentalGenerateVideoCreateOperation<E>
@@ -2154,6 +2175,7 @@ export type EventSubscribeInput = {
         | "session.revert.staged"
         | "session.revert.cleared"
         | "session.revert.committed"
+        | "experimental.session.activity.changed"
         | "filesystem.changed"
         | "reference.updated"
         | "permission.asked"
@@ -2760,7 +2782,7 @@ export interface DebugApi<E = never> {
 }
 
 export type ExperimentalMigrationV1StatusOutput =
-  | { readonly status: "required" | "completed" }
+  | { readonly status: "confirmation_required" | "required" | "completed" }
   | {
       readonly status: "running"
       readonly progress: {
@@ -2775,8 +2797,17 @@ export type ExperimentalMigrationV1StatusOperation<E = never> = () => Effect.Eff
   E
 >
 
+export type ExperimentalMigrationV1AcceptInput = { readonly acknowledged: true }
+export type ExperimentalMigrationV1AcceptOutput = void
+export type ExperimentalMigrationV1AcceptOperation<E = never> = (
+  input: ExperimentalMigrationV1AcceptInput,
+) => Effect.Effect<ExperimentalMigrationV1AcceptOutput, E>
+
 export interface ExperimentalMigrationApi<E = never> {
-  readonly v1: { readonly status: ExperimentalMigrationV1StatusOperation<E> }
+  readonly v1: {
+    readonly status: ExperimentalMigrationV1StatusOperation<E>
+    readonly accept: ExperimentalMigrationV1AcceptOperation<E>
+  }
 }
 
 export type WebsearchProvidersInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
@@ -2841,8 +2872,56 @@ export type ExperimentalConfigUpdateOperation<E = never> = (
   input: ExperimentalConfigUpdateInput,
 ) => Effect.Effect<ExperimentalConfigUpdateOutput, E>
 
+export type ExperimentalConfigProvidersListInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+export type ExperimentalConfigProvidersListOutput = CustomProvider.Listing
+export type ExperimentalConfigProvidersListOperation<E = never> = (
+  input?: ExperimentalConfigProvidersListInput,
+) => Effect.Effect<ExperimentalConfigProvidersListOutput, E>
+
+export type ExperimentalConfigProvidersUpdateInput = {
+  readonly providerID: Provider.ID
+  readonly location?: { readonly directory?: string | undefined } | undefined
+  readonly mode: "create" | "edit" | "delete"
+  readonly revision: string
+  readonly patch?: CustomProvider.Patch | undefined
+  readonly credential?: { readonly id: Credential.ID; readonly key: string } | undefined
+}
+export type ExperimentalConfigProvidersUpdateOutput = CustomProvider.Saved
+export type ExperimentalConfigProvidersUpdateOperation<E = never> = (
+  input: ExperimentalConfigProvidersUpdateInput,
+) => Effect.Effect<ExperimentalConfigProvidersUpdateOutput, E>
+
+export type ExperimentalConfigProvidersDiscoverInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+  readonly target: CustomProvider.DiscoveryInput
+  readonly api?: "openai" | "ollama" | "lmstudio" | undefined
+  readonly metadata?: ReadonlyArray<string> | undefined
+}
+export type ExperimentalConfigProvidersDiscoverOutput = CustomProvider.Discovery
+export type ExperimentalConfigProvidersDiscoverOperation<E = never> = (
+  input: ExperimentalConfigProvidersDiscoverInput,
+) => Effect.Effect<ExperimentalConfigProvidersDiscoverOutput, E>
+
+export type ExperimentalConfigProvidersTestInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+  readonly target: { readonly mode: "saved"; readonly providerID: Provider.ID; readonly revision: string }
+  readonly modelID: string
+}
+export type ExperimentalConfigProvidersTestOutput = CustomProvider.TextTest
+export type ExperimentalConfigProvidersTestOperation<E = never> = (
+  input: ExperimentalConfigProvidersTestInput,
+) => Effect.Effect<ExperimentalConfigProvidersTestOutput, E>
+
 export interface ExperimentalConfigApi<E = never> {
   readonly update: ExperimentalConfigUpdateOperation<E>
+  readonly providers: {
+    readonly list: ExperimentalConfigProvidersListOperation<E>
+    readonly update: ExperimentalConfigProvidersUpdateOperation<E>
+    readonly discover: ExperimentalConfigProvidersDiscoverOperation<E>
+    readonly test: ExperimentalConfigProvidersTestOperation<E>
+  }
 }
 
 /** @deprecated Use `ExperimentalSessionStatsInput`. Removed in the next minor. */

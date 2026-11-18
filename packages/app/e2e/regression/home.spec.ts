@@ -38,7 +38,7 @@ test("Home keeps the session list in every interface mode", async ({ page }) => 
   await expect(row(page, earlier.title)).toBeVisible()
 
   // The Inbox mode moves session tabs into the sidebar inbox; Home stays the session list.
-  for (const mode of ["Side tabs", "Inbox", "Top tabs"]) {
+  for (const mode of ["Side tabs", "Inbox", "Side bar", "Top tabs"]) {
     await page.keyboard.press("Control+,")
     const settings = page.getByTestId("settings-screen")
     const option = settings.getByRole("radio", { name: mode, exact: true })
@@ -228,11 +228,18 @@ test("a working Home session keeps its project avatar and shows its activity rin
   page,
 }) => {
   const working = { id: "ses_home_working", title: "Working session" }
-  const idle = { id: "ses_home_idle", title: "Idle session" }
-  await mockWorkspace(page, {
+  const idle = { id: "ses_home_idle", title: "Idle session", directory: "C:/OpenCode/Idle", projectID: "proj_idle" }
+  const status = { [working.id]: { type: "running" } }
+  const workspace = await mockWorkspace(page, {
     name: "HomeActivity",
+    project: { name: "Working project" },
+    projects: [
+      project({ id: "proj_homeactivity", directory: "C:/OpenCode/HomeActivity", name: "Working project" }),
+      project({ id: "proj_idle", directory: idle.directory, name: "Idle project" }),
+    ],
     sessions: [working, idle],
-    sessionStatus: { [working.id]: { type: "running" } },
+    sessionStatus: () => status,
+    seed: { usedProjects: { local: ["proj_homeactivity", "proj_idle"] } },
   })
   await page.goto("/")
   const ring = row(page, working.title).locator('[data-component="activity-ring"]')
@@ -244,6 +251,31 @@ test("a working Home session keeps its project avatar and shows its activity rin
   const title = await row(page, working.title).getByText(working.title, { exact: true }).boundingBox()
   const box = await ring.boundingBox()
   expect(box!.x).toBeGreaterThan(title!.x + title!.width)
+
+  const projects = page.locator('[data-component="home-project-row"]')
+  const workingProject = projects.filter({ hasText: "Working project" })
+  const projectRing = workingProject.getByRole("img", { name: "Running sessions", exact: true })
+  await expect(projectRing).toBeVisible()
+  await expect(projects.filter({ hasText: "Idle project" })).toBeVisible()
+  await expect(projects.filter({ hasText: "Idle project" }).getByRole("img", { name: "Running sessions" })).toHaveCount(
+    0,
+  )
+  await workingProject.hover()
+  const action = workingProject.locator("..").getByRole("button", { name: "New session", exact: true })
+  const [actionBox, projectRingBox] = await Promise.all([action.boundingBox(), projectRing.boundingBox()])
+  expect(projectRingBox!.x).toBeGreaterThanOrEqual(actionBox!.x + actionBox!.width)
+
+  status[working.id]!.type = "idle"
+  await workspace.push([
+    {
+      id: "evt_home_project_finished",
+      created: T0 + 1,
+      type: "session.execution.succeeded",
+      durable: { aggregateID: working.id, seq: 1, version: 1 },
+      data: { sessionID: working.id },
+    },
+  ])
+  await expect(projectRing).toHaveCount(0)
 })
 
 test("Home lists projects and sessions when stored state hides every server", async ({ page }) => {
@@ -453,18 +485,18 @@ async function homeProjects(page: Page, projects: unknown[]) {
   return { server, rows: page.locator('[data-component="home-project-row"] [data-slot="home-row-label"]') }
 }
 
-test("Home lists the used server projects by recent activity, hides them, and lists them again once used", async ({
+test("Home lists server history by recent activity, hides projects, and lists them again once used", async ({
   page,
 }) => {
   // `recent` was first resolved under another ID, so one directory has two projects.
   const listed = [entry("unused", 4), entry("recent", 3), entry("older", 2), entry("oldest", 1)]
   listed.push(entry("recent", 0, "proj_recent_before_git"))
   const view = await homeProjects(page, listed)
-  await seed(page, { usedProjects: { local: ["proj_recent_before_git", "proj_older", "proj_oldest"] } })
+  await seed(page, { usedProjects: { local: [] }, settings: { appearance: { tabLayout: "sidebar" } } })
   await page.goto("/")
-  await expect(view.rows).toHaveText(["recent", "older", "oldest"])
+  await expect(view.rows).toHaveText(["unused", "recent", "older", "oldest"])
 
-  // Activity moves a project up and an archived project leaves; a project this client never used stays out.
+  // Server history includes projects from other clients; archived projects leave the list.
   const active = { ...listed[3]!, time: { ...listed[3]!.time, active: T0 + 5 } }
   const archived = { ...listed[2]!, time: { ...listed[2]!.time, archived: T0 + 6 } }
   const fresh = entry("fresh", 7)
@@ -479,12 +511,12 @@ test("Home lists the used server projects by recent activity, hides them, and li
       }),
     ),
   )
-  await expect(view.rows).toHaveText(["oldest", "recent"])
+  await expect(view.rows).toHaveText(["fresh", "oldest", "unused", "recent"])
 
   const recent = page.locator('[data-component="home-project-row"]').filter({ hasText: "recent" })
   await recent.locator("..").getByRole("button", { name: "More options", exact: true }).click()
   await page.getByRole("menuitem", { name: "Close", exact: true }).click()
-  await expect(view.rows).toHaveText(["oldest"])
+  await expect(view.rows).toHaveText(["fresh", "oldest", "unused"])
 
   // Closing a project moves it out of the added list, but it remains discoverable in the server inventory.
   await page
@@ -501,7 +533,7 @@ test("Home lists the used server projects by recent activity, hides them, and li
   await options.filter({ hasText: "C:/OpenCode/recent" }).click()
   await expect(newSessionLocation(page)).toContainText("recent")
   await page.getByRole("button", { name: "Home", exact: true }).click()
-  await expect(view.rows).toHaveText(["oldest", "recent"])
+  await expect(view.rows).toHaveText(["fresh", "oldest", "unused", "recent"])
 })
 
 test("Home migrates the directories an older build listed to the server's current projects", async ({ page }) => {
@@ -522,6 +554,7 @@ test("Home migrates the directories an older build listed to the server's curren
     },
   })
   await page.goto("/")
+  // Official modes show migrated client usage; `docs` remains in the server inventory.
   await expect(view.rows).toHaveText(["api", "web"])
   await expect
     .poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("opencode.global.dat:server") ?? "{}")))
@@ -704,9 +737,9 @@ test("a server whose saved password changes works with the new password", async 
   await remote.getByRole("button", { name: "More options", exact: true }).click()
   await page.getByRole("menuitem", { name: "Edit", exact: true }).click()
   const editor = page.getByRole("dialog", { name: "Edit server" })
-  await editor.getByPlaceholder("password").fill("new-password")
-  // The server now rejects the old password, as after `opencode service set password`.
+  // Rotate first: typing previews the new credentials, and Save reuses that health check.
   accepted.password = "new-password"
+  await editor.getByPlaceholder("password").fill("new-password")
   await editor.getByRole("button", { name: "Save", exact: true }).click()
   await expect(editor).toHaveCount(0)
 

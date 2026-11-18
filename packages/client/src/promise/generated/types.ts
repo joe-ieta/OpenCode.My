@@ -357,6 +357,8 @@ export type ReferenceGitSource = { type: "git"; repository: string; branch?: str
 
 export type VcsBranch = { current?: string; default?: string }
 
+export type VcsRemote = { name: string; url: string }
+
 export type VcsBase = { name: string; ref: string; source: "reflog" | "default" }
 
 export type VcsFileStatus = {
@@ -386,6 +388,58 @@ export type ConfigModelReasoning =
 
 export type ConfigShellOption = { path: string; name: string; acceptable: boolean }
 
+export type CustomProviderAdvancedCost = {
+  input: number
+  output: number
+  cacheRead?: number
+  cacheWrite?: number
+  tierSize?: number
+}
+
+export type CustomProviderSaved = {
+  revision: string
+  config: "saved" | "deleted"
+  credential: "unchanged" | "saved" | "failed" | "deleted"
+  catalog: "ready" | "pending"
+}
+
+export type CustomProviderCandidate = {
+  id: string
+  name?: string
+  context?: number
+  input?: number
+  output?: number
+  maxContext?: number
+  loaded?: boolean
+  tools?: boolean
+  image?: boolean
+  metadataPending?: boolean
+  sources: { [x: string]: string }
+  warnings: Array<string>
+}
+
+export type CustomProviderTextTest =
+  | { status: "success" }
+  | {
+      status: "error"
+      kind:
+        | "model-not-found"
+        | "invalid-url"
+        | "blocked-address"
+        | "authentication"
+        | "unsupported"
+        | "redirect"
+        | "http"
+        | "network"
+        | "timeout"
+        | "too-large"
+        | "invalid-response"
+        | "empty"
+        | "unsupported-auth"
+        | "no-text"
+      httpStatus?: number
+    }
+
 export type LocationPublicRef = { directory: AbsolutePath }
 
 export type FileSystemWrite = { path: AbsolutePath }
@@ -413,9 +467,35 @@ export type ConfigModelVariantSettings = { compaction?: ProviderCompaction; enco
   [x: string]: JsonValue | null
 }
 
+export type CustomProviderAdvancedProviderSettings = {
+  reasoningEffort?: string
+  textVerbosity?: "low" | "medium" | "high"
+  parallelToolCalls?: boolean
+  encoding?: ProviderEncoding
+  timeout?: number | false
+  headerTimeout?: number | false
+  chunkTimeout?: number | false
+}
+
+export type CustomProviderAdvancedSettings = {
+  reasoningEffort?: string
+  textVerbosity?: "low" | "medium" | "high"
+  parallelToolCalls?: boolean
+  encoding?: ProviderEncoding
+}
+
 export type PermissionRule = { action: string; resource: string; effect: PermissionEffect }
 
 export type PluginInfo = { id?: PluginID; source: PluginSource; features: PluginFeatures; state: PluginState }
+
+export type SessionActivityInfo = {
+  id: string
+  sessionID: SessionID
+  kind: "shell" | "subagent" | "image" | "job"
+  title?: string
+  startedAt: number
+  ancestors: Array<SessionID>
+}
 
 export type AutomationTarget = { session: SessionID; subagent?: never } | { subagent: AgentID; session?: never }
 
@@ -695,6 +775,17 @@ export type SessionMessageAssistantReasoning1 = {
 
 export type ToolContent1 = ToolTextContent | ToolFileContent1
 
+export type CustomProviderAdvancedCompatibility = {
+  reasoningField?: string
+  maxTokensField?: ModelMaxTokensField
+  requireReasoning?: boolean
+  requireFinishReason?: boolean
+  requireAssistantAfterTool?: boolean
+  supportsPromptCacheKey?: boolean
+  streamUsage?: boolean
+  cacheFormat?: ModelCacheFormat
+}
+
 export type ModelCompatibility = {
   reasoningField?: ModelReasoningField
   requireReasoning?: boolean
@@ -738,7 +829,7 @@ export type ModelCost = {
 
 export type GenerateVideoRunning = { id: GenerateVideoID; status: "running" }
 
-export type BlobInfo = { id: BlobID; mime: string; bytes: number; expiresAt: number }
+export type BlobInfo = { id: BlobID; mime: string; bytes: number }
 
 export type GenerateVideoError = {
   id: GenerateVideoID
@@ -996,7 +1087,16 @@ export type JobImage = {
   model: string
 }
 
-export type VcsInfo = { provider?: string; branch: VcsBranch }
+export type JobCodeMode = {
+  kind: "codemode"
+  id: string
+  sessionID: SessionID
+  status: JobStatus
+  title?: string
+  time: JobTime
+}
+
+export type VcsInfo = { provider?: string; branch: VcsBranch; experimental?: { remotes?: Array<VcsRemote> } }
 
 export type WebSearchProvider = { id: WebSearchID; name: string }
 
@@ -1010,6 +1110,27 @@ export type ConfigModelCapabilities = {
   temperature?: boolean
   reasoning?: ConfigModelReasoning
 }
+
+export type CustomProviderDiscovery =
+  | { status: "success"; models: Array<CustomProviderCandidate>; warnings: Array<string> }
+  | {
+      status: "error"
+      kind:
+        | "model-not-found"
+        | "invalid-url"
+        | "blocked-address"
+        | "authentication"
+        | "unsupported"
+        | "redirect"
+        | "http"
+        | "network"
+        | "timeout"
+        | "too-large"
+        | "invalid-response"
+        | "empty"
+        | "unsupported-auth"
+      httpStatus?: number
+    }
 
 export type SessionMessageLocationSwitched = {
   id: SessionMessageID
@@ -1108,6 +1229,8 @@ export type ModelVariant = {
   headers?: { [x: string]: string }
   body?: { [x: string]: any }
 }
+
+export type CustomProviderAdvancedVariant = { id: string; settings?: CustomProviderAdvancedSettings }
 
 export type PermissionRuleset = Array<PermissionRule>
 
@@ -1816,6 +1939,15 @@ export type SessionCompactionDelta = {
   data: { sessionID: SessionID; text: string }
 }
 
+export type ExperimentalSessionActivityChanged = {
+  id: EventID
+  created: number
+  metadata?: { [x: string]: any }
+  type: "experimental.session.activity.changed"
+  location?: LocationRef
+  data: {}
+}
+
 export type FilesystemChanged = {
   id: EventID
   created: number
@@ -2294,7 +2426,7 @@ export type AutomationTrigger =
 
 export type ArtifactContent = { info: ArtifactInfo; files: { [x: string]: string } }
 
-export type JobInfo = JobShell | JobSubagent | JobImage
+export type JobInfo = JobShell | JobSubagent | JobImage | JobCodeMode
 
 export type SessionInboxMove = {
   id: SessionMessageID
@@ -2372,6 +2504,21 @@ export type ModelInfo = {
   status: "alpha" | "beta" | "deprecated" | "active"
   enabled: boolean
   limit: { context: number; input?: number; output: number }
+}
+
+export type CustomProviderDefinition = {
+  name?: string
+  modelID?: string
+  context?: number
+  input?: number
+  output?: number
+  tools?: boolean | null
+  image?: boolean | null
+  settings?: CustomProviderAdvancedSettings
+  compatibility?: CustomProviderAdvancedCompatibility
+  cost?: Array<CustomProviderAdvancedCost>
+  variants?: Array<CustomProviderAdvancedVariant>
+  variantsReadonly?: boolean
 }
 
 export type SessionInfo = {
@@ -2621,6 +2768,7 @@ export type ConfigEntry =
           video_generate?: boolean
           console_watches?: boolean
           mcp_events?: boolean
+          openai_compatible_discovery?: boolean
           full_codemode?: boolean
           schedules?: boolean
           part_rows?: boolean
@@ -2733,6 +2881,20 @@ export type AgentInfo = {
   permissions: PermissionRuleset
 }
 
+export type CustomProviderEntry = {
+  id: ProviderID
+  name: string
+  sources: Array<string>
+  reason?: string
+  baseURL?: string
+  settings?: CustomProviderAdvancedProviderSettings
+  compatibility?: CustomProviderAdvancedCompatibility
+  keyReadonly: boolean
+  keySources: Array<string>
+  credentials: Array<{ id: CredentialID; label: string; active: boolean }>
+  models: { [x: string]: CustomProviderDefinition }
+}
+
 export type SessionsResponse = {
   data: Array<SessionInfo>
   cursor: { previous?: SessionsCursor | null; next?: SessionsCursor | null }
@@ -2815,6 +2977,13 @@ export type GenerateVideoGetResponse = { data: GenerateVideoJob }
 export type GenerateDecisionsResponse = { data: GenerateDecisionResult }
 
 export type FormInfo1 = { id: FormID; sessionID: string; title: string; metadata?: FormMetadata1; fields: FormFields1 }
+
+export type CustomProviderListing = {
+  revision: string
+  target: string
+  reason?: string
+  providers: Array<CustomProviderEntry>
+}
 
 export type SessionMessageInfo =
   | SessionMessageAgentSelected
@@ -2981,6 +3150,7 @@ export type V2Event =
   | SessionRevertStaged
   | SessionRevertCleared
   | SessionRevertCommitted
+  | ExperimentalSessionActivityChanged
   | FilesystemChanged
   | ReferenceUpdated
   | PermissionAsked
@@ -3954,6 +4124,8 @@ export type ExperimentalSessionExportInput = { readonly sessionID: string; reado
 
 export type ExperimentalSessionExportOutput = { data: SessionTransferData }["data"]
 
+export type ExperimentalSessionActivityOutput = { data: Array<SessionActivityInfo> }["data"]
+
 export type ExperimentalSessionSkillInput = {
   readonly sessionID: string
   readonly id: string
@@ -4029,6 +4201,10 @@ export type ExperimentalGenerateTextInput = {
 }
 
 export type ExperimentalGenerateTextOutput = GenerateTextResponse["data"]
+
+export type ExperimentalGenerateTestTextInput = { readonly model: { readonly providerID: string; readonly id: string } }
+
+export type ExperimentalGenerateTestTextOutput = void
 
 export type ExperimentalGenerateImageInput = {
   readonly model: { readonly id: string; readonly providerID: string; readonly variant?: string }
@@ -4516,6 +4692,7 @@ export type EventSubscribeInput = {
         | "session.revert.staged"
         | "session.revert.cleared"
         | "session.revert.committed"
+        | "experimental.session.activity.changed"
         | "filesystem.changed"
         | "reference.updated"
         | "permission.asked"
@@ -4778,7 +4955,7 @@ export type ExperimentalArtifactsViewOutput = globalThis.Uint8Array
 
 export type ExperimentalJobListInput = {
   readonly sessionID?: string | undefined
-  readonly kind?: ("shell" | "subagent" | "image") | undefined
+  readonly kind?: ("shell" | "subagent" | "image" | "codemode") | undefined
   readonly status?: ("running" | "completed" | "error" | "cancelled") | undefined
   readonly descendants?: boolean | undefined
 }
@@ -4903,9 +5080,13 @@ export type DebugLocationEvictInput = { readonly location?: { readonly directory
 export type DebugLocationEvictOutput = void
 
 export type ExperimentalMigrationV1StatusOutput =
-  | { status: "required" | "completed" }
+  | { status: "confirmation_required" | "required" | "completed" }
   | { status: "running"; progress: { label: string; numerator?: number | undefined; denominator?: number | undefined } }
   | { status: "error"; error: string }
+
+export type ExperimentalMigrationV1AcceptInput = { readonly acknowledged: true }
+
+export type ExperimentalMigrationV1AcceptOutput = void
 
 export type WebsearchProvidersInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
 
@@ -4937,6 +5118,112 @@ export type ConfigShellsOutput = Array<ConfigShellOption>
 export type ExperimentalConfigUpdateInput = { readonly shell: string | null }
 
 export type ExperimentalConfigUpdateOutput = void
+
+export type ExperimentalConfigProvidersListInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+}
+
+export type ExperimentalConfigProvidersListOutput = CustomProviderListing
+
+export type ExperimentalConfigProvidersUpdateInput = {
+  readonly providerID: string
+  readonly location?: { readonly directory?: string | undefined } | undefined
+  readonly mode: "create" | "edit" | "delete"
+  readonly revision: string
+  readonly patch?:
+    | {
+        readonly name?: string | null
+        readonly baseURL?: string
+        readonly settings?: {
+          readonly reasoningEffort?: string | null
+          readonly textVerbosity?: "low" | "medium" | "high" | null
+          readonly parallelToolCalls?: boolean | null
+          readonly encoding?: ("zstd" | "gzip" | "none") | null
+          readonly timeout?: number | false | null
+          readonly headerTimeout?: number | false | null
+          readonly chunkTimeout?: number | false | null
+        }
+        readonly compatibility?: {
+          readonly reasoningField?: string | null
+          readonly maxTokensField?: ("max_completion_tokens" | "max_tokens") | null
+          readonly requireReasoning?: boolean | null
+          readonly requireFinishReason?: boolean | null
+          readonly requireAssistantAfterTool?: boolean | null
+          readonly supportsPromptCacheKey?: boolean | null
+          readonly streamUsage?: boolean | null
+          readonly cacheFormat?: ("anthropic" | "alibaba") | null
+        }
+        readonly models?: {
+          readonly [x: string]: {
+            readonly name?: string | null
+            readonly modelID?: string | null
+            readonly context?: number | null
+            readonly input?: number | null
+            readonly output?: number | null
+            readonly tools?: boolean | null
+            readonly image?: boolean | null
+            readonly settings?: {
+              readonly reasoningEffort?: string | null
+              readonly textVerbosity?: "low" | "medium" | "high" | null
+              readonly parallelToolCalls?: boolean | null
+              readonly encoding?: ("zstd" | "gzip" | "none") | null
+            }
+            readonly compatibility?: {
+              readonly reasoningField?: string | null
+              readonly maxTokensField?: ("max_completion_tokens" | "max_tokens") | null
+              readonly requireReasoning?: boolean | null
+              readonly requireFinishReason?: boolean | null
+              readonly requireAssistantAfterTool?: boolean | null
+              readonly supportsPromptCacheKey?: boolean | null
+              readonly streamUsage?: boolean | null
+              readonly cacheFormat?: ("anthropic" | "alibaba") | null
+            }
+            readonly cost?: {
+              readonly [x: string]: {
+                readonly input?: number
+                readonly output?: number
+                readonly cacheRead?: number | null
+                readonly cacheWrite?: number | null
+                readonly tierSize?: number | null
+              } | null
+            }
+            readonly variants?: {
+              readonly [x: string]: {
+                readonly settings?: {
+                  readonly reasoningEffort?: string | null
+                  readonly textVerbosity?: "low" | "medium" | "high" | null
+                  readonly parallelToolCalls?: boolean | null
+                  readonly encoding?: ("zstd" | "gzip" | "none") | null
+                }
+              } | null
+            }
+          } | null
+        }
+      }
+    | undefined
+  readonly credential?: { readonly id: string; readonly key: string } | undefined
+}
+
+export type ExperimentalConfigProvidersUpdateOutput = CustomProviderSaved
+
+export type ExperimentalConfigProvidersDiscoverInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+  readonly target:
+    | { readonly mode: "saved"; readonly providerID: string; readonly revision: string }
+    | { readonly mode: "draft"; readonly baseURL: string; readonly key?: string }
+  readonly api?: "openai" | "ollama" | "lmstudio" | undefined
+  readonly metadata?: ReadonlyArray<string> | undefined
+}
+
+export type ExperimentalConfigProvidersDiscoverOutput = CustomProviderDiscovery
+
+export type ExperimentalConfigProvidersTestInput = {
+  readonly location?: { readonly directory?: string | undefined } | undefined
+  readonly target: { readonly mode: "saved"; readonly providerID: string; readonly revision: string }
+  readonly modelID: string
+}
+
+export type ExperimentalConfigProvidersTestOutput = CustomProviderTextTest
 
 /** @deprecated Use `ExperimentalSessionStatsInput`. Removed in the next minor. */
 export type SessionStatsInput = ExperimentalSessionStatsInput
