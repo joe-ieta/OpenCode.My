@@ -29,9 +29,13 @@ const REMOVED_DIRS = [
   "github",
   "sdks",
   "nix",
+  ".github/release",
+  "services/app",
 ]
-const REMOVED_FILES = ["flake.nix", "flake.lock"]
+const REMOVED_FILES = ["flake.nix", "flake.lock", "script/pack-release.ts", "script/pack-release-desktop.ts"]
 const REMOVED_WORKFLOWS = [
+  ".github/workflows/build-v1-desktop.yml",
+  ".github/workflows/deploy.yml",
   ".github/workflows/publish.yml",
   ".github/workflows/publish-vscode.yml",
   ".github/workflows/publish-github-action.yml",
