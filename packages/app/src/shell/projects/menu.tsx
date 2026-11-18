@@ -12,6 +12,8 @@ import { showToast } from "@/shell/notifications/toast"
 export function ProjectMenuItems(props: {
   server: ServerConnection.Any
   project: LocalProject
+  /** The selected clone/worktree, or the project's canonical directory. */
+  directory?: string
   unread: boolean
   onViewHistory?: (target: ProjectBrowserTarget) => void
   canImportSession: boolean
@@ -41,13 +43,15 @@ export function ProjectMenuItems(props: {
 
   return (
     <>
-      <Menu.Item onSelect={() => props.onOpenProjectNewSession(props.server, props.project.worktree)}>
+      <Menu.Item onSelect={() => props.onOpenProjectNewSession(props.server, props.directory ?? props.project.worktree)}>
         {language.t("command.session.new")}
       </Menu.Item>
       <Show when={props.onViewHistory} keyed>
         {(open) => (
           <Menu.Item
-            onSelect={() => open({ server: ServerConnection.key(props.server), directory: props.project.worktree })}
+            onSelect={() =>
+              open({ server: ServerConnection.key(props.server), directory: props.directory ?? props.project.worktree })
+            }
           >
             {language.t("project.browse.history")}
           </Menu.Item>

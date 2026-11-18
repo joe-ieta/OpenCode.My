@@ -203,6 +203,89 @@ describe("home selection machine", () => {
     expect(closed.effects).toEqual([{ type: "selection.persist", selection: { server: SIDECAR } }])
   })
 
+  test("keeps the selected clone directory when several clones share a project", () => {
+    const shared = {
+      id: "proj_repo",
+      worktree: "/srv/repo",
+      directories: ["/srv/repo", "/srv/repo-copy"],
+    }
+
+    const stored = { server: SIDECAR, directory: "/srv/repo-copy" }
+
+    const searching = sync(
+      INITIAL_HOME_SELECTION_STATE,
+      env({ stored, servers: [server(SIDECAR, { usedProjects: [REPO] })] }),
+    )
+
+    expect(searching.state.status).toBe("verifying")
+    expect(selectHomeSelection(searching.state)).toEqual(stored)
+    expect(searching.effects).toEqual([
+      { type: "worktrees.search", attempt: 1, server: SIDECAR, projectIDs: [REPO.id] },
+    ])
+    expect(sync(searching.state, env({ stored, servers: [server(SIDECAR, { usedProjects: [REPO] })] })).state).toBe(
+      searching.state,
+    )
+
+    const settled = sync(searching.state, env({ stored, servers: [server(SIDECAR, { usedProjects: [shared] })] }))
+
+    const ready = settled.state
+
+    expect(ready).toMatchObject({ status: "ready", project: shared, directory: "/srv/repo-copy" })
+    expect(selectHomeSelection(ready)).toEqual(stored)
+    expect(settled.effects).toContainEqual({
+      type: "worktrees.list",
+      attempt: 2,
+      server: SIDECAR,
+      projectID: shared.id,
+    })
+
+    const toggled = transitionHomeSelection(ready, {
+      type: "project.toggled",
+      server: SIDECAR,
+      directory: "/srv/repo-copy",
+    })
+
+    expect(selectHomeSelection(toggled.state)).toEqual({ server: SIDECAR })
+
+    const adding = transitionHomeSelection(
+      settle(env({ stored: { server: SIDECAR }, servers: [server(SIDECAR, { connected: false })] })),
+      {
+        type: "project.add",
+        server: SIDECAR,
+        directories: ["/srv/repo-copy"],
+      },
+    )
+
+    const listed = sync(
+      adding.state,
+      env({ stored: { server: SIDECAR }, servers: [server(SIDECAR, { usedProjects: [shared] })] }),
+    )
+
+    const added = transitionHomeSelection(listed.state, {
+      type: "project.added",
+      attempt: 1,
+      project: shared,
+    })
+
+    expect(selectHomeSelection(added.state)).toEqual(stored)
+  })
+
+  test("settles a missing clone after inventory failure or timeout and ignores superseded searches", () => {
+    const stored = { server: SIDECAR, directory: "/srv/repo-copy" }
+    const searching = settle(env({ stored, servers: [server(SIDECAR, { usedProjects: [REPO] }), server(REMOTE)] }))
+    // Both a failed inventory read and its deadline finish without adding a directory to the environment.
+    const completed: HomeSelectionEvent = { type: "worktrees.searched", attempt: 1 }
+    const missing = transitionHomeSelection(searching, completed)
+    expect(missing.state).toMatchObject({ status: "ready", project: undefined })
+    expect(selectHomeSelection(missing.state)).toEqual({ server: SIDECAR })
+    expect(missing.effects).toEqual([{ type: "selection.persist", selection: { server: SIDECAR } }])
+
+    const switched = transitionHomeSelection(searching, { type: "server.focused", server: REMOTE }).state
+    expect(transitionHomeSelection(switched, completed)).toEqual({ state: switched, effects: [] })
+    const disposed = transitionHomeSelection(searching, { type: "disposed" }).state
+    expect(transitionHomeSelection(disposed, completed)).toEqual({ state: disposed, effects: [] })
+  })
+
   test("toggles a used project on a working server and ignores the rest", () => {
     const servers = [
       server(SIDECAR, { connected: false, usedProjects: [API] }),
