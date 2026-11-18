@@ -118,7 +118,9 @@ bun run qtoc:build              # 安装 + 类型检查 + 构建 + 归档
 
 | 标签 | 内容 |
 |---|---|
-| `qt-headless-v1.19.5` | 当前发行线（1.19.5，始终指向最新裁剪 + 验证提交） |
+| `qt-headless-v1.19.6` | 当前发行线，Windows x64 资产发布在 GitHub Releases |
+| `qt-headless-v1.19.6.1` | 1.19.6 的首个不可变迭代，指向构建提交 `1e2097f487` |
+| `qt-headless-v1.19.5` | 1.19.5 发行线 |
 | `qt-headless-v1.19.5.1` | 首个 1.19.5 发布：上游 `upstream/v1` 同步 `a1f604bbe0..006d837c50`（16 个提交）+ trim/lockfile 重建 + Bun 1.4.4 + 1.19.5 构建与冒烟 |
 | `qt-headless-v1.19.3` | 上一发行线（1.19.3） |
 | `qt-headless-v1.19.3.1` | 首个 1.19.3 发布：上游 `upstream/v1` 同步 `dfb56f76c7..a1f604bbe0`（9 个提交）+ trim/lockfile 重建 + 1.19.3 构建与冒烟 |
@@ -140,7 +142,7 @@ bun run qtoc:build              # 安装 + 类型检查 + 构建 + 归档
 | `qt-headless-v1.18.31` | 更早发行线（1.18.31） |
 | `qt-headless-v1.18.31.6` | 上游同步 + 文档重组（docs 索引 / qtoc HTTP API 参考 / KB 上游跟踪） |
 
-- 二进制内置版本来自构建时的 `Script.version`，`qtoc_core --version` 可查看（当前为 `1.19.5`）。
+- 二进制内置版本来自构建时的 `Script.version`，`qtoc_core --version` 可查看（当前为 `1.19.6`）。
 - 2026-10-10 起上游 `dev`/`production` 晋升 V2（2.x），本线同步源为 `upstream/v1`（1.19.x）；`qtoc:sync` 默认分支已改为 `v1`。
 - 打标签流程：
   ```bash
