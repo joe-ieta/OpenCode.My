@@ -306,6 +306,51 @@ describe("Session.create", () => {
     ),
   )
 
+  ;["main", "main-copy"].forEach((renamed) =>
+    projectIt.live(`keeps other clone sessions when ${renamed} changes origin`, () =>
+      withTmp((directory) =>
+        Effect.gen(function* () {
+          const main = AbsolutePath.make(path.join(directory, "main"))
+          const clone = AbsolutePath.make(path.join(directory, "main-copy"))
+          const target = renamed === "main" ? main : clone
+          const other = target === main ? clone : main
+          const nested = AbsolutePath.make(path.join(target, "packages", "app"))
+          yield* Effect.promise(async () => {
+            await initRepo(main)
+            await initRepo(clone)
+            await fs.mkdir(nested, { recursive: true })
+            await $`git remote add origin git@github.com:owner/before.git`.cwd(main).quiet()
+            await $`git remote add origin git@github.com:owner/before.git`.cwd(clone).quiet()
+          })
+          const projects = yield* Project.Service
+          const session = yield* Session.Service
+          const before = yield* projects.resolve(main)
+          yield* projects.resolve(clone)
+          const kept = yield* session.create({ location: Location.Ref.make({ directory: other }) })
+          const moved = yield* session.create({ location: Location.Ref.make({ directory: nested }) })
+          expect(kept.projectID).toBe(before.id)
+          expect(moved.projectID).toBe(before.id)
+
+          yield* Effect.promise(() => $`git remote set-url origin git@github.com:owner/after.git`.cwd(target).quiet())
+          const after = yield* projects.resolve(target)
+
+          expect(after.id).not.toBe(before.id)
+          expect(yield* session.get(kept.id)).toMatchObject({ projectID: before.id, location: { directory: other } })
+          expect(yield* session.get(moved.id)).toMatchObject({
+            projectID: after.id,
+            location: { directory: nested },
+            subpath: "packages/app",
+            time: { updated: moved.time.updated },
+          })
+          yield* projects.resolve(target)
+          yield* projects.resolve(other)
+          expect(yield* session.get(kept.id)).toMatchObject({ projectID: before.id })
+          expect(yield* session.get(moved.id)).toMatchObject({ projectID: after.id })
+        }),
+      ),
+    ),
+  )
+
   projectIt.live("keeps sessions when the origin changes without a cache marker", () =>
     withTmp((directory) =>
       Effect.gen(function* () {
