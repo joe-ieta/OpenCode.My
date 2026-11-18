@@ -16,6 +16,7 @@ import { Loader } from "@opencode/ui/loader"
 import { Menu } from "@opencode/ui/menu"
 import { Tooltip } from "@opencode/ui/tooltip"
 import type { HomeProjectSelection, LocalProject } from "@/shell/state/layout"
+import { isProjectDirectory } from "@/workspaces/paths"
 import { ServerConnection } from "@/runtime/server/registry"
 import { useLanguage } from "@/runtime/i18n/language"
 import { ServerRowMenuView, serverMenuLabels } from "@/servers/registry/row-menu"
@@ -84,7 +85,12 @@ export type HomeProjectsViewProps = {
 
 export function HomeProjectsView(props: HomeProjectsViewProps) {
   const [state, setState] = createStore({ open: false })
-  const selected = createMemo(() => props.projects.find((project) => project.worktree === props.selection.directory))
+
+  const selected = createMemo(() => {
+    const directory = props.selection.directory
+
+    return directory ? props.projects.find((project) => isProjectDirectory(project, directory)) : undefined
+  })
 
   const server = createMemo(() =>
     props.servers.find((server) => ServerConnection.key(server) === props.selection.server),
@@ -560,13 +566,22 @@ function HomeProjectSlot(props: HomeProjectListProps & { worktree: string }) {
     initial,
   )
 
+  const directory = () => {
+    const selected = props.selection.directory
+
+    return selected && isProjectDirectory(project(), selected) ? selected : project().worktree
+  }
+
   return (
     <HomeProjectRow
       {...props}
       project={project()}
       server={props.server}
+      directory={directory()}
       selected={
-        props.selection.server === ServerConnection.key(props.server) && props.selection.directory === props.worktree
+        props.selection.server === ServerConnection.key(props.server) &&
+        !!props.selection.directory &&
+        isProjectDirectory(project(), props.selection.directory)
       }
       unread={props.hasUnread(props.server, project())}
     />
@@ -595,6 +610,8 @@ function HomeProjectRow(
     HomeProjectsContextMenuProps & {
       project: LocalProject
       server: ServerConnection.Any
+      /** The selected clone/worktree for this project, or its canonical directory. */
+      directory: string
       selected: boolean
       unread: boolean
     },
@@ -626,7 +643,7 @@ function HomeProjectRow(
         data-selected={props.selected ? "" : undefined}
         aria-current={props.selected ? "page" : undefined}
         disabled={serverUnreachable()}
-        onClick={() => props.onSelectProject(props.server, props.project.worktree)}
+        onClick={() => props.onSelectProject(props.server, props.directory)}
       >
         <HomeProjectAvatar project={props.project} />
         <span data-slot="home-row-label" class={HOME_PROJECT_NAV_LABEL}>
@@ -668,7 +685,7 @@ function HomeProjectRow(
           size="small"
           icon={<Icon name="edit" />}
           aria-label={props.language.t("command.session.new")}
-          onClick={() => props.onOpenProjectNewSession(props.server, props.project.worktree)}
+          onClick={() => props.onOpenProjectNewSession(props.server, props.directory)}
         />
       </div>
     </div>

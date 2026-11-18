@@ -23,6 +23,7 @@ import { Persistence } from "@/runtime/persistence/schema"
 import { Persist, persisted } from "@/runtime/persistence/storage"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal, useServerCtx } from "@/runtime/server/runtime"
+import { isProjectDirectory } from "@/workspaces/paths"
 import type { Project } from "@/runtime/server/types"
 import { ProjectIcon } from "@/shell/layout/project-icon"
 import { useProjectBrowser, type ProjectBrowserTarget } from "@/home/projects/browse"
@@ -429,8 +430,15 @@ function ProjectRow(props: {
   children: JSX.Element
 }) {
   const language = useLanguage()
+  const layout = useLayout()
 
   const [menu, setMenu] = createStore({ open: false })
+
+  const directory = () => {
+    const selected = layout.home.selection().directory
+
+    return selected && isProjectDirectory(props.project, selected) ? selected : props.project.worktree
+  }
 
   const sortable = useSortable({
     get id() {
@@ -492,6 +500,7 @@ function ProjectRow(props: {
                 <ProjectMenuItems
                   server={props.server}
                   project={props.project}
+                  directory={directory()}
                   unread={props.actions.hasUnread(props.server, props.project)}
                   canImportSession={props.actions.canImportSession}
                   importingSession={props.actions.importingSession()}
@@ -512,7 +521,7 @@ function ProjectRow(props: {
             variant="ghost-muted"
             size="small"
             aria-label={language.t("command.session.new")}
-            onClick={() => props.actions.openNewSession(props.server, props.project.worktree)}
+            onClick={() => props.actions.openNewSession(props.server, directory())}
           />
         </span>
       </div>

@@ -6,6 +6,7 @@ import { usePluginServers } from "@/runtime/plugin/servers"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { batch, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
 import { pathKey } from "@/workspaces/path-key"
+import { isProjectDirectory, workspaceSelectionDirectories } from "@/workspaces/paths"
 import { addProjects } from "./projects/add"
 import {
   INITIAL_HOME_SELECTION_STATE,
@@ -24,6 +25,65 @@ export function createHomeController() {
   const pluginServers = usePluginServers()
   const sessions = createProjectSessionActions()
 
+  const initialDirectory = layout.home.selection().directory
+  const [inventoriesReady, setInventoriesReady] = createSignal(!initialDirectory)
+  let probing = false
+  let lastSelection = initialDirectory
+
+  // A stored clone directory is not a project's canonical path. Load the used projects'
+  // inventories before projectsReady so the shared project ID can be resolved without
+  // clearing the stored selection.
+  createEffect(() => {
+    if (!layout.ready() || !servers.hydrated() || !pluginServers.ready()) return
+    const selected = layout.home.selection()
+    const directory = selected.directory
+
+    if (directory !== lastSelection) {
+      lastSelection = directory
+      setInventoriesReady(!directory)
+    }
+
+    if (!directory) {
+      setInventoriesReady(true)
+
+      return
+    }
+
+    const contexts = servers.visible.flatMap((conn) => {
+      const key = ServerConnection.key(conn)
+
+      if (selected.server && key !== selected.server) return []
+      const ctx = global.serverCtx(key)
+
+      return ctx && ctx.sdk.connection.status() === "connected" ? [ctx] : []
+    })
+
+    if (contexts.length === 0) return
+
+    const targets = contexts.flatMap((ctx) => {
+      const used = ctx.projects.used()
+      const last = ctx.projects.last()
+      const projects = used.length > 0 ? used : last ? [last] : []
+
+      return projects.map((project) => ({ ctx, project }))
+    })
+
+    if (targets.some(({ project }) => isProjectDirectory(project, directory))) {
+      setInventoriesReady(true)
+
+      return
+    }
+
+    if (probing || !contexts.every((ctx) => ctx.sync.project.ready())) return
+
+    probing = true
+    setInventoriesReady(false)
+    void Promise.allSettled(targets.map(({ ctx, project }) => ctx.sync.worktrees.list(project.id))).then(() => {
+      probing = false
+      setInventoriesReady(true)
+    })
+  })
+
   const env = createMemo(
     (): HomeEnvSnapshot => ({
       hydrated: layout.ready() && servers.hydrated() && pluginServers.ready(),
@@ -36,8 +96,17 @@ export function createHomeController() {
           key,
           failed: isServerFailed(global.servers.health[key]),
           connected: ctx?.sdk.connection.status() === "connected",
-          projectsReady: !!ctx?.sync.project.ready() && servers.projects.forServer(key).legacy() === undefined,
-          usedProjects: (ctx?.projects.used() ?? []).map((project) => ({ id: project.id, worktree: project.worktree })),
+          projectsReady:
+            inventoriesReady() &&
+            !!ctx?.sync.project.ready() &&
+            servers.projects.forServer(key).legacy() === undefined,
+          usedProjects: (ctx?.projects.used() ?? []).map((project) => ({
+            id: project.id,
+            worktree: project.worktree,
+            directories: [project.worktree, ...workspaceSelectionDirectories(project, [])].toSorted((a, b) =>
+              pathKey(a).localeCompare(pathKey(b)),
+            ),
+          })),
         }
       }),
     }),
@@ -88,6 +157,7 @@ export function createHomeController() {
           type: "project.added",
           attempt: effect.attempt,
           project: project && { id: project.id, worktree: project.worktree },
+          directory: effect.directories[0],
         }),
       () => dispatch({ type: "project.added", attempt: effect.attempt, project: undefined }),
     )
@@ -118,10 +188,18 @@ export function createHomeController() {
   const selectedProject = createMemo(() => {
     const directory = selection().directory
 
-    return directory ? projects().find((project) => pathKey(project.worktree) === pathKey(directory)) : undefined
+    return directory ? projects().find((project) => isProjectDirectory(project, directory)) : undefined
   })
 
   const newSessionProject = createMemo(() => selectedProject() ?? focusedServerCtx()?.projects.last() ?? projects()[0])
+
+  const selectedDirectory = createMemo(() => {
+    const directory = selection().directory
+
+    return directory && projects().some((project) => isProjectDirectory(project, directory))
+      ? directory
+      : newSessionProject()?.worktree
+  })
 
   return {
     selection: {
@@ -148,10 +226,10 @@ export function createHomeController() {
         send({ type: "project.add", server: ServerConnection.key(conn), directories }),
       openNewSession: () => {
         const conn = focusedServer()
-        const project = newSessionProject()
+        const directory = selectedDirectory()
 
-        if (!conn || !project) return
-        sessions.openProjectNewSession(conn, project.worktree)
+        if (!conn || !directory) return
+        sessions.openProjectNewSession(conn, directory)
       },
       openProjectNewSession: sessions.openProjectNewSession,
       openProjectSession: sessions.openProjectSession,

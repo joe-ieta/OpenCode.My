@@ -203,6 +203,63 @@ describe("home selection machine", () => {
     expect(closed.effects).toEqual([{ type: "selection.persist", selection: { server: SIDECAR } }])
   })
 
+  test("keeps the selected clone directory when several clones share a project", () => {
+    const shared = {
+      id: "proj_repo",
+      worktree: "/srv/repo",
+      directories: ["/srv/repo", "/srv/repo-copy"],
+    }
+
+    const stored = { server: SIDECAR, directory: "/srv/repo-copy" }
+
+    const settled = sync(
+      INITIAL_HOME_SELECTION_STATE,
+      env({ stored, servers: [server(SIDECAR, { usedProjects: [shared] })] }),
+    )
+
+    const ready = settled.state
+
+    expect(ready).toMatchObject({ status: "ready", project: shared, directory: "/srv/repo-copy" })
+    expect(selectHomeSelection(ready)).toEqual(stored)
+    expect(settled.effects).toContainEqual({
+      type: "worktrees.list",
+      attempt: 1,
+      server: SIDECAR,
+      projectID: shared.id,
+    })
+
+    const toggled = transitionHomeSelection(ready, {
+      type: "project.toggled",
+      server: SIDECAR,
+      directory: "/srv/repo-copy",
+    })
+
+    expect(selectHomeSelection(toggled.state)).toEqual({ server: SIDECAR })
+
+    const adding = transitionHomeSelection(
+      settle(env({ stored: { server: SIDECAR }, servers: [server(SIDECAR, { connected: false })] })),
+      {
+        type: "project.add",
+        server: SIDECAR,
+        directories: ["/srv/repo-copy"],
+      },
+    )
+
+    const listed = sync(
+      adding.state,
+      env({ stored: { server: SIDECAR }, servers: [server(SIDECAR, { usedProjects: [shared] })] }),
+    )
+
+    const added = transitionHomeSelection(listed.state, {
+      type: "project.added",
+      attempt: 1,
+      project: shared,
+      directory: "/srv/repo-copy",
+    })
+
+    expect(selectHomeSelection(added.state)).toEqual(stored)
+  })
+
   test("toggles a used project on a working server and ignores the rest", () => {
     const servers = [
       server(SIDECAR, { connected: false, usedProjects: [API] }),
