@@ -172,7 +172,7 @@ function SessionTabSlot(props: {
 
           if (open && value) branches.load([value])
         }}
-        menuItems={
+        exportMenuItem={() => (
           <Menu.Item
             disabled={!props.session || exporter.exporting({ server: props.tab.server, sessionID: props.session.id })}
             onSelect={() => {
@@ -181,7 +181,7 @@ function SessionTabSlot(props: {
           >
             {language.t("common.export")}…
           </Menu.Item>
-        }
+        )}
         active={props.active}
         dragging={sortable.isDragSource()}
         orientation="vertical"

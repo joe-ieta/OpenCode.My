@@ -1,5 +1,5 @@
 import { removeIndexedSessions } from "@/runtime/server/session-queries"
-import { createMemo, createSignal, onCleanup, Show, untrack } from "solid-js"
+import { createMemo, createSignal, onCleanup, Show, untrack, type JSX } from "solid-js"
 import { useQueryClient } from "@tanstack/solid-query"
 import type { SessionInfo } from "@opencode/client/promise"
 import { ActivityRing } from "@opencode/ui/activity-ring"
@@ -30,6 +30,7 @@ import {
 } from "./session-rename-dialog-machine"
 import type { Project } from "@/runtime/server/types"
 import { ProjectIcon } from "@/shell/layout/project-icon"
+import { MutedIcon } from "./tab-nav"
 import "./tab-nav.css"
 
 export function ProjectSessionRow(props: {
@@ -43,6 +44,10 @@ export function ProjectSessionRow(props: {
   depth?: number
   /** Shows the project avatar in the leading slot, where no project header names it. */
   project?: Project
+  /** Marks a session whose notifications are muted, in place of its unread dot. */
+  muted?: boolean
+  /** Menu items shown above the row's own. */
+  menuItems?: () => JSX.Element
   onOpen: () => void
 }) {
   const language = useLanguage()
@@ -166,8 +171,10 @@ export function ProjectSessionRow(props: {
           <Show
             when={status.loading()}
             fallback={
-              <Show when={status.unread() && !props.active}>
-                <span class="size-1.5 rounded-full bg-v2-text-text-base" />
+              <Show when={!props.muted} fallback={<MutedIcon class="text-v2-icon-icon-faint" />}>
+                <Show when={status.unread() && !props.active}>
+                  <span class="size-1.5 rounded-full bg-v2-text-text-base" />
+                </Show>
               </Show>
             }
           >
@@ -181,6 +188,14 @@ export function ProjectSessionRow(props: {
             if (dialog.active) event.preventDefault()
           }}
         >
+          <Show when={props.menuItems}>
+            {(items) => (
+              <>
+                {items()()}
+                <Menu.Separator />
+              </>
+            )}
+          </Show>
           <Menu.Item
             disabled={!ctx()}
             onSelect={() =>

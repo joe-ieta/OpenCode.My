@@ -113,7 +113,7 @@ export const DialogManageModels: Component = () => {
             autofocus
             aria-label={language.t("dialog.model.search.placeholder")}
             showClearButton={!!list.filter()}
-            clearIcon="circle-xmark"
+            clearIcon="close"
             clearLabel={language.t("common.clear")}
             onClearClick={() => list.clear()}
           />

@@ -224,7 +224,7 @@ const ModelList: Component<{
               </div>
               <div data-slot="settings-row-control" class="size-4">
                 <Show when={controller.current() === modelKey(item)}>
-                  <Icon name="check" size="small" class="shrink-0 text-v2-icon-icon-base" />
+                  <Icon name="check" class="shrink-0 text-v2-icon-icon-base" />
                 </Show>
               </div>
             </button>
@@ -273,7 +273,7 @@ const ModelList: Component<{
           }}
           aria-label={language.t("dialog.model.search.placeholder")}
           showClearButton={!!store.search}
-          clearIcon="circle-xmark"
+          clearIcon="close"
           clearLabel={language.t("common.clear")}
           onClearClick={() => setSearch("")}
         />
@@ -438,9 +438,7 @@ function ModelDrawer(props: {
               </div>
               <ModelPickerActions
                 mobile
-                onCustom={
-                  props.onCustom ? () => dispatch({ type: "action.selected", action: "custom" }) : undefined
-                }
+                onCustom={props.onCustom ? () => dispatch({ type: "action.selected", action: "custom" }) : undefined}
                 onManage={() => dispatch({ type: "action.selected", action: "manage" })}
                 onConnect={props.onConnect}
               />
@@ -632,7 +630,9 @@ function ModelPickerActions(props: {
   return (
     <div
       data-slot={props.mobile ? "model-selector-actions" : "model-picker-actions"}
-      class={props.mobile ? "flex flex-col gap-2" : "flex items-center gap-1 border-t border-v2-border-border-muted p-2"}
+      class={
+        props.mobile ? "flex flex-col gap-2" : "flex items-center gap-1 border-t border-v2-border-border-muted p-2"
+      }
     >
       <Show when={props.onCustom}>
         <Button
@@ -1044,7 +1044,7 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
       >
         <span data-slot="model-dialog-check">
           <Show when={selected()}>
-            <Icon name="check" size="small" />
+            <Icon name="check" />
           </Show>
         </span>
         <span data-slot="model-dialog-name">
@@ -1065,20 +1065,20 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
             <Badge class="shrink-0">{language.t("model.tag.latest")}</Badge>
           </Show>
         </span>
-        {/* The row's flyout leads with the budget instead, while it shows. */}
-        <Show when={flyoutId() !== row.model.id && usage(item())}>
+        {/* The active row shows its variant instead; its flyout leads with the budget. */}
+        <Show when={!active() && usage(item())}>
           {(value) => (
             <span data-slot="model-dialog-variant">
               <ModelUsageTag usage={value()} />
               {/* Holds the chevron's space, so the tag ends where the active row's variant label does. */}
-              <Icon name="chevron-right" size="small" class="invisible" />
+              <Icon name="chevron-right" class="invisible" />
             </span>
           )}
         </Show>
         <Show when={active()}>
           <span data-slot="model-dialog-variant">
             <span class="truncate capitalize">{controller.variant(item()) ?? language.t("common.default")}</span>
-            <Icon name="chevron-right" size="small" />
+            <Icon name="chevron-right" />
           </span>
         </Show>
       </button>
@@ -1219,7 +1219,7 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
                       data-slot="menu-v2-item-indicator"
                       data-checked={controller.variant(item()) === value ? "" : undefined}
                     >
-                      <Icon name="check" size="small" />
+                      <Icon name="check" />
                     </span>
                   </div>
                 )}
