@@ -15,6 +15,7 @@ import { takeSidecarProbe } from "./sidecar-probe"
 export * as BackgroundService from "./background-service"
 
 const RegisteredService = Schema.Struct({ version: Schema.optional(Schema.String) })
+const useLiveService = () => !app.isPackaged && process.env.OPENCODE_DESKTOP_LIVE_SERVER === "1"
 
 export interface Interface {
   readonly connection: Effect.Effect<SidecarCredentials.Data>
@@ -46,6 +47,7 @@ export const layer = Layer.effect(
 // A compatible service the entry module already found is adopted at once; the machine still verifies it with
 // `ensure("initial")` (which also completes a terminal handoff), off the renderer's path.
 const probe = Effect.fn("BackgroundService.probe")(function* () {
+  if (useLiveService()) return undefined
   const service = yield* Effect.promise(takeSidecarProbe)
 
   if (!service) return undefined
@@ -55,6 +57,13 @@ const probe = Effect.fn("BackgroundService.probe")(function* () {
 })
 
 const ensure = Effect.fn("BackgroundService.ensure")(function* (mode: BackgroundServiceMachine.ConnectMode) {
+  if (useLiveService()) {
+    const { LiveService } = yield* Effect.promise(() => import("./live-service"))
+    const ready = yield* Effect.tryPromise(LiveService.connect)
+    yield* Effect.logInfo("using existing background service for live desktop development", { url: ready.url })
+    return ready
+  }
+
   const runFork = Effect.runForkWith(yield* Effect.context<FileSystem.FileSystem | Path.Path>())
   const setup = yield* prepare(mode)
 
@@ -101,15 +110,19 @@ const prepare = Effect.fn("BackgroundService.prepare")(function* (mode: Backgrou
   yield* Effect.logInfo("starting v2 background service")
   const path = yield* Path.Path
   const desktopCli = yield* DesktopCli.Service
-  const isolated = !app.isPackaged && process.env.OPENCODE_DESKTOP_ISOLATED_SERVER === "1"
+  const reuse = !app.isPackaged && process.env.OPENCODE_DESKTOP_REUSE_SERVER === "1"
+  const isolated = !app.isPackaged && !reuse && process.env.OPENCODE_DESKTOP_ISOLATED_SERVER === "1"
   const cli = yield* desktopCli.resolve
-  const version = serviceVersion({ channel: CHANNEL, isolated, mode, version: cli.version })
+  const version = reuse ? undefined : serviceVersion({ channel: CHANNEL, isolated, mode, version: cli.version })
 
   if (isolated) process.env.XDG_STATE_HOME = app.getPath("userData")
   const client = yield* Effect.promise(() => import("@opencode/client/service"))
 
-  const file =
-    process.env.OPENCODE_DESKTOP_SERVER_CHANNEL === "local"
+  const reuseFile = reuse ? process.env.OPENCODE_DESKTOP_REUSE_SERVICE_FILE || undefined : undefined
+
+  const file = reuse
+    ? reuseFile
+    : process.env.OPENCODE_DESKTOP_SERVER_CHANNEL === "local"
       ? path.join(
           process.env.XDG_STATE_HOME ?? path.join(app.getPath("home"), ".local", "state"),
           "opencode",

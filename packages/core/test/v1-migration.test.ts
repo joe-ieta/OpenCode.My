@@ -15,10 +15,11 @@ import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
 import { LayerNode } from "@opencode/util/effect/layer-node"
 import { FSUtil } from "@opencode/util/fs-util"
 import { Global } from "@opencode/util/global"
-import { Effect, Fiber, Layer, Logger, Schedule, Schema, Scope } from "effect"
+import { Cause, Effect, Fiber, Layer, Logger, Schedule, Schema, Scope } from "effect"
 import { eq, sql } from "drizzle-orm"
 import type { SqlClient } from "effect/sql/SqlClient"
 import { tmpdir } from "./fixture/tmpdir"
+import { createLegacyTables } from "./fixture/v1-migration"
 import { initRepo } from "./fixture/git"
 import fs from "fs/promises"
 import path from "path"
@@ -829,61 +830,6 @@ describe("V1Migration.transformSession", () => {
 })
 
 describe("V1Migration database workflow", () => {
-  const createLegacyTables = Effect.fnUntraced(function* (db: Effect.Success<typeof makeDb>) {
-    yield* db.run(sql`
-      CREATE TABLE session (
-        id text PRIMARY KEY,
-        project_id text NOT NULL,
-        workspace_id text,
-        parent_id text,
-        slug text NOT NULL,
-        directory text NOT NULL,
-        path text,
-        title text NOT NULL,
-        version text NOT NULL,
-        share_url text,
-        summary_additions integer,
-        summary_deletions integer,
-        summary_files integer,
-        summary_diffs text,
-        metadata text,
-        cost real DEFAULT 0 NOT NULL,
-        tokens_input integer DEFAULT 0 NOT NULL,
-        tokens_output integer DEFAULT 0 NOT NULL,
-        tokens_reasoning integer DEFAULT 0 NOT NULL,
-        tokens_cache_read integer DEFAULT 0 NOT NULL,
-        tokens_cache_write integer DEFAULT 0 NOT NULL,
-        revert text,
-        permission text,
-        agent text,
-        model text,
-        time_created integer NOT NULL,
-        time_updated integer NOT NULL,
-        time_compacting integer,
-        time_archived integer
-      )
-    `)
-    yield* db.run(sql`
-      CREATE TABLE message (
-        id text PRIMARY KEY,
-        session_id text NOT NULL,
-        time_created integer NOT NULL,
-        time_updated integer NOT NULL,
-        data text NOT NULL
-      )
-    `)
-    yield* db.run(sql`
-      CREATE TABLE part (
-        id text PRIMARY KEY,
-        message_id text NOT NULL,
-        session_id text NOT NULL,
-        time_created integer NOT NULL,
-        time_updated integer NOT NULL,
-        data text NOT NULL
-      )
-    `)
-  })
-
   const database = <A, E>(
     effect: Effect.Effect<A, E, Database.Service | Global.Service | Scope.Scope | Project.Service | FSUtil.Service>,
   ) =>
@@ -892,6 +838,7 @@ describe("V1Migration database workflow", () => {
         const db = yield* makeDb
         yield* DatabaseMigration.apply(db)
         yield* createLegacyTables(db)
+        yield* V1Migration.accept().pipe(Effect.provideService(Database.Service, { db }))
         return yield* effect.pipe(
           Effect.provide(
             AppNodeBuilder.build(LayerNode.group([Project.node, Database.node, FSUtil.node]), [
@@ -909,6 +856,64 @@ describe("V1Migration database workflow", () => {
         expect(yield* V1Migration.run()).toEqual({ status: "completed" })
         expect(yield* V1Migration.status()).toEqual({ status: "completed" })
         expect(yield* V1Migration.run()).toEqual({ status: "completed" })
+      }),
+    )
+  })
+
+  test("startup waits for the shared-profile acknowledgment before importing V1 history", async () => {
+    await database(
+      Effect.gen(function* () {
+        const database = yield* Database.Service
+        const db = database.db
+        yield* db.run(sql`DELETE FROM kv WHERE key = 'migration.v1-v2.accepted'`)
+        yield* db.run(sql`
+          INSERT INTO session (id, project_id, slug, directory, title, version, time_created, time_updated)
+          VALUES ('ses_cutover', 'global', 'cutover', '/tmp/test', 'V1 history', '1.19.5', 1, 2)
+        `)
+        yield* Layer.build(V1Migration.layer)
+        expect(yield* V1Migration.status()).toEqual({ status: "confirmation_required" })
+        expect(yield* db.get(sql`SELECT id FROM session_v2 WHERE id = 'ses_cutover'`)).toBeUndefined()
+        expect(yield* db.get(sql`SELECT value FROM kv WHERE key = 'migration.v1-v2'`)).toBeUndefined()
+
+        yield* V1Migration.accept()
+        yield* V1Migration.accept()
+        yield* V1Migration.status().pipe(
+          Effect.filterOrFail((status) => status.status === "completed"),
+          Effect.retry(Schedule.spaced("10 millis")),
+        )
+        expect(yield* db.get(sql`SELECT title FROM session_v2 WHERE id = 'ses_cutover'`)).toEqual({
+          title: "V1 history",
+        })
+        expect(yield* db.get(sql`SELECT value FROM kv WHERE key = 'migration.v1-v2.accepted'`)).toEqual({
+          value: "true",
+        })
+      }),
+    )
+  })
+
+  test("completed imports require acknowledgment without replaying subsequent V1 changes", async () => {
+    await database(
+      Effect.gen(function* () {
+        const database = yield* Database.Service
+        const db = database.db
+        yield* V1Migration.run()
+        yield* db.run(sql`
+          INSERT INTO session (id, project_id, slug, directory, title, version, time_created, time_updated)
+          VALUES ('ses_late', 'global', 'late', '/tmp/test', 'Later V1 history', '1.19.5', 3, 4)
+        `)
+        yield* db.run(sql`
+          INSERT INTO session_v2 (id, project_id, slug, directory, title, version, time_created, time_updated)
+          VALUES ('ses_native', 'global', 'native', '/tmp/test', 'Keep V2 history', '2', 3, 4)
+        `)
+        yield* db.run(sql`DELETE FROM kv WHERE key = 'migration.v1-v2.accepted'`)
+        expect(yield* V1Migration.status()).toEqual({ status: "confirmation_required" })
+        yield* V1Migration.accept()
+        expect(yield* V1Migration.run()).toEqual({ status: "completed" })
+        expect(yield* V1Migration.status()).toEqual({ status: "completed" })
+        expect(yield* db.get(sql`SELECT id FROM session_v2 WHERE id = 'ses_late'`)).toBeUndefined()
+        expect(yield* db.get(sql`SELECT title FROM session_v2 WHERE id = 'ses_native'`)).toEqual({
+          title: "Keep V2 history",
+        })
       }),
     )
   })
@@ -938,6 +943,80 @@ describe("V1Migration database workflow", () => {
         expect(yielded).toBe(true)
         yield* Fiber.join(heartbeat)
         expect(yield* db.get<{ value: number }>(sql`SELECT COUNT(*) AS value FROM event`)).toEqual({ value: 0 })
+      }),
+    )
+  })
+
+  test("commits event cleanup batches and resumes after reopening a failed migration", async () => {
+    await using tmp = await tmpdir()
+    const boot = <A, E>(
+      effect: Effect.Effect<A, E, Database.Service | Global.Service | Project.Service | FSUtil.Service>,
+    ) =>
+      Effect.runPromise(
+        effect.pipe(
+          Effect.provide(
+            AppNodeBuilder.build(LayerNode.group([Global.node, Project.node, Database.node, FSUtil.node]), [
+              Database.node.replace(Database.configured({ path: path.join(tmp.path, "opencode.db") })),
+              Global.node.replace(Layer.succeed(Global.Service, Global.make({ data: tmp.path }))),
+            ]),
+          ),
+          Effect.scoped,
+        ),
+      )
+
+    await boot(
+      Effect.gen(function* () {
+        const { db } = yield* Database.Service
+        yield* createLegacyTables(db)
+        yield* db.run(
+          sql`INSERT INTO project (id, worktree, time_created, time_updated, sandboxes) VALUES ('global', '/tmp/test', 1, 2, '[]')`,
+        )
+        yield* db.run(
+          sql`INSERT INTO session (id, project_id, slug, directory, title, version, time_created, time_updated) VALUES ('ses_test', 'global', 'test', '/tmp/test', 'Test', '1', 1, 2)`,
+        )
+        yield* db.run(
+          sql`INSERT INTO message (id, session_id, time_created, time_updated, data) VALUES ('msg_user', 'ses_test', 10, 11, ${user("msg_user").data})`,
+        )
+        yield* db.run(
+          sql`INSERT INTO part (id, message_id, session_id, time_created, time_updated, data) VALUES ('prt_text', 'msg_user', 'ses_test', 10, 11, '{"type":"text","text":"preserved history"}')`,
+        )
+        yield* db.run(sql`INSERT INTO event_sequence (aggregate_id, seq) VALUES ('stale', 2500)`)
+        yield* db.run(sql`
+          WITH RECURSIVE rows(value) AS (
+            VALUES(1)
+            UNION ALL
+            SELECT value + 1 FROM rows WHERE value < 2500
+          )
+          INSERT INTO event (id, aggregate_id, seq, created, type, data)
+          SELECT printf('event_%04d', value), 'stale', value, 1, 'session.renamed.1', json_object('payload', hex(zeroblob(2048)))
+          FROM rows
+        `)
+        yield* db.run(sql`
+          CREATE TRIGGER fail_cleanup BEFORE DELETE ON event WHEN OLD.id = 'event_1001'
+          BEGIN SELECT RAISE(ABORT, 'cleanup interrupted'); END
+        `)
+        yield* V1Migration.accept()
+        const result = yield* V1Migration.run().pipe(Effect.exit)
+        expect(result._tag).toBe("Failure")
+        if (result._tag === "Failure") expect(Cause.pretty(result.cause)).toContain("cleanup interrupted")
+      }),
+    )
+
+    await boot(
+      Effect.gen(function* () {
+        const { db } = yield* Database.Service
+        expect(yield* db.get(sql`SELECT COUNT(*) AS count FROM event`)).toEqual({ count: 1500 })
+        expect(yield* db.get(sql`SELECT value FROM kv WHERE key = 'migration.v1-v2'`)).toBeUndefined()
+        expect(yield* db.get(sql`SELECT id FROM session_v2 WHERE id = 'ses_test'`)).toBeUndefined()
+        expect(yield* db.get(sql`SELECT id FROM message WHERE id = 'msg_user'`)).toEqual({ id: "msg_user" })
+        yield* db.run(sql`DROP TRIGGER fail_cleanup`)
+        expect(yield* V1Migration.run()).toEqual({ status: "completed" })
+        expect(yield* db.get(sql`SELECT COUNT(*) AS count FROM event`)).toEqual({ count: 0 })
+        expect(
+          yield* db.get(sql`SELECT json_extract(data, '$.text') AS text FROM session_message WHERE id = 'msg_user'`),
+        ).toEqual({ text: "preserved history" })
+        expect(yield* V1Migration.status()).toEqual({ status: "completed" })
+        expect(yield* V1Migration.run()).toEqual({ status: "completed" })
       }),
     )
   })

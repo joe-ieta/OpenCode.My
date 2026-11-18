@@ -1,5 +1,6 @@
 ---
 title: "Config"
+description: "Configure OpenCode in opencode.json or opencode.jsonc, and see where config files live, how they take precedence, and how to substitute variables."
 ---
 
 Create `opencode.jsonc` in your project to configure OpenCode. Add the schema for editor validation, then set only the options you need.
@@ -643,6 +644,34 @@ Set `todo` to `true` to give agents a `todowrite` tool for tracking multi-step w
 
 `subagent_depth` sets how deeply subagents can start their own subagents. Defaults to `1`, so a subagent cannot
 start another subagent.
+
+### Background compaction
+
+Set `background_compaction` to `true` to write the compaction summary in the background before it is needed, so
+automatic compaction doesn't pause the session. Defaults to `false`. See
+[Compaction](/compaction#background-compaction) for how it works.
+
+```jsonc
+{
+  "experimental": {
+    "background_compaction": true,
+  },
+}
+```
+
+### OpenAI-compatible model discovery
+
+Set `openai_compatible_discovery` to `true` to add the models that OpenAI-compatible providers list at
+`GET {baseURL}/models`, so they don't have to be listed under `models`. Defaults to `false`. See
+[Discovered models](/providers#discovered-models) for how it works.
+
+```jsonc
+{
+  "experimental": {
+    "openai_compatible_discovery": true,
+  },
+}
+```
 
 ### Image generation
 

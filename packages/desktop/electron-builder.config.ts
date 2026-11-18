@@ -46,6 +46,14 @@ const APP_IDS = {
   prod: "ai.opencode.desktop",
 } as const
 
+// Ubuntu hosts commonly lack rpmbuild, so fork releases can narrow the Linux targets.
+const linuxTargets = (process.env.OPENCODE_DESKTOP_LINUX_TARGETS ?? "AppImage,deb,rpm")
+  .split(",")
+  .map((target) => target.trim())
+  .filter(
+    (target): target is "AppImage" | "deb" | "rpm" => target === "AppImage" || target === "deb" || target === "rpm",
+  )
+
 // libappimage (used by AppImageLauncher) resolves the .desktop entry inside an
 // AppImage by globbing `*.desktop` at the squashfs root. If the main
 // executable itself ends in `.desktop` (prod appId `ai.opencode.desktop`), the
@@ -203,14 +211,14 @@ const getBase = (appId: string): Configuration => {
           StartupWMClass: appId,
         },
       },
-      target: ["AppImage", "deb", "rpm"],
+      target: linuxTargets,
     },
   }
 }
 
 export function getConfig() {
   const channel = resolveChannel()
-  const appId = APP_IDS[channel]
+  const appId = process.env.OPENCODE_DESKTOP_APP_ID ?? APP_IDS[channel]
   const base = getBase(appId)
 
   switch (channel) {
@@ -218,10 +226,10 @@ export function getConfig() {
       return {
         ...base,
         appId,
-        productName: "OpenCode Dev",
+        productName: process.env.OPENCODE_DESKTOP_PRODUCT_NAME ?? "OpenCode Dev",
         publish: {
           provider: "generic",
-          url: "https://opencode.ai/update/api/dev/desktop/opencode/",
+          url: process.env.OPENCODE_DESKTOP_UPDATE_URL ?? "https://opencode.ai/update/api/dev/desktop/opencode/",
           channel: "latest",
         },
         deb: { fpm: [...previewCompressionFpm("deb"), metainfoFpm(appId)] },
@@ -236,11 +244,11 @@ export function getConfig() {
       return {
         ...base,
         appId,
-        productName: "OpenCode Beta",
+        productName: process.env.OPENCODE_DESKTOP_PRODUCT_NAME ?? "OpenCode Beta",
         protocols: { name: "OpenCode Beta", schemes: ["opencode"] },
         publish: {
           provider: "generic",
-          url: "https://opencode.ai/update/api/beta/desktop/opencode/",
+          url: process.env.OPENCODE_DESKTOP_UPDATE_URL ?? "https://opencode.ai/update/api/beta/desktop/opencode/",
           channel: "latest",
         },
         deb: { fpm: [...previewCompressionFpm("deb"), metainfoFpm(appId)] },
@@ -255,7 +263,7 @@ export function getConfig() {
       return {
         ...base,
         appId,
-        productName: "OpenCode",
+        productName: process.env.OPENCODE_DESKTOP_PRODUCT_NAME ?? "OpenCode",
         protocols: { name: "OpenCode", schemes: ["opencode"] },
         // An Icon Composer package compiles to Assets.car, which macOS 26 and later draw the app icon from
         // (Dock, Finder, system dialogs and the system icon styles). Older macOS keeps using the ICNS.
@@ -264,7 +272,7 @@ export function getConfig() {
         dmg: { icon: "resources/icons/icon.icns" },
         publish: {
           provider: "generic",
-          url: "https://opencode.ai/update/api/latest/desktop/opencode/",
+          url: process.env.OPENCODE_DESKTOP_UPDATE_URL ?? "https://opencode.ai/update/api/latest/desktop/opencode/",
           channel: "latest",
         },
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },

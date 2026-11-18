@@ -24,6 +24,28 @@ function poll(state: MigrationState, answer: (attempt: number) => MigrationEvent
 }
 
 describe("migration status poll", () => {
+  test("pauses for the one-way migration confirmation and resumes only after acceptance", () => {
+    const confirmation = poll(createMigrationState().state, (attempt) => ({
+      type: "poll.succeeded",
+      attempt,
+      output: { status: "confirmation_required" },
+    }))
+
+    expect(confirmation.effects).toEqual([{ type: "cancel-timer" }, { type: "show-confirmation", attempt: 2 }])
+    expect(transitionMigration(confirmation.state, { type: "poll.due", attempt: 2 }).state).toBe(confirmation.state)
+    expect(
+      transitionMigration(confirmation.state, { type: "confirmation.closed", attempt: 2, accepted: false }),
+    ).toEqual({
+      state: { status: "dismissed" },
+      effects: [],
+    })
+    const resumed = transitionMigration(confirmation.state, { type: "confirmation.closed", attempt: 2, accepted: true })
+    expect(resumed.effects).toEqual([{ type: "start-wait", attempt: 3, delayMs: 1_000 }])
+    expect(transitionMigration(resumed.state, { type: "confirmation.closed", attempt: 2, accepted: false }).state).toBe(
+      resumed.state,
+    )
+  })
+
   test("keeps the running toast and retries with backoff after a transport failure", () => {
     const first = poll(createMigrationState().state, (attempt) => ({
       type: "poll.succeeded",

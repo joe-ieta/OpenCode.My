@@ -85,7 +85,7 @@ type Progress = {
 }
 
 export type Status =
-  | { readonly status: "required" | "completed" }
+  | { readonly status: "confirmation_required" | "required" | "completed" }
   | { readonly status: "running"; readonly progress: Progress }
   | { readonly status: "error"; readonly error: string }
 
@@ -218,6 +218,7 @@ type NextMessage = {
 
 const lock = Semaphore.makeUnsafe(1)
 const MIGRATION_STATE_KEY = "migration.v1-v2"
+const ACCEPTED_KEY = "migration.v1-v2.accepted"
 const EVENT_DELETE_BATCH_SIZE = 1_000
 const decodeJson = Schema.decodeUnknownOption(Schema.fromJsonString(Schema.Unknown))
 const decodeMessage = Schema.decodeUnknownOption(SessionV1.Info)
@@ -501,6 +502,7 @@ export function status(): Effect.Effect<Status, never, Database.Service> {
   return Effect.gen(function* () {
     const db = (yield* Database.Service).db
     if (!(yield* hasLegacySessions(db))) return { status: "completed" as const }
+    if (yield* needsConfirmation(db)) return { status: "confirmation_required" as const }
     const state = yield* readState(db)
     if (runtimeState.status === "running") return runtimeState
     if (runtimeState.status === "error") return runtimeState
@@ -511,6 +513,9 @@ export function status(): Effect.Effect<Status, never, Database.Service> {
 
 export const layer = Layer.effectDiscard(
   Effect.gen(function* () {
+    const db = (yield* Database.Service).db
+    // The shared profile switches as a whole, not one project at a time.
+    while (yield* needsConfirmation(db)) yield* Effect.sleep("1 second")
     runtimeState = { status: "running", progress: { label: "Clearing old events" } }
     yield* run().pipe(
       Effect.matchCauseEffect({
@@ -523,10 +528,25 @@ export const layer = Layer.effectDiscard(
             runtimeState = { status: "idle" }
           }),
       }),
-      Effect.forkScoped({ startImmediately: true }),
     )
-  }),
+  }).pipe(Effect.forkScoped({ startImmediately: true })),
 )
+
+export function accept(): Effect.Effect<void, never, Database.Service> {
+  return Effect.gen(function* () {
+    const db = (yield* Database.Service).db
+    yield* db.insert(KVTable).values({ key: ACCEPTED_KEY, value: true }).onConflictDoNothing().run().pipe(Effect.orDie)
+  })
+}
+
+function needsConfirmation(db: Database.Interface["db"]) {
+  return Effect.gen(function* () {
+    if (!(yield* hasLegacySessions(db))) return false
+    if (!(yield* db.get(sql`SELECT 1 FROM session LIMIT 1`))) return false
+    const accepted = yield* db.get<{ value: string }>(sql`SELECT value FROM kv WHERE key = ${ACCEPTED_KEY}`)
+    return accepted?.value !== "true"
+  }).pipe(Effect.orDie)
+}
 
 function errorText(input: unknown): string {
   if (!(input instanceof Error)) return String(input)
@@ -553,26 +573,31 @@ export function run(
           INSERT OR IGNORE INTO project (id, worktree, time_created, time_updated, time_active, sandboxes)
           VALUES (${Project.ID.global}, ${path.parse(global.data).root}, ${now}, ${now}, ${now}, '[]')
         `)
-      if (state === undefined)
-        yield* db
-          .transaction((tx) =>
-            Effect.gen(function* () {
-              while (true) {
+      if (state === undefined) {
+        // Commit each batch so a large legacy event log cannot grow one WAL
+        // transaction for the entire cleanup. Missing state resumes remaining rows.
+        while (true) {
+          const deleted = yield* db
+            .transaction((tx) =>
+              Effect.gen(function* () {
                 yield* tx.run(sql`
                     DELETE FROM event
                     WHERE rowid IN (SELECT rowid FROM event LIMIT ${EVENT_DELETE_BATCH_SIZE})
                   `)
                 const deleted = (yield* tx.get<{ value: number }>(sql`SELECT changes() AS value`))?.value ?? 0
-                if (deleted < EVENT_DELETE_BATCH_SIZE) break
-                yield* Effect.yieldNow
-              }
-              yield* tx
-                .insert(KVTable)
-                .values({ key: MIGRATION_STATE_KEY, value: { phase: "sessions" } })
-                .run()
-            }),
-          )
-          .pipe(Effect.orDie)
+                if (deleted < EVENT_DELETE_BATCH_SIZE)
+                  yield* tx
+                    .insert(KVTable)
+                    .values({ key: MIGRATION_STATE_KEY, value: { phase: "sessions" } })
+                    .run()
+                return deleted
+              }),
+            )
+            .pipe(Effect.orDie)
+          if (deleted < EVENT_DELETE_BATCH_SIZE) break
+          yield* Effect.yieldNow
+        }
+      }
       const sourceTotal = yield* countNextSessions(nextPath(options, global.data))
       const legacyTotal = (yield* db.get<{ value: number }>(sql`SELECT COUNT(*) AS value FROM session`))?.value ?? 0
       const cursor = state?.phase === "sessions" ? state.cursor : undefined

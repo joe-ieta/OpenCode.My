@@ -97,6 +97,7 @@ import type {
   ExperimentalSessionImportOutput,
   ExperimentalSessionExportInput,
   ExperimentalSessionExportOutput,
+  ExperimentalSessionActivityOutput,
   ExperimentalSessionSkillInput,
   ExperimentalSessionSkillOutput,
   ExperimentalSessionWaitInput,
@@ -117,6 +118,8 @@ import type {
   ModelDefaultOutput,
   ExperimentalGenerateTextInput,
   ExperimentalGenerateTextOutput,
+  ExperimentalGenerateTestTextInput,
+  ExperimentalGenerateTestTextOutput,
   ExperimentalGenerateImageInput,
   ExperimentalGenerateImageOutput,
   ExperimentalGenerateVideoCreateInput,
@@ -311,6 +314,8 @@ import type {
   DebugLocationEvictInput,
   DebugLocationEvictOutput,
   ExperimentalMigrationV1StatusOutput,
+  ExperimentalMigrationV1AcceptInput,
+  ExperimentalMigrationV1AcceptOutput,
   WebsearchProvidersInput,
   WebsearchProvidersOutput,
   WebsearchQueryInput,
@@ -322,6 +327,14 @@ import type {
   ConfigShellsOutput,
   ExperimentalConfigUpdateInput,
   ExperimentalConfigUpdateOutput,
+  ExperimentalConfigProvidersListInput,
+  ExperimentalConfigProvidersListOutput,
+  ExperimentalConfigProvidersUpdateInput,
+  ExperimentalConfigProvidersUpdateOutput,
+  ExperimentalConfigProvidersDiscoverInput,
+  ExperimentalConfigProvidersDiscoverOutput,
+  ExperimentalConfigProvidersTestInput,
+  ExperimentalConfigProvidersTestOutput,
 } from "../api/api.js"
 import { ClientError } from "./client-error.js"
 
@@ -832,6 +845,14 @@ const EndpointExperimentalSessionExport =
       ),
     )
 
+const EndpointExperimentalSessionActivity = (raw: RawClient["server.session"]) => () =>
+  preserveEffect<ExperimentalSessionActivityOutput>()(
+    raw["experimental.session.activity"]({}).pipe(
+      Effect.mapError(mapClientError),
+      Effect.map((value) => value.data),
+    ),
+  )
+
 const EndpointExperimentalSessionSkill = (raw: RawClient["server.session"]) => (input: ExperimentalSessionSkillInput) =>
   preserveEffect<ExperimentalSessionSkillOutput>()(
     raw["session.skill"]({
@@ -888,6 +909,7 @@ const adaptGroupExperimentalSession = (raw: RawClient["server.session"]) => ({
   stats: EndpointExperimentalSessionStats(raw),
   import: EndpointExperimentalSessionImport(raw),
   export: EndpointExperimentalSessionExport(raw),
+  activity: EndpointExperimentalSessionActivity(raw),
   skill: EndpointExperimentalSessionSkill(raw),
   wait: EndpointExperimentalSessionWait(raw),
   instructions: {
@@ -934,6 +956,12 @@ const EndpointExperimentalGenerateText =
         Effect.mapError(mapClientError),
         Effect.map((value) => value.data),
       ),
+    )
+
+const EndpointExperimentalGenerateTestText =
+  (raw: RawClient["server.generate"]) => (input: ExperimentalGenerateTestTextInput) =>
+    preserveEffect<ExperimentalGenerateTestTextOutput>()(
+      raw["generate.testText"]({ payload: { model: input["model"] } }).pipe(Effect.mapError(mapClientError)),
     )
 
 const EndpointExperimentalGenerateImage =
@@ -997,6 +1025,7 @@ const EndpointExperimentalGenerateDecisions =
 
 const adaptGroupExperimentalGenerate = (raw: RawClient["server.generate"]) => ({
   text: EndpointExperimentalGenerateText(raw),
+  testText: EndpointExperimentalGenerateTestText(raw),
   image: EndpointExperimentalGenerateImage(raw),
   video: { create: EndpointExperimentalGenerateVideoCreate(raw), get: EndpointExperimentalGenerateVideoGet(raw) },
   decisions: EndpointExperimentalGenerateDecisions(raw),
@@ -1944,8 +1973,16 @@ const EndpointExperimentalMigrationV1Status = (raw: RawClient["server.migration"
     raw["migration.v1.status"]({}).pipe(Effect.mapError(mapClientError)),
   )
 
+const EndpointExperimentalMigrationV1Accept =
+  (raw: RawClient["server.migration"]) => (input: ExperimentalMigrationV1AcceptInput) =>
+    preserveEffect<ExperimentalMigrationV1AcceptOutput>()(
+      raw["migration.v1.accept"]({ payload: { acknowledged: input["acknowledged"] } }).pipe(
+        Effect.mapError(mapClientError),
+      ),
+    )
+
 const adaptGroupExperimentalMigration = (raw: RawClient["server.migration"]) => ({
-  v1: { status: EndpointExperimentalMigrationV1Status(raw) },
+  v1: { status: EndpointExperimentalMigrationV1Status(raw), accept: EndpointExperimentalMigrationV1Accept(raw) },
 })
 
 const EndpointWebsearchProviders = (raw: RawClient["server.websearch"]) => (input?: WebsearchProvidersInput) =>
@@ -1993,8 +2030,53 @@ const EndpointExperimentalConfigUpdate = (raw: RawClient["server.config"]) => (i
     raw["config.update"]({ payload: { shell: input["shell"] } }).pipe(Effect.mapError(mapClientError)),
   )
 
+const EndpointExperimentalConfigProvidersList =
+  (raw: RawClient["server.config"]) => (input?: ExperimentalConfigProvidersListInput) =>
+    preserveEffect<ExperimentalConfigProvidersListOutput>()(
+      raw["config.providers.list"]({ query: { location: input?.["location"] } }).pipe(Effect.mapError(mapClientError)),
+    )
+
+const EndpointExperimentalConfigProvidersUpdate =
+  (raw: RawClient["server.config"]) => (input: ExperimentalConfigProvidersUpdateInput) =>
+    preserveEffect<ExperimentalConfigProvidersUpdateOutput>()(
+      raw["config.providers.update"]({
+        params: { providerID: input["providerID"] },
+        query: { location: input["location"] },
+        payload: {
+          mode: input["mode"],
+          revision: input["revision"],
+          patch: input["patch"],
+          credential: input["credential"],
+        },
+      }).pipe(Effect.mapError(mapClientError)),
+    )
+
+const EndpointExperimentalConfigProvidersDiscover =
+  (raw: RawClient["server.config"]) => (input: ExperimentalConfigProvidersDiscoverInput) =>
+    preserveEffect<ExperimentalConfigProvidersDiscoverOutput>()(
+      raw["config.providers.discover"]({
+        query: { location: input["location"] },
+        payload: { target: input["target"], api: input["api"], metadata: input["metadata"] },
+      }).pipe(Effect.mapError(mapClientError)),
+    )
+
+const EndpointExperimentalConfigProvidersTest =
+  (raw: RawClient["server.config"]) => (input: ExperimentalConfigProvidersTestInput) =>
+    preserveEffect<ExperimentalConfigProvidersTestOutput>()(
+      raw["config.providers.test"]({
+        query: { location: input["location"] },
+        payload: { target: input["target"], modelID: input["modelID"] },
+      }).pipe(Effect.mapError(mapClientError)),
+    )
+
 const adaptGroupExperimentalConfig = (raw: RawClient["server.config"]) => ({
   update: EndpointExperimentalConfigUpdate(raw),
+  providers: {
+    list: EndpointExperimentalConfigProvidersList(raw),
+    update: EndpointExperimentalConfigProvidersUpdate(raw),
+    discover: EndpointExperimentalConfigProvidersDiscover(raw),
+    test: EndpointExperimentalConfigProvidersTest(raw),
+  },
 })
 
 const adaptClient = (raw: RawClient) => {

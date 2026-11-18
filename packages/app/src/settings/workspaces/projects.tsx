@@ -10,7 +10,7 @@ import { displayName } from "@opencode/ui/project-avatar"
 import { homeProjectDirectories } from "@/shell/layout/helpers"
 import type { LocalProject } from "@/shell/state/layout"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
-import { addProjects } from "@/home/projects/add"
+import { addProjects } from "@/shell/projects/add"
 import { SettingsSearchEmpty } from "../search-empty"
 import { SettingsSearchField } from "../search-field"
 import { SettingsProjectRow } from "./project-row"
@@ -167,7 +167,6 @@ export const SettingsProjects: Component<{
                   <span class="settings-models-group-chevron">
                     <Icon
                       name="fill-triangle-down"
-                      size="small"
                       classList={{ "project-settings-shared-chevron": true, open: store.others }}
                     />
                   </span>

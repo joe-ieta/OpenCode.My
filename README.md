@@ -1,114 +1,56 @@
-<p align="center">
-  <a href="https://opencode.ai">
-    <picture>
-      <source srcset=".github/assets/logo-ornate-dark.svg" media="(prefers-color-scheme: dark)">
-      <source srcset=".github/assets/logo-ornate-light.svg" media="(prefers-color-scheme: light)">
-      <img src=".github/assets/logo-ornate-light.svg" alt="OpenCode logo">
-    </picture>
-  </a>
-</p>
-<p align="center">The open source AI coding agent.</p>
-<p align="center">
-  <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
-  <a href="https://www.npmjs.com/package/@opencode/cli"><img alt="npm" src="https://img.shields.io/npm/v/@opencode/cli?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/release.yml?style=flat-square&branch=dev" /></a>
-</p>
+# OpenCode My
 
-<p align="center">
-  <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
-  <a href="README.zht.md">繁體中文</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.de.md">Deutsch</a> |
-  <a href="README.es.md">Español</a> |
-  <a href="README.fr.md">Français</a> |
-  <a href="README.it.md">Italiano</a> |
-  <a href="README.da.md">Dansk</a> |
-  <a href="README.ja.md">日本語</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.ru.md">Русский</a> |
-  <a href="README.bs.md">Bosanski</a> |
-  <a href="README.ar.md">العربية</a> |
-  <a href="README.no.md">Norsk</a> |
-  <a href="README.br.md">Português (Brasil)</a> |
-  <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a> |
-  <a href="README.uk.md">Українська</a> |
-  <a href="README.bn.md">বাংলা</a> |
-  <a href="README.gr.md">Ελληνικά</a> |
-  <a href="README.vi.md">Tiếng Việt</a>
-</p>
+**English** · [简体中文](README.zh.md)
 
-[![OpenCode Terminal UI](services/site/public/v1/docs/assets/lander/screenshot.png)](https://opencode.ai)
+`OpenCode My` is a desktop AI coding workspace for everyday development and long-running tasks. Built on `opencode`, it helps developers stay in control, understand progress, and work with AI agents across multiple projects at once. It retains the full coding and agent capabilities of `opencode` while improving the interface, personal workflows, and the experience of running models locally. The desktop edition is maintained on `dev-my`.
 
----
+- **Control** · Manage projects and sessions, and use session summaries to steer long-running, system-level development.
+- **Understanding** · See facts, summaries, and rollups for project design, task breakdown, task progress, and session activity.
+- **Ease of use** · Work in a streamlined interface with personalization features and support for local deployments.
 
-### Installation
+## Personalization features
 
-```bash
-# YOLO
-curl -fsSL https://opencode.ai/v2/install | bash
+### Side bar
 
-# Package managers
-npm i -g @opencode/cli@latest      # or bun/pnpm/yarn
-brew install anomalyco/tap/opencode-v2 # macOS and Linux (recommended, always up to date)
-brew install opencode              # macOS and Linux (official brew formula, updated less)
-sudo pacman -S opencode            # Arch Linux (Stable)
-paru -S opencode-beta              # Arch Linux (Latest from AUR)
-mise use -g opencode               # Any OS
-nix run github:anomalyco/opencode  # Nix
-```
+Browse sessions by project or recent activity, and see which tasks are running or waiting across connected servers. The Side bar keeps project navigation and session activity visible while you work.
 
-> [!TIP]
-> Remove versions older than 0.1.x before installing.
+### Custom models
 
-### Desktop App (BETA)
+Connect an OpenAI-compatible provider from the model picker. Import models or add them manually, test saved models, and choose which ones appear in the picker.
 
-OpenCode is also available as a desktop application. Download it from [opencode.ai/download](https://opencode.ai/download).
+## New features in detail in `OpenCode My`
 
-| Platform              | Download                           |
-| --------------------- | ---------------------------------- |
-| macOS (Apple Silicon) | `opencode-desktop-mac-arm64.dmg`   |
-| macOS (Intel)         | `opencode-desktop-mac-x64.dmg`     |
-| Windows               | `opencode-desktop-win-x64.exe`     |
-| Linux                 | `.deb`, `.rpm`, or `.AppImage`     |
+### Side bar
 
-```bash
-# macOS (Homebrew)
-brew install --cask opencode-desktop
-```
+- **Project and list views.** The default **By project** view groups sessions under their projects. **List** sorts sessions across projects by most recent activity.
+- **Project controls.** Pin projects for quick access, expand or collapse them with the folder icons, and view branch, worktree, and remote information where available.
+- **Project and session menus.** Home and Side bar share actions for importing sessions, editing projects, copying paths, clearing notifications, and closing projects. Open the Side bar project menu with a right-click or **Shift+F10**. Closing a project keeps its history and unsent drafts, and the session menu supports export.
+- **Shared counts.** Both views show active sessions / total sessions / projects across the available projects. For example, `2/20/5` means 2 active sessions out of 20 across 5 projects.
+- **Home and new sessions.** Home and Side bar share project history. Home project rows show running activity, and **New session** below **Home** uses the project selected there. Project rows also offer shortcuts to start a session in that project.
+- **Running sessions.** A dedicated section across connected servers shows active work and waits for input or approval. It includes background Shell tasks and subagents, even when the session is closed in the workspace.
+- **Session hover details.** See the branch and worktree, when the last run ended, the number of user messages in the loaded history, the latest effective context usage, and session cost. Recent runs show a relative time.
 
-#### Installation Directory
+### Custom models
 
-The install script installs OpenCode to `$HOME/.opencode/bin`.
+- **Provider setup.** Create, edit, or remove global OpenAI-compatible providers from **Custom providers**. Set the display name, provider ID, and base URL in the form.
+- **Credentials.** Save or replace API keys in the credential store. Editing the provider preserves JSONC comments and fields managed outside the form.
+- **Model discovery.** Preview models via OpenAI-compatible `/models` or the native Ollama and LM Studio APIs. Import selected entries, retain manually entered fields, and use discovered models in the runtime catalog.
+- **Manual model entries.** Set the display name, request model ID, context, input and output limits, and tool and image capabilities. The form scrolls on shorter windows.
+- **Advanced options.** Configure request and streaming timeouts, reasoning and compatibility settings, price tiers, and model variants.
+- **Saved-model text test.** Send a small test request using the saved endpoint, credentials, and model ID. Inspect the result, cancel the test, or retry after an error.
+- **Model visibility.** Use **Manage models** to choose which models appear in the picker. Close the panel to return to the same picker.
+- **Built-in integrations.** Open **Connect an integration** from the picker footer or from the search field on desktop. Confirming removal deletes the integration's saved credentials and refreshes the model catalog.
 
-### Agents
+## Personalization features at a glance
 
-OpenCode includes two built-in agents you can switch between with the `Tab` key.
+- **Side bar** · Select **Side bar** under **Settings → General → Interface layout**. Pin or collapse projects, browse recent sessions by project, and see running work across connected servers, including background Shell tasks and subagents.
 
-- **build** - Default, full-access agent for development work
-- **plan** - Read-only agent for analysis and code exploration
-  - Denies file edits by default
-  - Asks permission before running bash commands
-  - Ideal for exploring unfamiliar codebases or planning changes
+  <img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with project groups, recent sessions, and running work">
 
-Also included is a **general** subagent for complex searches and multistep tasks.
-This is used internally and can be invoked using `@general` in messages.
+- **Custom models** · Open **Custom providers** from the model picker to configure a global OpenAI-compatible provider. Discover and import models or enter them manually, set the display name, request ID, and context limit, and test text responses. Use **Manage models** to choose which models appear in the picker.
 
-Learn more about [agents](https://opencode.ai/docs/agents).
+  <img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider model form with the request ID, display name, context limit, and text test">
 
-### Documentation
+_Screenshots use sample data._
 
-For more info on how to configure OpenCode, [**head over to our docs**](https://opencode.ai/docs).
-
-### Contributing
-
-If you're interested in contributing to OpenCode, please read our [contributing docs](./CONTRIBUTING.md) before submitting a pull request.
-
-### Building on OpenCode
-
-If you are working on a project that's related to OpenCode and is using "opencode" as part of its name, for example "opencode-dashboard" or "opencode-mobile", please add a note to your README to clarify that it is not built by the OpenCode team and is not affiliated with us in any way.
-
----
-
-**Join our community** [Discord](https://discord.gg/opencode) | [X.com](https://x.com/opencode)
+[Download OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [Desktop maintenance](docs/fork/dev-my/README.md) · [Official OpenCode README](https://github.com/anomalyco/opencode#readme)

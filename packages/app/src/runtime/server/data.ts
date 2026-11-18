@@ -87,6 +87,8 @@ export function createDesktopData(input: { data: Data; remove: (sessionID: strin
       // Index consumers merge the raw server snapshots before applying pending sends.
       known: input.data.session.list,
       apply,
+      // Lightweight projections use the same pending deletions as full session rows.
+      filterRemoved: mutation.apply,
       remember(info: SessionInfo) {
         const raw = syntheticTimes.get(info.time)
 
@@ -258,7 +260,7 @@ export function createSessionMutations(remove: (sessionID: string) => Promise<vo
     [...current.filter((mutation) => mutation.sessionID !== next.sessionID), next].slice(-REMOVED_SESSION_LIMIT)
 
   return {
-    apply(sessions: readonly SessionInfo[]) {
+    apply<T extends { id: string }>(sessions: readonly T[]) {
       const removed = new Set(
         store.session.flatMap((mutation) => (mutation.type === "remove" ? [mutation.sessionID] : [])),
       )

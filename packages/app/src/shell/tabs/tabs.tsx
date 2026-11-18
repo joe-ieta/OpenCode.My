@@ -1,3 +1,4 @@
+import { createSidebarVisibility } from "@/shell/sidebar/visibility"
 import type { SessionInfo, SessionMessageUser } from "@opencode/client/promise"
 import type { ComposerSelection } from "@/composer/adapter"
 import { createSimpleContext } from "@opencode/ui/context"
@@ -118,6 +119,7 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
     const [regions, setRegions, , regionsReady] = persisted(Persist.window("tabs.panes"), TabStorage.Regions, {})
     const [closed, setClosed, , closedReady] = persisted(Persist.window("tabs.closed"), TabStorage.Closed, [])
     const [promotion, setPromotion] = createSignal(INITIAL_TAB_PROMOTION_STATE)
+    const sidebarVisibility = createSidebarVisibility()
 
     const navigate = useNavigate()
     const location = useLocation()
@@ -350,6 +352,8 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
     })
 
     const navigateTab = (tab: Tab) => {
+      if (tab.type === "session") sidebarVisibility.update(tabKey(tab), false)
+
       if (preview.current()) {
         void startTransition(() => {
           preview.clear()
@@ -496,6 +500,7 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
       },
       addSessionTab: (tab: Omit<SessionTab, "type">) => {
         const next = { type: "session" as const, ...tab }
+        sidebarVisibility.update(tabKey(next), false)
 
         const current = preview.current()
 
@@ -548,13 +553,14 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
         const draftID = draft.draftID ?? uuid()
         const tab = { ...draft, type: "draft" as const, draftID }
         memory.ensure(tabKey(tab), "prompt", () => createDraftComposerState(draftID, { prompt, model }))
+        // A cold draft page can suspend past the persistence flush, so commit the tab before routing.
+        setStore(
+          produce((tabs) => {
+            tabs.push(tab)
+          }),
+        )
         await startTransition(() => {
           preview.clear()
-          setStore(
-            produce((tabs) => {
-              tabs.push(tab)
-            }),
-          )
           navigate(draftHref(draftID))
         })
 
@@ -646,7 +652,11 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
 
         if (!tab) return
 
-        if (tab.type === "session") updateClosed((stack) => pushClosedTab(stack, tab, index, info[tabKey(tab)]))
+        if (tab.type === "session") {
+          sidebarVisibility.update(tabKey(tab), true)
+          updateClosed((stack) => pushClosedTab(stack, tab, index, info[tabKey(tab)]))
+        }
+
         removeTab(index)
       },
       closeTabs(keys: string[], keep: Tab) {
@@ -812,6 +822,11 @@ export const { use: useTabs, provider: TabsProvider } = createSimpleContext({
         setInfo(key, next)
       },
       select: navigateTab,
+      sidebar: {
+        ready: sidebarVisibility.ready,
+        hidden: (tab: Tab) => tab.type === "session" && sidebarVisibility.hidden(tabKey(tab)),
+        hide: (tab: SessionTab) => sidebarVisibility.update(tabKey(tab), true),
+      },
       remember(tab: Tab) {
         preview.activate(tab)
         const key = tabKey(tab)

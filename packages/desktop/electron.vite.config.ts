@@ -45,6 +45,9 @@ export default defineConfig(({ command }) => {
       define: {
         // Local renderer/server mode still uses the dev application identity and updater policy.
         "import.meta.env.OPENCODE_CHANNEL": JSON.stringify(channel === "local" ? "dev" : channel),
+        "import.meta.env.OPENCODE_DESKTOP_APP_ID": JSON.stringify(process.env.OPENCODE_DESKTOP_APP_ID) ?? "undefined",
+        "import.meta.env.OPENCODE_DESKTOP_PRODUCT_NAME":
+          JSON.stringify(process.env.OPENCODE_DESKTOP_PRODUCT_NAME) ?? "undefined",
       },
       build: {
         minify: command === "build",
@@ -102,6 +105,10 @@ export default defineConfig(({ command }) => {
       },
     },
     renderer: {
+      // Windows may deny IPv6 loopback even when localhost makes Vite listen on ::1.
+      server: {
+        host: "127.0.0.1",
+      },
       experimental: {
         bundledDev: true,
       },

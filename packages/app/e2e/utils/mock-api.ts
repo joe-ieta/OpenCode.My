@@ -1,5 +1,7 @@
+import { CustomProvider } from "@opencode/schema/custom-provider"
 import { Predicate, Schema, SchemaGetter } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api"
+import { Generate } from "@opencode/schema/generate"
 import { PersistentPty } from "@opencode/schema/persistent-pty"
 import { Pty } from "@opencode/schema/pty"
 import { Worktree } from "@opencode/schema/worktree"
@@ -226,6 +228,31 @@ const Group = HttpApiGroup.make("mock")
       success: Json,
     }),
   )
+  .add(
+    HttpApiEndpoint.get("customProviders", "/api/experimental/config/providers", { success: Json, error: Unsupported }),
+  )
+  .add(
+    HttpApiEndpoint.patch("customProviderUpdate", "/api/experimental/config/providers/:providerID", {
+      params: { providerID: Schema.String },
+      payload: CustomProvider.Update,
+      success: Json,
+      error: Unsupported,
+    }),
+  )
+  .add(
+    HttpApiEndpoint.post("customProviderTest", "/api/experimental/config/providers/test", {
+      payload: CustomProvider.TextTestRequest,
+      success: Json,
+      error: Unsupported,
+    }),
+  )
+  .add(
+    HttpApiEndpoint.post("customProviderDiscover", "/api/experimental/config/providers/discover", {
+      payload: CustomProvider.DiscoveryRequest,
+      success: Json,
+      error: Unsupported,
+    }),
+  )
   .add(HttpApiEndpoint.get("configShells", "/api/config/shell", { success: Json }))
   .add(
     HttpApiEndpoint.patch("configUpdate", "/api/experimental/config", {
@@ -234,6 +261,13 @@ const Group = HttpApiGroup.make("mock")
     }),
   )
   .add(HttpApiEndpoint.get("websearchProviders", "/api/websearch/provider", { success: Json }))
+  .add(
+    HttpApiEndpoint.post("modelTestText", "/api/experimental/generate/test-text", {
+      payload: Generate.TextTestRequest,
+      success: NoContent,
+      error: [Unsupported, MockInternal.pipe(HttpApiSchema.status(502))],
+    }),
+  )
   .add(HttpApiEndpoint.get("usageLimits", "/api/experimental/usage/limits", { success: Json }))
   .add(
     HttpApiEndpoint.get("worktreeList", "/api/worktree", {
@@ -364,6 +398,12 @@ const Group = HttpApiGroup.make("mock")
   )
   .add(HttpApiEndpoint.post("sessionCreate", "/api/session", { payload: JsonPayload, success: Json }))
   .add(HttpApiEndpoint.get("sessionActive", "/api/session/active", { success: Json }))
+  .add(
+    HttpApiEndpoint.get("sessionActivity", "/api/experimental/session/activity", {
+      success: Json,
+      error: MockNotFound.pipe(HttpApiSchema.status(404)),
+    }),
+  )
   .add(
     HttpApiEndpoint.post("rpcCall", "/api/rpc/:rpcID/:method", {
       params: { rpcID: Schema.String, method: Schema.String },

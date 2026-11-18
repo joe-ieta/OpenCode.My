@@ -17,7 +17,7 @@ import { showToast } from "@/shell/notifications/toast"
 import { createSessionExporter } from "@/session/commands/export-session"
 import { SessionReadMenuItem } from "@/session/session-read-menu-item"
 import { sessionTabTitle } from "./tab-title"
-import { TabPreviewPopover } from "./tab-popover"
+import { TabPreviewPopover, type TabPreviewData } from "./tab-popover"
 import {
   INITIAL_TAB_RENAME_STATE,
   isTabRenaming,
@@ -39,24 +39,26 @@ export type TabCloseActions = {
   onCloseAfter?: () => void
 }
 
-function TabCloseMenuItems(props: TabCloseActions & { orientation?: "horizontal" | "vertical" }) {
+function TabCloseMenuItems(props: TabCloseActions & { orientation?: "horizontal" | "vertical"; label?: string }) {
   const language = useLanguage()
 
   return (
     <>
-      <Menu.Item onSelect={props.onClose}>{language.t("common.closeTab")}</Menu.Item>
-      <Menu.Item disabled={!props.onCloseOthers} onSelect={props.onCloseOthers}>
-        {language.t("common.closeOtherTabs")}
-      </Menu.Item>
-      <Menu.Item disabled={!props.onCloseAfter} onSelect={props.onCloseAfter}>
-        {language.t(
-          props.orientation === "vertical"
-            ? "common.closeTabsBelow"
-            : language.direction() === "rtl"
-              ? "common.closeTabsToLeft"
-              : "common.closeTabsToRight",
-        )}
-      </Menu.Item>
+      <Menu.Item onSelect={props.onClose}>{props.label ?? language.t("common.closeTab")}</Menu.Item>
+      <Show when={props.label === undefined}>
+        <Menu.Item disabled={!props.onCloseOthers} onSelect={props.onCloseOthers}>
+          {language.t("common.closeOtherTabs")}
+        </Menu.Item>
+        <Menu.Item disabled={!props.onCloseAfter} onSelect={props.onCloseAfter}>
+          {language.t(
+            props.orientation === "vertical"
+              ? "common.closeTabsBelow"
+              : language.direction() === "rtl"
+                ? "common.closeTabsToLeft"
+                : "common.closeTabsToRight",
+          )}
+        </Menu.Item>
+      </Show>
     </>
   )
 }
@@ -81,8 +83,21 @@ export function TabNavItem(
     label?: string
     /** Hides the project avatar under a header that already names the project; shortcut hints still show. */
     hideAvatar?: boolean
+    /** Marks a session whose notifications are muted. */
+    muted?: boolean
+    /** Menu items shown above an open tab's own. */
+    menuItems?: () => JSX.Element
     fallbackTitle?: string
     fallbackDirectory?: string
+    /** Shows a title at once: the optimistic one, or the one to restore when its save fails. */
+    onRememberTitle?: (sessionID: string, title: string | undefined) => void
+    onSaveTitle?: (sessionID: string, title: string, signal: AbortSignal) => Promise<void>
+    closable?: boolean
+    closeLabel?: string
+    closeMenuLabel?: string
+    previewDetails?: () => Pick<TabPreviewData, "lastRun" | "branch" | "worktree" | "stats">
+    onPreviewOpenChange?: (open: boolean) => void
+    exportMenuItem?: () => JSX.Element
     onNavigate: () => void
     active?: boolean
     suppressNavigation?: boolean
@@ -90,6 +105,7 @@ export function TabNavItem(
     pressed?: boolean
     hidden?: boolean
     orientation?: "horizontal" | "vertical"
+    contextMenuExtra?: () => JSX.Element
   },
 ) {
   const language = useLanguage()
@@ -106,6 +122,7 @@ export function TabNavItem(
   const closeTab = (event: MouseEvent) => {
     event.preventDefault()
     event.stopPropagation()
+    if (props.closable === false) return
     actions?.onClose()
   }
 
@@ -116,6 +133,7 @@ export function TabNavItem(
 
   // Shows the optimistic title, or the one to restore when its save fails.
   const rememberTitle = (sessionID: string, title: string | undefined) => {
+    if (props.onRememberTitle) return props.onRememberTitle(sessionID, title)
     const ctx = serverCtx()
     const current = ctx?.data.session.get(sessionID) ?? (props.session?.id === sessionID ? props.session : undefined)
 
@@ -142,11 +160,14 @@ export function TabNavItem(
 
     if (!props.session) return
 
-    if (props.active && !serverCtx()?.notification.session.manuallyUnread(props.session.id)) return
+    const shown = !props.active || !!serverCtx()?.notification.session.manuallyUnread(props.session.id)
 
-    if (props.attention) return "attention"
+    if (shown && props.attention) return "attention"
 
-    if (!props.unread) return
+    // A muted session shows its bell in place of the unread dot, the selected one included.
+    if (props.muted) return "muted"
+
+    if (!shown || !props.unread) return
 
     // As in the inbox, an unread run that ended in failure gets the danger dot instead of the accent one.
     return props.session.outcome === "failed" ? "failed" : "unread"
@@ -218,6 +239,17 @@ export function TabNavItem(
 
   const previewBlocked = () =>
     !!props.dragging || selectTabPreviewBlocked(renameState()) || !!props.pressed || !props.session
+
+  // Built as a memo so a hint updates when its session's messages, branch or cost arrive after the row mounted.
+  const previewData = createMemo(
+    (): TabPreviewData => ({
+      projectName: projectName(),
+      title: props.session?.title,
+      path: previewPath(),
+      serverName: serverLabel(),
+      ...props.previewDetails?.(),
+    }),
+  )
 
   const measureTitleOverflow = () => {
     if (!titleEl || editing()) {
@@ -309,12 +341,14 @@ export function TabNavItem(
       saves.set(attempt, { controller, timer })
       const ctx = serverCtx()
       void (
-        ctx
-          ? ctx.sdk.api.session.update(
-              { sessionID: effect.sessionID, title: effect.title },
-              { signal: controller.signal },
-            )
-          : Promise.reject(new Error(language.t("common.requestFailed")))
+        props.onSaveTitle
+          ? props.onSaveTitle(effect.sessionID, effect.title, controller.signal)
+          : ctx
+            ? ctx.sdk.api.session.update(
+                { sessionID: effect.sessionID, title: effect.title },
+                { signal: controller.signal },
+              )
+            : Promise.reject(new Error(language.t("common.requestFailed")))
       ).then(
         () => {
           clearSave(attempt)
@@ -577,8 +611,9 @@ export function TabNavItem(
           <span data-mark="attention" data-slot="tab-status-dot" />
           <span data-mark="unread" data-slot="tab-status-dot" />
           <span data-mark="failed" data-slot="tab-status-dot" />
+          <MutedIcon data-mark="muted" />
         </span>
-        <Show when={actions}>
+        <Show when={actions && props.closable !== false}>
           <IconButton
             size="small"
             variant="ghost-muted"
@@ -588,8 +623,8 @@ export function TabNavItem(
               event.stopPropagation()
             }}
             onClick={closeTab}
-            icon={<Icon name="xmark-small" />}
-            aria-label={language.t("common.closeTab")}
+            icon={<Icon name="close" />}
+            aria-label={props.closeLabel ?? language.t("common.closeTab")}
           />
         </Show>
       </div>
@@ -612,13 +647,9 @@ export function TabNavItem(
         onOpenChange={(value) => {
           if (value && previewBlocked()) return
           setPopoverOpen(value)
+          props.onPreviewOpenChange?.(value)
         }}
-        data={{
-          projectName: projectName(),
-          title: props.session?.title,
-          path: previewPath(),
-          serverName: serverLabel(),
-        }}
+        data={previewData()}
       />
       <Menu.Context.Portal>
         <Menu.Context.Content
@@ -638,27 +669,48 @@ export function TabNavItem(
             props.menu(() => startRename("menu"))
           ) : (
             <>
+              <Show when={props.menuItems}>
+                {(items) => (
+                  <>
+                    {items()()}
+                    <Menu.Separator />
+                  </>
+                )}
+              </Show>
               <Menu.Item disabled={!props.session} onSelect={() => startRename("menu")}>
                 {language.t("common.rename")}
               </Menu.Item>
-              <Menu.Item
-                disabled={!props.session || exporter.exporting({ server: props.server, sessionID: props.session.id })}
-                onSelect={() => {
-                  const session = props.session
+              {props.exportMenuItem?.() ?? (
+                <Menu.Item
+                  disabled={!props.session || exporter.exporting({ server: props.server, sessionID: props.session.id })}
+                  onSelect={() => {
+                    const session = props.session
 
-                  if (session) exporter.export({ server: props.server, sessionID: session.id })
-                }}
-              >
-                {language.t("common.export")}…
-              </Menu.Item>
+                    if (session) exporter.export({ server: props.server, sessionID: session.id })
+                  }}
+                >
+                  {language.t("common.export")}…
+                </Menu.Item>
+              )}
               <SessionReadMenuItem server={props.server} session={props.session} />
+              <Show when={props.contextMenuExtra}>
+                {(extra) => (
+                  <>
+                    <Menu.Separator />
+                    {extra()()}
+                  </>
+                )}
+              </Show>
               <Menu.Separator />
-              <TabCloseMenuItems
-                orientation={props.orientation}
-                onClose={props.onClose}
-                onCloseOthers={props.onCloseOthers}
-                onCloseAfter={props.onCloseAfter}
-              />
+              <Show when={props.closable !== false}>
+                <TabCloseMenuItems
+                  orientation={props.orientation}
+                  label={props.closeMenuLabel}
+                  onClose={props.onClose}
+                  onCloseOthers={props.onCloseOthers}
+                  onCloseAfter={props.onCloseAfter}
+                />
+              </Show>
               <Menu.Separator />
               <Menu.Item disabled={!props.session} onSelect={props.onDelete}>
                 {language.t("common.delete")}…
@@ -668,6 +720,27 @@ export function TabNavItem(
         </Menu.Context.Content>
       </Menu.Context.Portal>
     </Menu.Context>
+  )
+}
+
+/** The bell-slash a muted session shows where its status and close button sit. */
+export function MutedIcon(props: { "data-mark"?: string; class?: string }) {
+  return (
+    <svg
+      data-mark={props["data-mark"]}
+      class={props.class}
+      width="14"
+      height="14"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M11.8903 4.13451C11.8879 4.1287 11.8854 4.12291 11.8829 4.11711M11.8829 4.11711C11.2378 2.611 9.74194 1.55566 7.99993 1.55566C5.66838 1.55566 3.77771 3.44633 3.77771 5.77789V9.55566C3.77771 10.5379 2.98215 11.3334 1.99993 11.3334H4.6666M11.8829 4.11711L4.6666 11.3334M11.8829 4.11711L14.2222 1.77789M4.6666 11.3334L1.77771 14.2223M8.43744 11.3334H13.9999C13.0177 11.3334 12.2222 10.5379 12.2222 9.55566V7.54873M9.33327 13.675C9.06704 14.135 8.56962 14.4446 7.99993 14.4446C7.43024 14.4446 6.93282 14.135 6.6666 13.675"
+        stroke="currentColor"
+      />
+    </svg>
   )
 }
 
@@ -686,6 +759,7 @@ export function DraftTabItem(
     pressed?: boolean
     hidden?: boolean
     orientation?: "horizontal" | "vertical"
+    contextMenuExtra?: () => JSX.Element
   },
 ) {
   const language = useLanguage()
@@ -808,13 +882,21 @@ export function DraftTabItem(
             }}
             class="hover-reveal relative z-10"
             onClick={closeTab}
-            icon={<Icon name="xmark-small" />}
+            icon={<Icon name="close" />}
             aria-label={language.t("common.closeTab")}
           />
         </div>
       </div>
       <Menu.Context.Portal>
         <Menu.Context.Content>
+          <Show when={props.contextMenuExtra}>
+            {(extra) => (
+              <>
+                {extra()()}
+                <Menu.Separator />
+              </>
+            )}
+          </Show>
           <TabCloseMenuItems
             orientation={props.orientation}
             onClose={props.onClose}

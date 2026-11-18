@@ -1,5 +1,8 @@
 import { useFilteredList } from "@opencode/ui/hooks"
 import { Switch } from "@opencode/ui/switch"
+import { Button } from "@opencode/ui/button"
+import { useDialog } from "@opencode/ui/context/dialog"
+import { hasSavedModel } from "@opencode/schema/config"
 import {
   type Component,
   createEffect,
@@ -17,6 +20,7 @@ import { Persistence } from "@/runtime/persistence/schema"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useModels } from "@/providers/models/models"
 import { useServerSDK } from "@/runtime/server/client"
+import { useData } from "@/runtime/server/current"
 import { popularProviders } from "@/providers/catalog/providers"
 import { Persist, persisted } from "@/runtime/persistence/storage"
 import { SettingsList } from "@/settings/list"
@@ -25,6 +29,7 @@ import { CONSOLE_GROUP_KEY, consoleModelGroup, ProviderModelSections } from "@/p
 import { SettingsSearchEmpty } from "@/settings/search-empty"
 import { SettingsSearchField } from "@/settings/search-field"
 import { settingsScroller } from "@/settings/scroller"
+import { ModelTextTest } from "./text-test"
 import {
   createModelsRevealState,
   revealingModelProvider,
@@ -51,6 +56,17 @@ export const SettingsModels: Component<{
   const language = useLanguage()
   const models = useModels()
   const serverSdk = useServerSDK()
+  const data = useData()
+  const dialog = useDialog()
+
+  createEffect(() => {
+    if (props.active === false || serverSdk.connection.status() !== "connected") return
+
+    void data.location
+      .syncInfo()
+      .then(() => data.location.config.sync(data.location.default()))
+      .catch(() => undefined)
+  })
 
   const [store, setStore] = persisted(
     Persist.serverGlobal(serverSdk.scope, "settings-v2.models.providers"),
@@ -104,7 +120,26 @@ export const SettingsModels: Component<{
 
             return (
               <SettingsRow title={item.name} description="">
-                <div>
+                <div class="flex items-center gap-2">
+                  <Show
+                    when={
+                      item.capabilities.input.text &&
+                      item.capabilities.output.text &&
+                      hasSavedModel(data.location.config.list() ?? [], { providerID: item.provider.id, id: item.id })
+                    }
+                  >
+                    <Button
+                      variant="ghost"
+                      aria-label={language.t("settings.models.test.model", { model: item.name })}
+                      onClick={() =>
+                        void dialog.show(() => (
+                          <ModelTextTest providerID={item.provider.id} id={item.id} name={item.name} />
+                        ))
+                      }
+                    >
+                      {language.t("settings.models.test.title")}
+                    </Button>
+                  </Show>
                   <Switch
                     checked={models.visible(key)}
                     onChange={(checked) => models.setVisibility(key, checked)}

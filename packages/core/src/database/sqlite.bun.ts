@@ -1,7 +1,8 @@
 import { SQLiteError } from "bun:sqlite"
 import { SqliteClient } from "@effect/sql-sqlite-bun"
-import { Layer } from "effect"
-import type { SqlClient } from "effect/sql"
+import { Effect, Layer } from "effect"
+import { SqlClient } from "effect/sql"
+import { classifySqliteError, SqlError } from "effect/sql/SqlError"
 
 export const supportsTuningPragmas = true
 
@@ -11,7 +12,22 @@ export const supportsForeignKeyToggle = true
 // Opening the database can only fail on a broken file or a lock held past
 // busyTimeout; Database.layer treats both as fatal.
 export const sqliteLayer = (config: SqliteClient.SqliteClientConfig): Layer.Layer<SqlClient.SqlClient> =>
-  Layer.orDie(SqliteClient.layer(config))
+  SqliteClient.layer(config).pipe(
+    Layer.catch((error) =>
+      Layer.effect(
+        SqlClient.SqlClient,
+        Effect.fail(
+          new SqlError({
+            reason: classifySqliteError(error.reason.cause, {
+              message: `${error.message}: ${config.filename}`,
+              operation: error.reason.operation,
+            }),
+          }),
+        ),
+      ),
+    ),
+    Layer.orDie,
+  )
 
 // bun:sqlite throws SQLiteError, whose errno is SQLite's extended result code.
 export const resultCode = (cause: unknown) => (cause instanceof SQLiteError ? cause.errno : undefined)

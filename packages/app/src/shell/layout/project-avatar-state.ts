@@ -96,9 +96,10 @@ function attention(ctx: ServerCtx, sessionId: string, root: boolean, autoApprove
 // A root runs while any session in its family is busy.
 function running(data: ServerData, sessionId: string, root: boolean) {
   if (root)
-    return data.session
-      .list()
-      .some((session) => data.session.root(session.id) === sessionId && sessionBusy(data, session.id))
+    return (
+      data.session.activity.busy(sessionId, true) ||
+      [sessionId, ...data.session.family(sessionId)].some((id) => sessionBusy(data, id))
+    )
 
   return sessionBusy(data, sessionId)
 }
@@ -109,6 +110,7 @@ export type SessionRequests = ReturnType<typeof sessionRequests>
 export function sessionBusy(data: ServerData, sessionId: string) {
   return (
     data.session.status(sessionId) === "running" ||
+    data.session.activity.busy(sessionId) ||
     data.session.pending.list(sessionId).some((item) => item.type !== "synthetic")
   )
 }

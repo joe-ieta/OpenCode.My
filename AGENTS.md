@@ -1,7 +1,21 @@
+## Repository Constraints (highest priority within this repository)
+
+- Repository: https://github.com/joe-ieta/OpenCode.My. `origin` fetch and push must use this GitHub repository only. The current transport is HTTPS; SSH to the same repository is also valid when configured.
+- Official upstream: https://github.com/anomalyco/opencode. `upstream` must use the official GitHub repository; it is the source for official synchronization and upstream contributions.
+- These constraints supersede all older remote, synchronization, contribution, and release instructions in repository documents, archived notes, skills, and restored stashes. Gitee configuration and workflows are retired: do not configure a Gitee remote, mirror or push URL, publish assets there, or restore the former GitHub-fork-as-upstream mapping.
+- Publish source, tags, and release assets to `origin` (GitHub) only. All platforms use https://github.com/joe-ieta/OpenCode.My/releases; the official `upstream` is not a fork release destination.
+- Maintain exactly three long-lived branches: `dev-my` (V2 desktop), `oc-headless` (V2 headless), and `qt-headless` (V1 headless). Track the same-named `origin` branches. Keep their code, builds, and release histories separate.
+- The default branch is `dev-my`. The `dev` branch is an upstream tracking mirror only: keep `origin/dev` identical to `upstream/dev`, with no fork-specific commits or sync merge commits. It is not a fourth maintenance line. Preserve any existing fork commits in a maintained branch or archive before realigning it.
+- For maintenance, base worktrees and comparisons on the matching `origin/<branch>`. Synchronize `dev-my` and `oc-headless` from `upstream/dev`, and `qt-headless` from `upstream/v1`, preserving local patches with merges.
+- For a scoped official contribution, base a temporary branch on the corresponding official upstream branch and target that branch in the official repository. Do not mix fork branding, release tooling, or unrelated patches into the contribution.
+- Before deleting any other local/remote branch or associated worktree, list it and obtain the user's explicit confirmation. Inspect uncommitted changes, unmerged commits, open PR references, and the remote default branch first. Do not delete official upstream branches. A default-branch change also needs explicit confirmation.
+- Historical Gitee release records are provenance only and never current configuration or publishing instructions. Do not delete remote repositories or existing release assets as part of retiring the configuration.
+
+- Windows 2.2.5-my.3 installer acceptance passed on 2026-11-03. Maintain Side bar in dev-my; origin/sidebar-mode is only the existing PR transport ref, updated when the user requests synchronization, never a parallel development line.
+
 - After changing the public Protocol or Server `HttpApi`, run `bun run generate` from `packages/client`. Do not edit generated client files directly.
 - Keep runtime dependencies directed from Schema to Core and Protocol, then from Core and Protocol to Server. Client runtime code may depend on Schema and Protocol but never Core or Server; `sdk` composes Client, Core, and Server.
 - This repository does not use Changesets. Do not add `.changeset` files; follow the existing release workflow instead.
-- The default branch is `dev`. Base branches and worktrees on `origin/dev`, target PRs at `dev`, and diff against `origin/dev` unless told otherwise.
 
 ## Live TUI Testing
 
@@ -202,8 +216,7 @@ const table = sqliteTable("session", {
 
 ## Plugin Loading
 
-- Plugins load asynchronously. Server handlers never wait for them (`Plugin.awaitActivation`), never retry until something appears, and never turn slow plugins into a timeout or 503. This applies to reads and to actions such as `rpc.call` and `vcs.init`.
-- Temporary exception: endpoints that list or use providers managed policy can deny (`model.list`, `model.default`, `provider.list`, `generate.*`, `voice.*` and `websearch.query`) wait through `awaitPlugins` in `packages/server/src/location.ts`, because policy is applied by the last plugin to activate and is missing until then. Don't add new waits; this goes away once a plugin batch becomes visible only when it ends.
+- Plugins load asynchronously. Server handlers never wait for them (`Plugin.awaitActivation`), never retry until something appears, and never turn slow plugins into a timeout or 503. This applies to reads and to actions such as `generate.*`, `rpc.call`, `vcs.init` and `websearch.query`.
 - The server answers with what is loaded now: lists may be empty or partial on a cold Location, and an action whose model, provider or RPC hasn't loaded yet fails with not-found. That is expected, not a bug to fix on the server.
 - Clients are responsible for making sure what they need is loaded before they call. Long-lived clients refresh on the matching `*.updated` event (`model.updated`, `agent.updated`, `skill.updated`, `integration.updated`, `plugin.updated`, ...). One-shot clients (CLI commands, ACP, SDK callers) wait on their side, for example by polling `plugin.list` or the entry they need. See `packages/cli/src/services/plugin-startup.ts`.
 - Running the hooks that are registered and waiting for their result is fine (for example `hooks.trigger("session", "http.request", ...)`). What is not allowed is waiting for plugins to load first: if the plugin that adds a hook hasn't loaded yet, the call runs without that hook.

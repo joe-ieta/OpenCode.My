@@ -8,6 +8,7 @@ import { LayerNode } from "@opencode/util/effect/layer-node"
 import { Bus } from "@opencode/core/bus"
 import { Instance } from "@opencode/core/instance/service"
 import { Job } from "@opencode/core/job"
+import { SessionActivitySource } from "@opencode/core/session/activity-source"
 import { JobTable } from "@opencode/core/job/sql"
 import { KV } from "@opencode/core/kv"
 import { LocationServiceMap } from "@opencode/core/location-service-map"
@@ -35,7 +36,16 @@ import { testEffect } from "./lib/effect"
 
 const it = testEffect(
   AppNodeBuilder.build(
-    LayerNode.group([Database.node, Bus.node, SessionStore.node, SessionInbox.node, Job.node, KV.node, Session.node]),
+    LayerNode.group([
+      Database.node,
+      Bus.node,
+      SessionStore.node,
+      SessionInbox.node,
+      Job.node,
+      KV.node,
+      Session.node,
+      SessionActivitySource.node,
+    ]),
   ),
 )
 

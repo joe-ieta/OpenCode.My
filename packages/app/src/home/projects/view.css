@@ -23,6 +23,10 @@
   --home-row-opacity: 60%;
 }
 
+[data-home-row][data-running] {
+  --home-row-action-offset: 16px;
+}
+
 /* Keep the background outside the button's disabled-content opacity. */
 [data-home-row] > button {
   background: transparent;
@@ -36,24 +40,32 @@
   background: linear-gradient(to left, transparent, var(--home-row-background) 8px);
 }
 
-[data-home-row]:is(:hover, :focus-within, :has([data-menu="true"])) [data-slot="home-row-label"] {
-  -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 44px), transparent calc(100% - 36px));
-  mask-image: linear-gradient(to right, black 0, black calc(100% - 44px), transparent calc(100% - 36px));
+[data-home-row] {
+  --home-row-label-fade: linear-gradient(
+    to right,
+    black 0,
+    black calc(100% - 44px - var(--home-row-action-offset, 0px)),
+    transparent calc(100% - 36px - var(--home-row-action-offset, 0px))
+  );
 }
 
-[data-home-row]:is(:hover, :focus-within, :has([data-menu="true"])):dir(rtl) [data-slot="home-row-label"] {
-  -webkit-mask-image: linear-gradient(to left, black 0, black calc(100% - 44px), transparent calc(100% - 36px));
-  mask-image: linear-gradient(to left, black 0, black calc(100% - 44px), transparent calc(100% - 36px));
+[data-home-row]:dir(rtl) {
+  --home-row-label-fade: linear-gradient(
+    to left,
+    black 0,
+    black calc(100% - 44px - var(--home-row-action-offset, 0px)),
+    transparent calc(100% - 36px - var(--home-row-action-offset, 0px))
+  );
+}
+
+[data-home-row]:is(:hover, :focus-within, :has([data-menu="true"])) [data-slot="home-row-label"] {
+  -webkit-mask-image: var(--home-row-label-fade);
+  mask-image: var(--home-row-label-fade);
 }
 
 @media (hover: none) {
   [data-home-row] [data-slot="home-row-label"] {
-    -webkit-mask-image: linear-gradient(to right, black 0, black calc(100% - 44px), transparent calc(100% - 36px));
-    mask-image: linear-gradient(to right, black 0, black calc(100% - 44px), transparent calc(100% - 36px));
-  }
-
-  [data-home-row]:dir(rtl) [data-slot="home-row-label"] {
-    -webkit-mask-image: linear-gradient(to left, black 0, black calc(100% - 44px), transparent calc(100% - 36px));
-    mask-image: linear-gradient(to left, black 0, black calc(100% - 44px), transparent calc(100% - 36px));
+    -webkit-mask-image: var(--home-row-label-fade);
+    mask-image: var(--home-row-label-fade);
   }
 }

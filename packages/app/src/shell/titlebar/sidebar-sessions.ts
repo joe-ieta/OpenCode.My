@@ -1,5 +1,5 @@
 import type { OpenCodeEvent } from "@opencode/client/promise"
-import { mergeHomeSessionIndex } from "@/home/sessions/index"
+import { mergeSessionIndex } from "@/runtime/server/session-index"
 
 // Events that keep a preview tab. This is deliberately separate from recency: opening or passively updating a
 // session must not turn its preview into a permanent tab.
@@ -26,4 +26,4 @@ export function isSidebarSessionActivity(
 // Loading a tab refreshes its metadata, not its place in the project list. A newer idle marker means a run ended
 // after the index was fetched, which is the one server change that may move the session. Recency overrides are
 // applied afterward by the shared desktop data layer, which owns send promotion.
-export const mergeSidebarSessions = mergeHomeSessionIndex
+export const mergeSidebarSessions = mergeSessionIndex

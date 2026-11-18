@@ -63,6 +63,21 @@ test("settings has its own route and returns through app history", async ({ page
   const { settings } = await open(page)
   const home = page.getByRole("button", { name: "Home", exact: true })
   await expect(page).toHaveURL("/settings")
+  await expect(settings.getByRole("tab")).toHaveText([
+    "Preferences",
+    "Appearance",
+    "Notifications",
+    "Shortcuts",
+    "Providers",
+    "Models",
+    "Extensions",
+    "Projects",
+    "Worktrees",
+    "Server",
+    "Experimental",
+    "About",
+  ])
+  await expect(settings.getByRole("tab", { name: "Preferences", exact: true })).toHaveAttribute("aria-selected", "true")
   await expect(home).toHaveAttribute("aria-pressed", "false")
   await settings.getByRole("button", { name: "Back to app", exact: true }).click()
   await expect(page).toHaveURL("/")
@@ -109,6 +124,16 @@ async function pickArabic(page: Page) {
 
   return settings
 }
+
+test("the language setting follows the system until a manual choice replaces it", async ({ page }) => {
+  const { settings } = await open(page)
+  const control = settings.locator('[data-action="settings-language"]')
+
+  await expect(control).toContainText("Follow system")
+  await control.click()
+  await page.getByRole("listbox").getByRole("option", { name: "English", exact: true }).click()
+  await expect(control).toContainText("English")
+})
 
 test("a language switch keeps settings on screen and flips direction only with the new strings", async ({ page }) => {
   const chunks = await holdRoute(page, arabic)
@@ -1979,6 +2004,11 @@ test("providers: the connect dialog lists connected providers and manages their 
 
       if (account && body.label) account.label = body.label
     },
+    onCredentialRemove: (credentialID) => {
+      const index = accounts.findIndex((item) => item.id === credentialID)
+
+      if (index >= 0) accounts.splice(index, 1)
+    },
   })
 
   await settings.getByRole("tab", { name: "Providers", exact: true }).click()
@@ -2043,6 +2073,65 @@ test("providers: the connect dialog lists connected providers and manages their 
   await expect(dialog.getByPlaceholder("API key")).toBeVisible()
   await dialog.getByRole("navigation").getByRole("button", { name: "OpenAI", exact: true }).click()
   await expect(list).toBeVisible()
+
+  // A connected provider can be removed from the picker itself, its stored key included.
+  await dialog.getByRole("navigation").getByRole("button", { name: "Connect", exact: true }).click()
+  const openaiRow = dialog.locator('[data-provider-id="openai"]')
+  await expect(openaiRow.locator('[data-slot="provider-connected"]')).toHaveText("Home")
+  await dialog.getByRole("button", { name: "Remove OpenAI", exact: true }).click()
+  await expect(dialog.getByText("Remove OpenAI and its saved credentials?", { exact: true })).toBeVisible()
+  await expect(dialog.getByRole("button", { name: "Remove", exact: true })).toBeFocused()
+
+  const removedKey = page.waitForRequest(
+    (request) => request.method() === "DELETE" && new URL(request.url()).pathname === "/api/credential/cred_personal",
+  )
+
+  await dialog.getByRole("button", { name: "Remove", exact: true }).click()
+  await removedKey
+  await expect(openaiRow.locator('[data-slot="provider-connected"]')).toHaveCount(0)
+})
+
+test("providers: a partial removal refreshes the remaining account so it can be retried", async ({ page }) => {
+  const accounts = [
+    { type: "credential", id: "cred_primary", label: "Primary", method: "key" },
+    { type: "credential", id: "cred_backup", label: "Backup", method: "key" },
+  ]
+  const { settings } = await open(page, {
+    integrations: () => [
+      { id: "openai", name: "OpenAI", methods: [{ type: "key", label: "API key" }], connections: accounts },
+    ],
+    onCredentialRemove: (credentialID) => {
+      const index = accounts.findIndex((account) => account.id === credentialID)
+      if (index >= 0) accounts.splice(index, 1)
+    },
+  })
+  await page.route(
+    "**/api/credential/cred_backup",
+    (route) =>
+      route.fulfill({
+        status: 500,
+        json: { name: "UnknownError", data: { message: "Could not remove the backup credential" } },
+      }),
+    { times: 1 },
+  )
+
+  await settings.getByRole("tab", { name: "Providers", exact: true }).click()
+  await settings.getByRole("button", { name: "Show more providers", exact: true }).click()
+  const dialog = page.getByRole("dialog", { name: "Integrations", exact: true })
+  const badge = dialog.locator('[data-provider-id="openai"] [data-slot="provider-connected"]')
+  const remove = dialog.getByRole("button", { name: "Remove OpenAI", exact: true })
+  const confirm = dialog.getByRole("button", { name: "Remove", exact: true })
+
+  await expect(badge).toHaveText("Primary")
+  await remove.click()
+  await confirm.click()
+  await expect(page.getByText("Request failed", { exact: true })).toBeVisible()
+  await expect(badge).toHaveText("Backup")
+
+  await remove.click()
+  await confirm.click()
+  await expect(badge).toHaveCount(0)
+  await expect(remove).toHaveCount(0)
 })
 
 test("providers: adding an account starts a lone method once", async ({ page, context }) => {
@@ -2551,6 +2640,74 @@ test("models: a Console provider picked on Providers opens its collapsed group, 
   await search.pressSequentially("gemini")
   await expect(search).toHaveValue("gemini")
   await expect(settings.getByRole("switch", { name: "Managed Gemini", exact: true })).toBeVisible()
+})
+
+test("models: tests only saved text models and supports cancel and retry", async ({ page }) => {
+  const started = Promise.withResolvers<void>()
+  const release = Promise.withResolvers<void>()
+  const model = { providerID: "custom", id: "saved" }
+  const attempts: unknown[] = []
+
+  const { settings } = await open(page, {
+    provider: {
+      all: [
+        {
+          id: "custom",
+          name: "Custom",
+          models: {
+            saved: { id: "saved", name: "Saved model" },
+            discovered: { id: "discovered", name: "Discovered model" },
+          },
+        },
+      ],
+      connected: ["custom"],
+      default: {},
+    },
+    configEntries: [
+      {
+        type: "document",
+        path: "/home/test/.config/opencode/opencode.jsonc",
+        info: { providers: { custom: { models: { saved: { name: "Saved model" } } } } },
+      },
+    ],
+    onTestModel: async (input) => {
+      attempts.push(input)
+
+      if (attempts.length === 1) {
+        started.resolve()
+        await release.promise
+
+        return
+      }
+
+      if (attempts.length === 2) return { error: "The provider rejected the saved credentials." }
+    },
+  })
+
+  await settings.getByRole("tab", { name: "Models", exact: true }).click()
+  const testButton = settings.getByRole("button", { name: "Test text response for Saved model", exact: true })
+  await expect(settings.getByRole("switch", { name: "Discovered model", exact: true })).toBeVisible()
+  await expect(
+    settings.getByRole("button", { name: "Test text response for Discovered model", exact: true }),
+  ).toHaveCount(0)
+  expect(attempts).toEqual([])
+  await testButton.click()
+  const dialog = page.getByRole("dialog", { name: "Test text response", exact: true })
+
+  try {
+    await started.promise
+    await expect(dialog.getByRole("status")).toHaveText("Testing text response…")
+    await dialog.getByRole("button", { name: "Cancel", exact: true }).click()
+    await expect(dialog.getByRole("status")).toHaveText("Text test cancelled.")
+  } finally {
+    release.resolve()
+  }
+
+  await dialog.getByRole("button", { name: "Try again", exact: true }).click()
+  await expect(dialog.getByRole("alert")).toHaveText("The provider rejected the saved credentials.")
+  await dialog.getByRole("button", { name: "Try again", exact: true }).click()
+  await expect(dialog.getByRole("status")).toHaveText("The model returned a text response.")
+  expect(attempts).toEqual([{ model }, { model }, { model }])
 })
 
 test("the add server dialog keeps focus above fullscreen settings", async ({ page }) => {

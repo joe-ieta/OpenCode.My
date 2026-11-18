@@ -10,6 +10,7 @@ import {
   ProjectAvatar,
 } from "@opencode/ui/project-avatar"
 import { Icon } from "@opencode/ui/icon"
+import { ActivityRing } from "@opencode/ui/activity-ring"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Button } from "@opencode/ui/button"
 import { Loader } from "@opencode/ui/loader"
@@ -29,7 +30,7 @@ import {
   selectServerVersion,
   type ServerHealth,
 } from "@/runtime/server/health-machine"
-import { ProjectMenuItems } from "./menu"
+import { ProjectMenuItems } from "@/shell/projects/menu"
 import { CollapsedSidebarToggleSpace } from "@/shell/sidebar-toggle"
 import "./view.css"
 
@@ -60,6 +61,7 @@ export type HomeProjectsViewProps = {
   collapsed: (server: ServerConnection.Any) => boolean
   canRevealProject: (server: ServerConnection.Any) => boolean
   hasUnread: (server: ServerConnection.Any, project: LocalProject) => boolean
+  projectRunning: (server: ServerConnection.Any, directory: string) => boolean
   onWheel: (event: WheelEvent) => void
   onChooseProject: (server: ServerConnection.Any) => void
   onFocusServer: (server: ServerConnection.Any) => void
@@ -110,7 +112,7 @@ export function HomeProjectsView(props: HomeProjectsViewProps) {
           aria-label={props.language.t("home.projects")}
           class="flex h-10 w-full min-w-0 items-center gap-2 rounded-[6px] bg-v2-background-bg-base px-1.5 text-start text-v2-text-text-base outline-none hover:bg-v2-background-bg-layer-01"
         >
-          <Show when={selected()} fallback={<Icon name="folder" size="small" />}>
+          <Show when={selected()} fallback={<Icon name="folder" />}>
             {(project) => <HomeProjectAvatar project={project()} />}
           </Show>
           <span class="flex min-w-0 flex-1 flex-col leading-[var(--line-height-compact)]">
@@ -127,7 +129,7 @@ export function HomeProjectsView(props: HomeProjectsViewProps) {
               )}
             </Show>
           </span>
-          <Icon name="chevron-down" size="small" class="shrink-0 text-v2-icon-icon-muted" />
+          <Icon name="chevron-down" class="shrink-0 text-v2-icon-icon-muted" />
         </Popover.Trigger>
         <Popover.Portal>
           <Popover.Content
@@ -246,7 +248,7 @@ function HomeProjectsPanel(props: HomeProjectsViewProps) {
               data-selected={!props.selection.directory ? "" : undefined}
               onClick={() => props.onFocusServer(props.servers[0])}
             >
-              <Icon name="folder" size="small" />
+              <Icon name="folder" />
               <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("home.projects.all")}</span>
             </HomeProjectNavButton>
           </Show>
@@ -269,7 +271,7 @@ function HomeProjectsPanel(props: HomeProjectsViewProps) {
                           disabled={isServerFailed(props.serverHealth(server()))}
                           onClick={() => props.onChooseProject(server())}
                         >
-                          <Icon name="folder-add-left" size="small" />
+                          <Icon name="folder-add-left" />
                           <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("home.project.add")}</span>
                         </HomeProjectNavButton>
                       </Show>
@@ -356,7 +358,7 @@ export function HomeUtilityNav(props: {
         class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"
         onClick={props.onOpenSettings}
       >
-        <Icon name="settings-gear" size="small" />
+        <Icon name="settings-gear" />
         <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("sidebar.settings")}</span>
       </HomeProjectNavButton>
       <HomeProjectNavButton
@@ -364,7 +366,7 @@ export function HomeUtilityNav(props: {
         class="text-v2-text-text-faint [&>[data-slot=icon-svg]]:text-v2-icon-icon-muted"
         onClick={props.onOpenHelp}
       >
-        <Icon name="help" size="small" />
+        <Icon name="help" />
         <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("sidebar.help")}</span>
       </HomeProjectNavButton>
     </div>
@@ -452,7 +454,6 @@ function HomeServerRow(props: {
           >
             <Icon
               name="chevron-down"
-              size="small"
               class="transition-transform duration-150 ease-in-out"
               style={{ transform: `rotate(${props.collapsed || !canToggle() ? -90 : 0}deg)` }}
             />
@@ -599,7 +600,7 @@ function HomeProjectEmpty(props: HomeProjectsViewProps & { server: ServerConnect
       disabled={unreachable()}
       onClick={() => props.onChooseProject(props.server)}
     >
-      <Icon name="folder-add-left" size="small" />
+      <Icon name="folder-add-left" />
       <span class={HOME_PROJECT_NAV_LABEL}>{props.language.t("home.project.add")}</span>
     </HomeProjectNavButton>
   )
@@ -617,6 +618,7 @@ function HomeProjectRow(
     },
 ) {
   const serverUnreachable = () => isServerFailed(props.serverHealth(props.server))
+  const running = () => props.projectRunning(props.server, props.project.worktree)
 
   const contextMenuID = () => projectContextMenuID(props.server, props.project.worktree)
   onCleanup(() => {
@@ -631,6 +633,7 @@ function HomeProjectRow(
       data-home-row
       data-dimmed={serverUnreachable()}
       data-selected={props.selected ? "" : undefined}
+      data-running={running() ? "" : undefined}
       onContextMenu={(event) => {
         event.preventDefault()
         props.onSetContextMenuOpen(contextMenuID(), true)
@@ -649,13 +652,23 @@ function HomeProjectRow(
         <span data-slot="home-row-label" class={HOME_PROJECT_NAV_LABEL}>
           {displayName(props.project)}
         </span>
+        <Show when={running()}>
+          <span
+            role="img"
+            aria-label={props.language.t("sidebar.project.running")}
+            class="flex size-3 shrink-0 items-center justify-center text-v2-icon-icon-muted"
+          >
+            <ActivityRing width={12} height={12} />
+          </span>
+        </Show>
       </HomeProjectNavButton>
       <div
         data-slot="home-row-actions"
         class={`
-          hover-reveal absolute bottom-0 right-1 top-0 flex items-center gap-1 rounded-r-[6px] pl-2
+          hover-reveal absolute bottom-0 top-0 flex items-center gap-1 rounded-e-[6px] ps-2
           group-hover/project:opacity-100 focus-within:opacity-100 data-[menu=true]:opacity-100
         `}
+        classList={{ "end-5": running(), "end-1": !running() }}
         data-menu={props.contextMenuOpen(contextMenuID())}
       >
         <Menu
