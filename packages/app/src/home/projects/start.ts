@@ -14,7 +14,7 @@ import { createProjectActions } from "./actions"
 type StartTarget =
   | { type: "loading"; connection?: ServerConnection.Any; project?: undefined }
   | { type: "reconnect" | "add"; connection: ServerConnection.Any; project?: undefined }
-  | { type: "new"; connection: ServerConnection.Any; project: Project }
+  | { type: "new"; connection: ServerConnection.Any; project: Project; directory: string }
 
 export function useProjectStart() {
   const layout = useLayout()
@@ -65,7 +65,7 @@ export function useProjectStart() {
 
     const project = selected || used.find((project) => project.id === lastID) || used[0]
 
-    if (project) return { type: "new", project, connection }
+    if (project) return { type: "new", project, connection, directory: preferred ?? project.worktree }
 
     return { type: ctx.sync.project.ready() ? "add" : "loading", connection }
   }
@@ -91,8 +91,8 @@ export function useProjectStart() {
     }
 
     if (next.type === "new") {
-      global.serverCtx(server)?.projects.touch(next.project.worktree)
-      void tabs.newDraft({ server, directory: next.project.worktree, draftID })
+      global.serverCtx(server)?.projects.touch(next.directory)
+      void tabs.newDraft({ server, directory: next.directory, draftID })
 
       return true
     }

@@ -6,6 +6,7 @@ import { usePluginServers } from "@/runtime/plugin/servers"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { batch, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
 import { pathKey } from "@/workspaces/path-key"
+import { isProjectDirectory, workspaceSelectionDirectories } from "@/workspaces/paths"
 import { addProjects } from "./projects/add"
 import {
   INITIAL_HOME_SELECTION_STATE,
@@ -37,7 +38,13 @@ export function createHomeController() {
           failed: isServerFailed(global.servers.health[key]),
           connected: ctx?.sdk.connection.status() === "connected",
           projectsReady: !!ctx?.sync.project.ready() && servers.projects.forServer(key).legacy() === undefined,
-          usedProjects: (ctx?.projects.used() ?? []).map((project) => ({ id: project.id, worktree: project.worktree })),
+          usedProjects: (ctx?.projects.used() ?? []).map((project) => ({
+            id: project.id,
+            worktree: project.worktree,
+            directories: [project.worktree, ...workspaceSelectionDirectories(project, [])].toSorted((a, b) =>
+              pathKey(a).localeCompare(pathKey(b)),
+            ),
+          })),
         }
       }),
     }),
@@ -63,6 +70,8 @@ export function createHomeController() {
       }),
     )
 
+  const searches = new Set<ReturnType<typeof setTimeout>>()
+
   function run(effect: HomeSelectionEffect) {
     if (effect.type === "selection.persist") return layout.home.setSelection(effect.selection)
 
@@ -70,6 +79,22 @@ export function createHomeController() {
       return void global.serverCtx(effect.server)?.sync.worktrees.refresh(effect.projectID)
 
     const ctx = global.serverCtx(effect.server)
+
+    if (effect.type === "worktrees.search") {
+      if (!ctx) return send({ type: "worktrees.searched", attempt: effect.attempt })
+
+      // A disconnected server must not leave Home verifying a saved clone forever.
+      const timer = setTimeout(() => {
+        searches.delete(timer)
+        send({ type: "worktrees.searched", attempt: effect.attempt })
+      }, 15_000)
+      searches.add(timer)
+      return void Promise.all(effect.projectIDs.map((projectID) => ctx.sync.worktrees.list(projectID))).then(() => {
+        clearTimeout(timer)
+        searches.delete(timer)
+        send({ type: "worktrees.searched", attempt: effect.attempt })
+      })
+    }
 
     if (effect.type === "worktrees.list") {
       // The inventory read never rejects; a failed read still asks the server to discover worktrees.
@@ -100,7 +125,10 @@ export function createHomeController() {
     untrack(() => dispatch({ type: "env.synced", env: current }))
   })
 
-  onCleanup(() => dispatch({ type: "disposed" }))
+  onCleanup(() => {
+    dispatch({ type: "disposed" })
+    searches.forEach(clearTimeout)
+  })
 
   const selection = createMemo(() => selectHomeSelection(machine()), undefined, { equals: sameHomeSelection })
 
@@ -118,10 +146,18 @@ export function createHomeController() {
   const selectedProject = createMemo(() => {
     const directory = selection().directory
 
-    return directory ? projects().find((project) => pathKey(project.worktree) === pathKey(directory)) : undefined
+    return directory ? projects().find((project) => isProjectDirectory(project, directory)) : undefined
   })
 
   const newSessionProject = createMemo(() => selectedProject() ?? focusedServerCtx()?.projects.last() ?? projects()[0])
+
+  const selectedDirectory = createMemo(() => {
+    const directory = selection().directory
+
+    return directory && projects().some((project) => isProjectDirectory(project, directory))
+      ? directory
+      : newSessionProject()?.worktree
+  })
 
   return {
     selection: {
@@ -148,10 +184,10 @@ export function createHomeController() {
         send({ type: "project.add", server: ServerConnection.key(conn), directories }),
       openNewSession: () => {
         const conn = focusedServer()
-        const project = newSessionProject()
+        const directory = selectedDirectory()
 
-        if (!conn || !project) return
-        sessions.openProjectNewSession(conn, project.worktree)
+        if (!conn || !directory) return
+        sessions.openProjectNewSession(conn, directory)
       },
       openProjectNewSession: sessions.openProjectNewSession,
       openProjectSession: sessions.openProjectSession,

@@ -334,6 +334,9 @@ function createServerController(
       .get({ location: { directory } })
       .then(async (location) => {
         await sync.project.refresh()
+        // Register the selected clone in the project's directory inventory before
+        // Home resolves the shared project ID back to a canonical directory.
+        await sync.worktrees.list(location.project.id)
         projects.touch(location.project.id)
 
         return list().find((project) => project.id === location.project.id)
