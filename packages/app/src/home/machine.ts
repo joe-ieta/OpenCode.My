@@ -38,6 +38,13 @@ export type HomeWorktreeSync =
       readonly projectID: string
     }
   | { readonly status: "listed"; readonly server: ServerConnection.Key; readonly projectID: string }
+  | {
+      readonly status: "searching"
+      readonly attempt: number
+      readonly server: ServerConnection.Key
+      readonly directory: string
+    }
+  | { readonly status: "searched"; readonly server: ServerConnection.Key; readonly directory: string }
 
 type HomeSelectionBase = {
   readonly issued: number
@@ -84,9 +91,9 @@ export type HomeSelectionEvent =
       readonly type: "project.added"
       readonly attempt: number
       readonly project: HomeProjectItem | undefined
-      readonly directory?: string
     }
   | { readonly type: "worktrees.listed"; readonly attempt: number }
+  | { readonly type: "worktrees.searched"; readonly attempt: number }
   | { readonly type: "disposed" }
 
 export type HomeSelectionEffect =
@@ -104,6 +111,12 @@ export type HomeSelectionEffect =
       readonly projectID: string
     }
   | { readonly type: "worktrees.refresh"; readonly server: ServerConnection.Key; readonly projectID: string }
+  | {
+      readonly type: "worktrees.search"
+      readonly attempt: number
+      readonly server: ServerConnection.Key
+      readonly projectIDs: readonly string[]
+    }
 
 export type HomeSelectionTransition = {
   readonly state: HomeSelectionState
@@ -165,11 +178,21 @@ export function transitionHomeSelection(state: HomeSelectionState, event: HomeSe
 
     return choose(state, {
       server: state.adding.server,
-      directory: event.directory ?? event.project.worktree,
+      directory: state.adding.directory,
     })
   }
 
   const sync = state.worktrees
+
+  if (event.type === "worktrees.searched") {
+    if (sync.status !== "searching" || sync.attempt !== event.attempt) return { state, effects: NONE }
+
+    return place(
+      state,
+      { ...state, worktrees: { status: "searched", server: sync.server, directory: sync.directory } },
+      selectHomeSelection(state),
+    )
+  }
 
   if (sync.status !== "listing" || sync.attempt !== event.attempt) return { state, effects: NONE }
 
@@ -255,8 +278,7 @@ function place(prev: LiveState, base: HomeSelectionBase, target: HomeProjectSele
 
   const next: LiveState = (() => {
     // The selected server is gone: its directory belonged to it, so only the first server is kept.
-    if (!entry)
-      return { ...fields, status: "ready", server: first.key, project: undefined, directory: undefined }
+    if (!entry) return { ...fields, status: "ready", server: first.key, project: undefined, directory: undefined }
 
     if (!target.directory)
       return { ...fields, status: "ready", server: entry.key, project: undefined, directory: undefined }
@@ -264,6 +286,19 @@ function place(prev: LiveState, base: HomeSelectionBase, target: HomeProjectSele
     if (!entry.projectsReady) return { ...fields, status: "verifying", server: entry.key, directory: target.directory }
 
     const found = findProject(entry, target.directory)
+
+    // Project metadata only has the canonical path. A stored clone needs its inventory
+    // before an unknown directory can be treated as a removed project.
+    if (
+      !found &&
+      entry.usedProjects.length > 0 &&
+      !(
+        base.worktrees.status === "searched" &&
+        base.worktrees.server === entry.key &&
+        base.worktrees.directory === target.directory
+      )
+    )
+      return { ...fields, status: "verifying", server: entry.key, directory: target.directory }
 
     return {
       ...fields,
@@ -286,8 +321,38 @@ function finish(prev: LiveState, next: LiveState, effects: readonly HomeSelectio
   const target = worktreeTarget(next)
   const sync = next.worktrees
 
+  if (next.status === "verifying") {
+    const entry = next.servers.find((server) => server.key === next.server)
+
+    if (entry?.connected && entry.projectsReady && entry.usedProjects.length > 0 && !target) {
+      if (sync.status === "searching" && sync.server === entry.key && sync.directory === next.directory)
+        return effects.length === 0 && sameState(prev, next) ? { state: prev, effects: NONE } : { state: next, effects }
+
+      const attempt = next.issued + 1
+
+      return {
+        state: {
+          ...next,
+          issued: attempt,
+          worktrees: { status: "searching", attempt, server: entry.key, directory: next.directory },
+        },
+        effects: [
+          ...effects,
+          {
+            type: "worktrees.search",
+            attempt,
+            server: entry.key,
+            projectIDs: entry.usedProjects.map((project) => project.id),
+          },
+        ],
+      }
+    }
+  }
+
   const kept = target
-    ? sync.status !== "idle" && sync.server === target.server && sync.projectID === target.projectID
+    ? (sync.status === "listing" || sync.status === "listed") &&
+      sync.server === target.server &&
+      sync.projectID === target.projectID
     : sync.status === "idle"
 
   if (kept)

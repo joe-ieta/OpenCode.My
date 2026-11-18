@@ -25,65 +25,6 @@ export function createHomeController() {
   const pluginServers = usePluginServers()
   const sessions = createProjectSessionActions()
 
-  const initialDirectory = layout.home.selection().directory
-  const [inventoriesReady, setInventoriesReady] = createSignal(!initialDirectory)
-  let probing = false
-  let lastSelection = initialDirectory
-
-  // A stored clone directory is not a project's canonical path. Load the used projects'
-  // inventories before projectsReady so the shared project ID can be resolved without
-  // clearing the stored selection.
-  createEffect(() => {
-    if (!layout.ready() || !servers.hydrated() || !pluginServers.ready()) return
-    const selected = layout.home.selection()
-    const directory = selected.directory
-
-    if (directory !== lastSelection) {
-      lastSelection = directory
-      setInventoriesReady(!directory)
-    }
-
-    if (!directory) {
-      setInventoriesReady(true)
-
-      return
-    }
-
-    const contexts = servers.visible.flatMap((conn) => {
-      const key = ServerConnection.key(conn)
-
-      if (selected.server && key !== selected.server) return []
-      const ctx = global.serverCtx(key)
-
-      return ctx && ctx.sdk.connection.status() === "connected" ? [ctx] : []
-    })
-
-    if (contexts.length === 0) return
-
-    const targets = contexts.flatMap((ctx) => {
-      const used = ctx.projects.used()
-      const last = ctx.projects.last()
-      const projects = used.length > 0 ? used : last ? [last] : []
-
-      return projects.map((project) => ({ ctx, project }))
-    })
-
-    if (targets.some(({ project }) => isProjectDirectory(project, directory))) {
-      setInventoriesReady(true)
-
-      return
-    }
-
-    if (probing || !contexts.every((ctx) => ctx.sync.project.ready())) return
-
-    probing = true
-    setInventoriesReady(false)
-    void Promise.allSettled(targets.map(({ ctx, project }) => ctx.sync.worktrees.list(project.id))).then(() => {
-      probing = false
-      setInventoriesReady(true)
-    })
-  })
-
   const env = createMemo(
     (): HomeEnvSnapshot => ({
       hydrated: layout.ready() && servers.hydrated() && pluginServers.ready(),
@@ -96,10 +37,7 @@ export function createHomeController() {
           key,
           failed: isServerFailed(global.servers.health[key]),
           connected: ctx?.sdk.connection.status() === "connected",
-          projectsReady:
-            inventoriesReady() &&
-            !!ctx?.sync.project.ready() &&
-            servers.projects.forServer(key).legacy() === undefined,
+          projectsReady: !!ctx?.sync.project.ready() && servers.projects.forServer(key).legacy() === undefined,
           usedProjects: (ctx?.projects.used() ?? []).map((project) => ({
             id: project.id,
             worktree: project.worktree,
@@ -132,6 +70,8 @@ export function createHomeController() {
       }),
     )
 
+  const searches = new Set<ReturnType<typeof setTimeout>>()
+
   function run(effect: HomeSelectionEffect) {
     if (effect.type === "selection.persist") return layout.home.setSelection(effect.selection)
 
@@ -139,6 +79,22 @@ export function createHomeController() {
       return void global.serverCtx(effect.server)?.sync.worktrees.refresh(effect.projectID)
 
     const ctx = global.serverCtx(effect.server)
+
+    if (effect.type === "worktrees.search") {
+      if (!ctx) return send({ type: "worktrees.searched", attempt: effect.attempt })
+
+      // A disconnected server must not leave Home verifying a saved clone forever.
+      const timer = setTimeout(() => {
+        searches.delete(timer)
+        send({ type: "worktrees.searched", attempt: effect.attempt })
+      }, 15_000)
+      searches.add(timer)
+      return void Promise.all(effect.projectIDs.map((projectID) => ctx.sync.worktrees.list(projectID))).then(() => {
+        clearTimeout(timer)
+        searches.delete(timer)
+        send({ type: "worktrees.searched", attempt: effect.attempt })
+      })
+    }
 
     if (effect.type === "worktrees.list") {
       // The inventory read never rejects; a failed read still asks the server to discover worktrees.
@@ -157,7 +113,6 @@ export function createHomeController() {
           type: "project.added",
           attempt: effect.attempt,
           project: project && { id: project.id, worktree: project.worktree },
-          directory: effect.directories[0],
         }),
       () => dispatch({ type: "project.added", attempt: effect.attempt, project: undefined }),
     )
@@ -170,7 +125,10 @@ export function createHomeController() {
     untrack(() => dispatch({ type: "env.synced", env: current }))
   })
 
-  onCleanup(() => dispatch({ type: "disposed" }))
+  onCleanup(() => {
+    dispatch({ type: "disposed" })
+    searches.forEach(clearTimeout)
+  })
 
   const selection = createMemo(() => selectHomeSelection(machine()), undefined, { equals: sameHomeSelection })
 

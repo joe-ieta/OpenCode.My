@@ -619,6 +619,49 @@ test("Home shows loaded sessions before the location request resolves", async ({
   location.release()
 })
 
+test("Home keeps an added clone through reload and starts sessions in that directory", async ({ page }) => {
+  const directory = "C:/OpenCode/repo-copy"
+  const shared = project({ id: "proj_clones", directory: "C:/OpenCode/repo", name: "Shared repository" })
+  await mockOpenCodeServer(page, {
+    directory,
+    project: shared,
+    provider: NO_PROVIDER,
+    sessions: [],
+    pageMessages: () => ({ items: [] }),
+    fileList: () => [],
+    worktrees: [{ directory: "C:/OpenCode/repo" }, { directory }],
+  })
+  await seed(page, { usedProjects: { local: [shared.id] } })
+  await page.goto("/")
+  await page.getByRole("button", { name: "Add project", exact: true }).click()
+  const picker = page.getByRole("dialog")
+  await expect(picker.getByRole("button", { name: "Select folder", exact: true })).toBeEnabled()
+  await picker.getByRole("button", { name: "Select folder", exact: true }).click()
+  await expect(picker).toBeHidden()
+  const selected = page.locator('[data-component="home-project-row"]').filter({ hasText: "Shared repository" })
+  await expect(selected).toHaveAttribute("data-selected", "")
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => JSON.parse(localStorage.getItem("opencode.global.dat:layout") ?? "{}").home?.selection?.directory,
+      ),
+    )
+    .toBe(directory)
+
+  // The project list after reload has only the canonical path until the inventory arrives.
+  const inventory = await holdRoute(page, /\/api\/worktree\?/)
+  await page.reload()
+  await inventory.arrived
+  inventory.release()
+  await expect(selected).toHaveAttribute("data-selected", "")
+  await page
+    .getByRole("region", { name: "Recent sessions", exact: true })
+    .getByRole("button", { name: "New session", exact: true })
+    .click()
+  await expect(newSessionLocation(page)).toContainText("Shared repository")
+  await expect(page.locator('[data-slot="new-session-location-path"]')).toHaveText(directory)
+})
+
 test("Home and the directory picker load without newer browser APIs", async ({ page }) => {
   await page.addInitScript(() => {
     // Safari 16.6 has none of these APIs. Remove them before the web entry runs.
