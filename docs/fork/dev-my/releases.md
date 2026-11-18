@@ -22,16 +22,6 @@
 - 联合 `SHA256SUMS` 覆盖五个安装包，三份更新清单的 SHA512 和大小已核验。GitHub 的 10 个附件均已逐项核对大小和 SHA256。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.13/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.13/build.json)
 - 2026-11-17 清理 `v2.3.0` 系列旧附件，移除 `v2.3.0-my.12` 的 10 个附件。该系列现仅本版保留 10 个附件，旧版本的发行页、发布说明和源码标签均已核对保留。
 
-## v2.3.0-my.17 Windows x64 本地测试构建（未上传）
-
-- 2026-11-16（Asia/Shanghai）在 Windows x64、Bun 1.4.4 下构建；按用户要求不上传发布物，未创建 GitHub Release，安装包和标签保存在本地。
-- 构建提交：`0f1bf0b279cd55c448faf9be0cb7073f7f9902a9`，合并官方 `upstream/dev@9b57cc05cb15a190480f4436a8ffff9e333d27f9`（15 个提交）。本地标签：`v2.3.0-my.17`（仅本地源码标记，未推送）。
-- 同步冲突仅一处：`packages/core/src/database/sqlite.bun.ts`，保留 fork 的 SQLite 错误分类并补入上游 `resultCode`。`bun install --frozen-lockfile` 成功，`bun run check` 35/35 通过。
-- 目标：`windows-x64`；更新源：`https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.17/`。该路径没有上传资产，自动更新不可用。
-- 安装包 `opencode-desktop-win-x64.exe`：282,203,738 字节；SHA256 `e533e8977941980a79b8d5a9279588abbcaecffb87aab64051eb8e5fc3ad5b48`；SHA512 见 `latest.yml`。
-- 产物目录：`dist/releases/v2.3.0-my.17/`，包含安装包、`latest.yml`、`SHA256SUMS`、`build.json`；均未提交到 Git。
-- 已核验安装包 VersionInfo（`OpenCode My` / `2.3.0-my.17`）、ASAR 版本、内置 CLI `opencode v2.3.0-my.17`、`latest.yml` SHA512/大小、`SHA256SUMS`、`app-update.yml` 和 7-Zip 完整性。安装包未签名。
-
 ## v2.3.0-my.12 Windows x64 与 Linux amd64/arm64 正式发行
 
 - 构建提交为 `09e804577bcfacb05c7ea7e42855aab4cc3db44c`，包含 `upstream/dev@e3ed63c7de`。Windows x64 安装包已通过用户手工验收。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.12)
