@@ -33,6 +33,7 @@ import { SessionTable } from "@opencode/core/session/sql"
 import { SessionStore } from "@opencode/core/session/store"
 import { SessionTransfer } from "@opencode/core/session/transfer"
 import { Workspace } from "@opencode/core/workspace"
+import { WorktreeTable } from "@opencode/core/worktree/sql"
 import { Expected } from "./lib/session-message"
 import { testEffect } from "./lib/effect"
 import { LocationServiceMap } from "@opencode/core/location-service-map"
@@ -342,6 +343,47 @@ describe("Session.create", () => {
 
         yield* projects.resolve(AbsolutePath.make(directory))
         expect(yield* session.get(created.id)).toMatchObject({ projectID: after.id })
+      }),
+    ),
+  )
+
+  projectIt.live("keeps sessions when the new project already owns the directory", () =>
+    withTmp((directory) =>
+      Effect.gen(function* () {
+        const session = yield* Session.Service
+        const projects = yield* Project.Service
+        const { db } = yield* Database.Service
+        const location = AbsolutePath.make(directory)
+        yield* Effect.promise(() => initRepo(directory))
+        yield* Effect.promise(() => $`git remote add origin git@github.com:owner/before.git`.cwd(directory).quiet())
+
+        yield* projects.resolve(location)
+        const created = yield* session.create({
+          location: Location.Ref.make({ directory: location }),
+          title: "Already registered",
+        })
+        yield* Effect.promise(() => fs.rm(path.join(directory, ".git", "opencode"), { force: true }))
+        yield* Effect.promise(() => $`git remote set-url origin git@github.com:owner/after.git`.cwd(directory).quiet())
+        const afterID = Project.ID.make(Hash.fast("git-remote:github.com/owner/after"))
+        yield* db
+          .insert(ProjectTable)
+          .values({
+            id: afterID,
+            worktree: location,
+            vcs: "git",
+            sandboxes: [],
+            time_created: 1,
+            time_updated: 1,
+            time_active: 1,
+          })
+          .run()
+          .pipe(Effect.orDie)
+        yield* db.insert(WorktreeTable).values({ project_id: afterID, directory: location }).run().pipe(Effect.orDie)
+
+        const after = yield* projects.resolve(location)
+
+        expect(after.id).toBe(afterID)
+        expect(yield* session.get(created.id)).toMatchObject({ projectID: afterID })
       }),
     ),
   )
