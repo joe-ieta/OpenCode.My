@@ -143,7 +143,7 @@ const layer = Layer.effect(
       projectIDs.length === 0
         ? Effect.succeed(false)
         : db
-            .select({ id: SessionTable.id })
+            .select({ directory: SessionTable.directory })
             .from(SessionTable)
             .where(
               and(
@@ -153,10 +153,10 @@ const layer = Layer.effect(
                 lte(SessionTable.directory, AbsolutePath.make(directory + "\uffff")),
               ),
             )
-            .get()
+            .all()
             .pipe(
               Effect.orDie,
-              Effect.map((row) => row !== undefined),
+              Effect.map((rows) => rows.some((row) => FSUtil.contains(directory, row.directory))),
             )
     const persist = Effect.fnUntraced(function* (project: Resolved) {
       const previous = yield* db

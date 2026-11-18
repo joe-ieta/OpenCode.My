@@ -346,6 +346,14 @@ describe("Session.create", () => {
           yield* projects.resolve(other)
           expect(yield* session.get(kept.id)).toMatchObject({ projectID: before.id })
           expect(yield* session.get(moved.id)).toMatchObject({ projectID: after.id })
+          const database = yield* Database.Service
+          const emitted = yield* database.db
+            .select({ type: EventTable.type })
+            .from(EventTable)
+            .where(eq(EventTable.aggregate_id, after.id))
+            .all()
+            .pipe(Effect.orDie)
+          expect(emitted.filter((event) => event.type === "worktree.resolved.1")).toHaveLength(1)
         }),
       ),
     ),
