@@ -36,7 +36,7 @@ import { Workspace } from "@opencode/core/workspace"
 import { Expected } from "./lib/session-message"
 import { testEffect } from "./lib/effect"
 import { LocationServiceMap } from "@opencode/core/location-service-map"
-import { initGit } from "./fixture/git"
+import { initGit, initRepo } from "./fixture/git"
 import { countingSpawner } from "./fixture/spawn"
 import { offlineModels } from "./fixture/models"
 import { promptLocationNode } from "./fixture/prompt-location"
@@ -301,6 +301,47 @@ describe("Session.create", () => {
           .all()
           .pipe(Effect.orDie)
         expect(announced.map((event) => event.type)).toEqual(["worktree.resolved.1"])
+      }),
+    ),
+  )
+
+  projectIt.live("keeps sessions when the origin changes without a cache marker", () =>
+    withTmp((directory) =>
+      Effect.gen(function* () {
+        const session = yield* Session.Service
+        const projects = yield* Project.Service
+        const { db } = yield* Database.Service
+        yield* Effect.promise(() => initRepo(directory))
+        yield* Effect.promise(() => $`git remote add origin git@github.com:owner/before.git`.cwd(directory).quiet())
+
+        const before = yield* projects.resolve(AbsolutePath.make(directory))
+        const created = yield* session.create({
+          location: Location.Ref.make({ directory: AbsolutePath.make(directory) }),
+          title: "Kept across origin change",
+        })
+        // A checkout created before the marker writer existed has no cached project ID.
+        yield* Effect.promise(() => fs.rm(path.join(directory, ".git", "opencode"), { force: true }))
+        yield* Effect.promise(() => $`git remote set-url origin git@github.com:owner/after.git`.cwd(directory).quiet())
+
+        const after = yield* projects.resolve(AbsolutePath.make(directory))
+        const adopted = yield* session.get(created.id)
+        const emitted = yield* db
+          .select({ type: EventTable.type })
+          .from(EventTable)
+          .where(eq(EventTable.aggregate_id, after.id))
+          .all()
+          .pipe(Effect.orDie)
+
+        expect(after.id).not.toBe(before.id)
+        expect(adopted).toMatchObject({
+          projectID: after.id,
+          location: { directory: AbsolutePath.make(directory) },
+        })
+        expect(yield* Effect.promise(() => Bun.file(path.join(directory, ".git", "opencode")).text())).toBe(after.id)
+        expect(emitted.filter((event) => event.type === "worktree.resolved.1")).toHaveLength(1)
+
+        yield* projects.resolve(AbsolutePath.make(directory))
+        expect(yield* session.get(created.id)).toMatchObject({ projectID: after.id })
       }),
     ),
   )
