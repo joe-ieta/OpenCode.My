@@ -15,7 +15,6 @@ import type { LocalProject } from "@/shell/state/layout"
 import { createProjectSessionActions } from "@/shell/tabs/project-sessions"
 import { useDirectoryPicker } from "@/workspaces/selection/picker"
 import { displayName } from "@opencode/ui/project-avatar"
-import { addProjects } from "./add"
 import {
   INITIAL_PROJECT_IMPORT_STATE,
   selectProjectImporting,
@@ -59,10 +58,7 @@ export function createProjectActions() {
     return true
   }
 
-  function choose(
-    conn: ServerConnection.Any,
-    onSelect?: (server: ServerConnection.Any, directories: string[]) => void,
-  ) {
+  function choose(conn: ServerConnection.Any, onSelect: (server: ServerConnection.Any, directories: string[]) => void) {
     if (authenticate(conn, (next) => choose(next, onSelect))) return
 
     if (isServerFailed(global.servers.health[ServerConnection.key(conn)])) return
@@ -75,10 +71,7 @@ export function createProjectActions() {
 
         if (!directories.length) return
 
-        if (onSelect) return onSelect(conn, directories)
-        const ctx = global.serverCtx(ServerConnection.key(conn))
-
-        if (ctx) void addProjects(ctx, directories)
+        onSelect(conn, directories)
       },
     })
   }
