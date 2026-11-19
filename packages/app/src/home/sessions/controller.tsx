@@ -38,7 +38,9 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { sessionLabel, sessionTitle } from "@/session/title"
 import { showToast } from "@/shell/notifications/toast"
 import { archiveHomeSession } from "./archive"
-import { homeSessionsQuery, lookupHomeSession, projectSessionDirectories, projectSessionsQuery } from "./queries"
+import { removeIndexedSessions, renameIndexedSession, sessionIndexQuery } from "@/runtime/server/session-queries"
+import type { SessionIndex } from "@/runtime/server/session-index"
+import { lookupHomeSession, projectSessionDirectories, projectSessionsQuery } from "./queries"
 import {
   HOME_SESSIONS_STALE_MS,
   INITIAL_HOME_SESSIONS_LOAD_STATE,
@@ -118,7 +120,7 @@ export function createHomeSessionsController(home: HomeController) {
 
   function homeSessionsTarget(current = focus()): HomeSessionsTarget | undefined {
     if (!current) return
-    const cache = queryClient.getQueryState<SessionInfo[]>(["home-sessions", current.conn])
+    const cache = queryClient.getQueryState<SessionIndex>(["home-sessions", current.conn])
     const cached = cache?.data !== undefined
 
     return {
@@ -179,7 +181,7 @@ export function createHomeSessionsController(home: HomeController) {
     }
 
     // Through the shared query, so a fetch the sidebar already started is joined and the result lands in its cache.
-    void queryClient.fetchQuery({ ...homeSessionsQuery(conn, ctx), staleTime: 0 }).then(
+    void queryClient.fetchQuery({ ...sessionIndexQuery(conn, ctx), staleTime: 0 }).then(
       () => dispatchLoad({ type: "fetch.succeeded", attempt, reducedMotion: prefersReducedMotion() }),
       (cause) =>
         dispatchLoad({
@@ -225,7 +227,7 @@ export function createHomeSessionsController(home: HomeController) {
     load()
     const conn = home.server.focused()
 
-    return (conn && queryClient.getQueryData<SessionInfo[]>(["home-sessions", conn])) || []
+    return (conn && queryClient.getQueryData<SessionIndex>(["home-sessions", conn])?.sessions) || []
   })
 
   const scoped = useQuery(() =>
@@ -355,9 +357,7 @@ export function createHomeSessionsController(home: HomeController) {
       .then(() => {
         ctx.data.session.remember({ ...(ctx.data.session.get(session.id) ?? session), title: next })
         // Rename advances time.updated server-side; like the iOS app, the session moves when the list next reloads.
-        queryClient.setQueryData<SessionInfo[]>(["home-sessions", conn], (current) =>
-          current?.map((item) => (item.id === session.id ? { ...item, title: next } : item)),
-        )
+        renameIndexedSession(queryClient, conn, session.id, next)
 
         return true
       })
@@ -425,10 +425,7 @@ export function createHomeSessionsController(home: HomeController) {
       if (effect.type === "session.removed") {
         const conn = serverContext(props.server)?.conn
 
-        if (conn)
-          queryClient.setQueryData<SessionInfo[]>(["home-sessions", conn], (current) =>
-            current?.filter((item) => !effect.target.removedIDs.includes(item.id)),
-          )
+        if (conn) removeIndexedSessions(queryClient, conn, [...effect.target.removedIDs])
         notifySessionTabsRemoved({
           server: props.server,
           directory: props.session.location.directory,
