@@ -18,7 +18,7 @@
 | [#64643](https://github.com/anomalyco/opencode/issues/64643) | [`origin-session-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:origin-session-fix)，`65b39d7234`，4 个文件 | Issue 已提交；机器人按 [#57985](https://github.com/anomalyco/opencode/issues/57985) 的重复报告关闭。PR 尚未创建，准备同时关联这两个记录。 |
 | [#64644](https://github.com/anomalyco/opencode/issues/64644) | [`clone-selection-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:clone-selection-fix)，`ba69969b54`，10 个文件 | Issue 已提交且开放；PR 尚未创建。浏览器截图保存在独立 `clone-review-proof` 证据分支，不在贡献补丁中。 |
 
-GitHub 拒绝创建两个官方 PR：CLI GraphQL 返回 `joe-ieta does not have the correct permissions to execute CreatePullRequest`，REST 返回 404，连接器返回 integration 403。当前账号仍有 [#62845](https://github.com/anomalyco/opencode/pull/62845)、[#62850](https://github.com/anomalyco/opencode/pull/62850)、[#62851](https://github.com/anomalyco/opencode/pull/62851) 三个开放 PR，与下文记录的历史名额限制一致。已请求用户指定是否关闭其中两个，尚未关闭或更改这些旧 PR。完整提交说明保存在本机 `.cache/upstream-origin-pr.md` 和 `.cache/upstream-clone-pr.md`，待名额/权限解除后提交。
+GitHub 拒绝创建两个官方 PR：CLI GraphQL 返回 `joe-ieta does not have the correct permissions to execute CreatePullRequest`，REST 返回 404，连接器返回 integration 403。2026-11-19 复核时，账号仍有 [#62845](https://github.com/anomalyco/opencode/pull/62845)、[#62850](https://github.com/anomalyco/opencode/pull/62850)、[#62851](https://github.com/anomalyco/opencode/pull/62851) 三个开放 PR，与下文记录的历史名额限制一致。用户已明确选择“保留现有 PR”，不得为本次修复关闭这些 PR。两个已验证贡献分支和本机完整提交说明（`.cache/upstream-origin-pr.md`、`.cache/upstream-clone-pr.md`）均保留，当前状态为待提交；名额或权限变化后，再核对官方最新基线并提交。
 
 ## 初次复核记录（2026-11-18，修正前）
 
