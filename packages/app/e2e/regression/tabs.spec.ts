@@ -528,6 +528,11 @@ test("Side bar tracks unread results while project rows are collapsed", async ({
   const toggle = page.locator('[data-slot="collapsed-sidebar-toggle"]').getByRole("button")
   await expect(running.getByRole("button").filter({ hasText: "Background task" })).toBeVisible()
   await expect(group.getByRole("img", { name: "Running sessions", exact: true })).toBeVisible()
+  await group.hover()
+  await sidebar.getByRole("button", { name: "Pin project Background", exact: true }).click()
+  const pinned = sidebar.getByRole("region", { name: "Pinned projects", exact: true })
+  await expect(pinned.locator('[data-slot="pinned-projects-count"]')).toHaveText("1")
+  await expect(pinned.locator('[data-slot="pinned-running-count"]')).toHaveText("1")
   await sidebar.getByRole("button", { name: "Collapse project Background", exact: true }).click()
   await sidebar.getByRole("button", { name: "Collapse project UnreadCurrent", exact: true }).click()
   await expect(sidebar.locator("[data-titlebar-tab-slot]")).toHaveCount(0)
@@ -542,7 +547,13 @@ test("Side bar tracks unread results while project rows are collapsed", async ({
       data: { sessionID: "ses_unread_background" },
     },
   ])
-  await expect(running.locator('[data-slot="active-sessions-empty"]')).toBeVisible()
+  const background = running.getByRole("button").filter({ hasText: "Background task" })
+  await expect(background).toBeVisible()
+  await expect(background).toContainText("Unread")
+  await expect(sidebar.locator('[data-slot="project-sessions-running"]')).toHaveCount(0)
+  await expect(sidebar.locator('[data-slot="project-sessions-unread"]')).toHaveText("1")
+  await expect(pinned.locator('[data-slot="pinned-running-count"]')).toHaveCount(0)
+  await expect(pinned.locator('[data-slot="pinned-unread-count"]')).toHaveText("1")
   await expect(group.getByRole("img", { name: "Running sessions", exact: true })).toHaveCount(0)
   await expect(group.getByRole("img", { name: "Unread sessions", exact: true })).toBeVisible()
   await sidebar.getByRole("button", { name: "Toggle sidebar", exact: true }).click()
@@ -565,6 +576,10 @@ test("Side bar tracks unread results while project rows are collapsed", async ({
   ])
   await expect(toggle).toHaveAttribute("aria-label", "Toggle sidebar")
   await toggle.click()
+  await expect(running.getByRole("button").filter({ hasText: "Background task" })).toHaveCount(0)
+  await expect(running.locator('[data-slot="active-sessions-empty"]')).toBeVisible()
+  await expect(sidebar.locator('[data-slot="project-sessions-unread"]')).toHaveCount(0)
+  await expect(pinned.locator('[data-slot="pinned-unread-count"]')).toHaveCount(0)
   await expect(group.getByRole("img", { name: "Unread sessions", exact: true })).toHaveCount(0)
 })
 
@@ -607,7 +622,7 @@ test("Side bar keeps pinned projects fixed while the regular project list scroll
         '[data-action="vertical-tabs-home"], [data-action="vertical-tabs-new-session"], [data-action="vertical-tabs-search"]',
       )
       .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-action"))),
-  ).toEqual(["vertical-tabs-home", "vertical-tabs-new-session", "vertical-tabs-search"])
+  ).toEqual(["vertical-tabs-home", "vertical-tabs-search", "vertical-tabs-new-session"])
   const heading = sidebar.getByRole("heading", { name: "Project 0", exact: true })
   const pin = sidebar.getByRole("button", { name: "Pin project Project 0", exact: true, includeHidden: true })
   const add = sidebar.getByRole("button", { name: "New session in Project 0", exact: true, includeHidden: true })
@@ -647,7 +662,9 @@ test("Side bar keeps pinned projects fixed while the regular project list scroll
     "Pinned projects",
     "Running sessions",
   ])
-  await expect(sidebar.getByText("6/12/13", { exact: true })).toBeVisible()
+  await expect(sidebar.locator('[data-slot="project-sessions-totals"]')).toHaveText("12/13")
+  await expect(sidebar.locator('[data-slot="project-sessions-running"]')).toHaveText("6")
+  await expect(pinned.locator('[data-slot="pinned-projects-count"]')).toHaveText("2")
   await expect(pinned.getByTitle("2 pinned projects", { exact: true })).toHaveText("2")
   await expect
     .poll(() =>
@@ -1454,10 +1471,10 @@ test("Side bar switches between project navigation and a most-recent list with g
   const newSession = sidebar
     .locator('[data-slot="vertical-tabs"]')
     .getByRole("button", { name: "New session", exact: true })
-  const counts = sidebar.getByText("1/3/3", { exact: true })
+  const counts = sidebar.locator('[data-slot="project-sessions-totals"]')
   await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
   await expect(byProject).toHaveAttribute("aria-pressed", "true")
-  await expect(counts).toBeVisible()
+  await expect(counts).toHaveText("3/3")
   await expect(addProject).toBeVisible()
   await expect(newSession).toHaveCount(0)
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Other", "Quiet", "Tabs"])
@@ -1525,7 +1542,7 @@ for (const [locale, title, grouping, projectMode, listMode, addProject, newSessi
     const mode = sidebar.getByRole("group", { name: grouping, exact: true })
     const byProject = mode.getByRole("button", { name: projectMode, exact: true })
     const list = mode.getByRole("button", { name: listMode, exact: true })
-    const count = sidebar.getByText("0/1/1", { exact: true })
+    const count = sidebar.locator('[data-slot="project-sessions-totals"]')
     const add = sidebar.getByRole("button", { name: addProject, exact: true })
 
     async function expectOneLine(count: Locator, action: Locator) {

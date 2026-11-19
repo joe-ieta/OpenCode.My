@@ -1,5 +1,6 @@
 import { createEffect, createMemo, createUniqueId, For, on, onCleanup, Show } from "solid-js"
 import { createStore } from "solid-js/store"
+import type { SessionInfo } from "@opencode/client/promise"
 import { ActivityRing } from "@opencode/ui/activity-ring"
 import { Icon } from "@opencode/ui/icon"
 import { displayName } from "@opencode/ui/project-avatar"
@@ -8,11 +9,23 @@ import { ServerConnection, serverName } from "@/runtime/server/registry"
 import type { ServerCtx } from "@/runtime/server/runtime"
 import { projectSettingsKey, useSettings } from "@/settings/model"
 import { sessionRequests } from "@/shell/layout/project-avatar-state"
+import { workingSince } from "@/shell/titlebar/inbox-working"
 import { sessionLastRunLabel, sessionTabTitle } from "@/shell/titlebar/tab-title"
 import { elapsedTime } from "@/shell/sessions/duration"
 import { createSessionBranches } from "@/shell/sessions/branches"
 import { pathKey } from "@/workspaces/path-key"
+import { createSessionIndexes } from "./history"
 import "./running.css"
+
+type Entry = {
+  key: string
+  id: string
+  server: ServerConnection.Key
+  conn: ServerConnection.Any
+  ctx: ServerCtx
+  unread: boolean
+  snapshot?: SessionInfo
+}
 
 /** Observation includes background work and ancestors, independently of model execution ownership. */
 export function RunningSessions(props: {
@@ -32,29 +45,104 @@ export function RunningSessions(props: {
 
   const [clock, setClock] = createStore({ now: Date.now() })
 
-  const entries = createMemo(() =>
+  // The same index Home and the project list read, so an unread session outside the loaded subset still appears.
+  const indexes = createSessionIndexes(() =>
+    props.connections.flatMap((item) => (item.ctx ? [{ conn: item.conn, ctx: item.ctx }] : [])),
+  )
+
+  const indexed = createMemo(
+    () =>
+      new Map(
+        indexes
+          .sources()
+          .flatMap((source) =>
+            source.sessions.map(
+              (session) => [JSON.stringify([ServerConnection.key(source.conn), session.id]), session] as const,
+            ),
+          ),
+      ),
+  )
+
+  const activeEntries = createMemo<Entry[]>(() =>
     props.connections.flatMap((item) => {
       const ctx = item.ctx
 
       if (!ctx || ctx.sdk.connection.status() !== "connected") return []
+      const server = ServerConnection.key(item.conn)
 
-      return ctx.data.session.activity.active().map((id) => ({
-        key: JSON.stringify([ServerConnection.key(item.conn), id]),
-        id,
-        server: ServerConnection.key(item.conn),
-        conn: item.conn,
-        ctx,
-      }))
+      return ctx.data.session.activity.active().map((id) => {
+        const key = JSON.stringify([server, id])
+
+        return { key, id, server, conn: item.conn, ctx, unread: false, snapshot: indexed().get(key) }
+      })
     }),
   )
+
+  const unreadEntries = createMemo<Entry[]>(() => {
+    const active = activeEntries()
+    const activeKeys = new Set(active.map((entry) => entry.key))
+    const activeRoots = new Set(
+      active.map((entry) => JSON.stringify([entry.server, entry.ctx.data.session.root(entry.id)])),
+    )
+
+    return indexes.sources().flatMap((source) => {
+      const ctx = source.ctx
+
+      if (ctx.sdk.connection.status() !== "connected") return []
+      const server = ServerConnection.key(source.conn)
+
+      return source.sessions.flatMap((session): Entry[] => {
+        if (session.parentID || session.time.archived !== undefined) return []
+        if (
+          props.selected?.server === server &&
+          ctx.data.session.root(props.selected.sessionID) === session.id
+        )
+          return []
+
+        const key = JSON.stringify([server, session.id])
+
+        if (activeKeys.has(key) || activeRoots.has(key)) return []
+        if (ctx.data.session.status(session.id) === "running" || ctx.data.session.activity.busy(session.id, true))
+          return []
+        if (!ctx.notification.session.unread(session.id, session)) return []
+
+        return [{ key, id: session.id, server, conn: source.conn, ctx, unread: true, snapshot: session }]
+      })
+    })
+  })
+
+  const sessionOf = (entry: Entry) => entry.ctx.data.session.get(entry.id) ?? entry.snapshot
+
+  const endedAt = (entry: Entry) => {
+    const session = sessionOf(entry)
+
+    return session?.time.idle ?? session?.time.updated ?? 0
+  }
+
+  const entries = createMemo(() => {
+    // `time.updated` moves with every message, but the current run's start stays put, so rows do not jump.
+    const active = activeEntries().toSorted((a, b) => {
+      const start =
+        (workingSince(sessionOf(a) ?? { time: {} }) ?? Infinity) -
+        (workingSince(sessionOf(b) ?? { time: {} }) ?? Infinity)
+
+      return start || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)
+    })
+    const unread = unreadEntries().toSorted(
+      (a, b) => endedAt(b) - endedAt(a) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0),
+    )
+
+    return [...active, ...unread]
+  })
 
   const byKey = createMemo(() => new Map(entries().map((entry) => [entry.key, entry])))
   const disconnected = () => props.connections.some((item) => item.ctx?.sdk.connection.status() !== "connected")
   const unavailable = () => props.connections.some((item) => item.ctx?.data.session.activity.unavailable())
-  const loading = () => props.connections.some((item) => item.ctx && !item.ctx.data.session.activity.ready())
+  const loading = () =>
+    props.connections.some((item) => item.ctx && !item.ctx.data.session.activity.ready()) || indexes.loading()
 
   createEffect(() => {
-    if (!entries().length) return
+    if (!activeEntries().length) return
     setClock("now", Date.now())
     const timer = setInterval(() => setClock("now", Date.now()), 1_000)
     onCleanup(() => clearInterval(timer))
@@ -63,7 +151,7 @@ export function RunningSessions(props: {
   createEffect(() => {
     branches.load(
       entries().flatMap((entry) => {
-        const session = entry.ctx.data.session.get(entry.id)
+        const session = sessionOf(entry)
 
         return session ? [{ server: entry.server, ctx: entry.ctx, session }] : []
       }),
@@ -103,6 +191,12 @@ export function RunningSessions(props: {
 
                 createEffect(
                   on(context, (ctx) => {
+                    if (entry().unread) {
+                      void ctx.data.session.sync(entry().id).catch(() => undefined)
+
+                      return
+                    }
+
                     void Promise.allSettled([
                       ctx.data.session.sync(entry().id),
                       ctx.data.session.permission.sync(entry().id),
@@ -120,7 +214,7 @@ export function RunningSessions(props: {
                   void value.ctx.data.session.sync(root).catch(() => undefined)
                 })
 
-                const session = createMemo(() => entry().ctx.data.session.get(entry().id))
+                const session = createMemo(() => sessionOf(entry()))
 
                 const project = createMemo(() => {
                   const value = session()
@@ -169,6 +263,8 @@ export function RunningSessions(props: {
                 const status = createMemo(() => {
                   const value = entry()
 
+                  if (value.unread) return "unread"
+
                   const requests = sessionRequests(
                     value.ctx,
                     value.id,
@@ -182,6 +278,12 @@ export function RunningSessions(props: {
 
                   return "working"
                 })
+
+                const statusLabel = createMemo(() =>
+                  status() === "unread"
+                    ? language.t("sidebar.running.unread")
+                    : language.t(`sidebar.inbox.status.${status()}`),
+                )
 
                 const selected = () =>
                   props.selected?.server === entry().server && props.selected.sessionID === entry().id
@@ -198,10 +300,12 @@ export function RunningSessions(props: {
                       branch(),
                       session()?.location.directory,
                       sessionLastRunLabel(session()?.time, language),
-                      summary(),
-                      ...entry()
-                        .ctx.data.session.activity.list(entry().id, true)
-                        .map((item) => item.title),
+                      entry().unread ? statusLabel() : summary(),
+                      ...(entry().unread
+                        ? []
+                        : entry()
+                            .ctx.data.session.activity.list(entry().id, true)
+                            .map((item) => item.title)),
                     ]
                       .filter(Boolean)
                       .join("\n")}
@@ -214,7 +318,17 @@ export function RunningSessions(props: {
                     }}
                   >
                     <span data-slot="active-session-mark" aria-hidden="true">
-                      <Show when={status() === "working"} fallback={<span data-slot="active-session-waiting" />}>
+                      <Show
+                        when={status() === "working"}
+                        fallback={
+                          <Show
+                            when={status() === "unread"}
+                            fallback={<span data-slot="active-session-waiting" />}
+                          >
+                            <span data-slot="active-session-unread" />
+                          </Show>
+                        }
+                      >
                         <ActivityRing />
                       </Show>
                     </span>
@@ -223,21 +337,20 @@ export function RunningSessions(props: {
                     </span>
                     <span
                       data-slot="active-session-status"
-                      data-waiting={status() !== "working" ? "" : undefined}
-                      title={status() === "working" ? summary() : language.t(`sidebar.inbox.status.${status()}`)}
+                      data-waiting={status() === "approval" || status() === "input" ? "" : undefined}
+                      data-unread={status() === "unread" ? "" : undefined}
+                      title={status() === "working" ? summary() : statusLabel()}
                     >
-                      <span class="sr-only">{language.t(`sidebar.inbox.status.${status()}`)}</span>
+                      <span class="sr-only">{statusLabel()}</span>
                       <span aria-hidden="true">
-                        {status() === "working"
-                          ? (duration() ?? language.t("sidebar.inbox.status.working"))
-                          : language.t(`sidebar.inbox.status.${status()}`)}
+                        {status() === "working" ? (duration() ?? language.t("sidebar.inbox.status.working")) : statusLabel()}
                       </span>
                     </span>
                     <span data-slot="active-session-project" dir="auto">
                       <Show when={project()} fallback={language.t("common.loading")}>
                         <span class="min-w-0 truncate">{projectName()}</span>
                       </Show>
-                      <Show when={entry().ctx.data.session.status(entry().id) !== "running"}>
+                      <Show when={!entry().unread && entry().ctx.data.session.status(entry().id) !== "running"}>
                         <span aria-hidden="true">·</span>
                         <span class="truncate" title={summary()}>
                           {language.t("sidebar.running.background")}

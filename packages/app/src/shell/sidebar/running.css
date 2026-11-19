@@ -77,6 +77,13 @@
     background: var(--v2-state-fg-warning);
   }
 
+  [data-slot="active-session-unread"] {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--v2-background-bg-accent);
+  }
+
   [data-slot="active-session-title"] {
     color: var(--v2-text-text-base);
     font-size: 13px;
@@ -90,6 +97,10 @@
 
     &[data-waiting] {
       color: var(--v2-state-fg-warning);
+    }
+
+    &[data-unread] {
+      color: var(--v2-text-text-accent);
     }
   }
 

@@ -1026,6 +1026,8 @@ export const dict = {
   "sidebar.pinned.title": "Pinned projects",
   "sidebar.pinned.count.one": "{{count}} pinned project",
   "sidebar.pinned.count.other": "{{count}} pinned projects",
+  "sidebar.unread.count.one": "{{count}} unread session",
+  "sidebar.unread.count.other": "{{count}} unread sessions",
   "sidebar.projects.count.one": "{{count}} project",
   "sidebar.projects.count.other": "{{count}} projects",
   "sidebar.draft.unsent": "Draft (unsent)",
@@ -1060,6 +1062,7 @@ export const dict = {
   "sidebar.running.activity.other":
     "{{count}} active tasks — models: {{models}}; subagents: {{agents}}; shells: {{shells}}; other: {{other}}",
   "sidebar.running.disconnected": "Some servers are disconnected",
+  "sidebar.running.unread": "Unread",
   "sidebar.running.count.one": "{{count}} running session",
   "sidebar.running.count.other": "{{count}} running sessions",
   "sidebar.inbox.empty": "Sessions you work on will appear here",
