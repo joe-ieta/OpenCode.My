@@ -600,6 +600,7 @@ const layer = () =>
       const activity = yield* SessionActivitySource.Service
       const location = yield* Location.Service
       const global = yield* Global.Service
+      const fs = yield* FSUtil.Service
       const shell = yield* ShellSelect.Service
       const environment = yield* Environment.Service
       const hooks = yield* PluginHooks.Service
@@ -616,9 +617,8 @@ const layer = () =>
         location.workspaceID === undefined && PersistentPty.available ? yield* daemon.at(location) : undefined
 
       const outputDir = path.join(global.data, DIRECTORY, location.project.id)
-      const { mkdir, unlink, stat } = yield* Effect.promise(() => import("fs/promises"))
+      const { unlink, stat } = yield* Effect.promise(() => import("fs/promises"))
       const { createWriteStream, createReadStream } = yield* Effect.promise(() => import("fs"))
-      yield* Effect.promise(() => mkdir(outputDir, { recursive: true }))
 
       yield* Effect.addFinalizer(() =>
         Effect.gen(function* () {
@@ -929,6 +929,11 @@ const layer = () =>
         // Absolute for local commands, so the command reports the same cwd wherever it runs.
         if (location.workspaceID === undefined) invocation.cwd = path.resolve(location.directory, invocation.cwd)
 
+        // Created per command: the directory can be removed while the Location stays open.
+        yield* fs
+          .ensureDir(outputDir)
+          .pipe(Effect.mapError((cause) => new AppProcess.AppProcessError({ command: invocation.command, cause })))
+
         const id = Shell.ID.ascending()
         const args = ShellSelect.args(invocation.shell, invocation.command)
         const file = path.join(outputDir, `${id}.out`)
@@ -1197,6 +1202,7 @@ export const node = makeLocationNode({
     SessionActivitySource.node,
     Location.node,
     Global.node,
+    FSUtil.node,
     ShellSelect.node,
     Environment.node,
     PluginHooks.node,
