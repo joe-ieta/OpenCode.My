@@ -3,10 +3,12 @@ import type { ServerConnection } from "@/runtime/server/registry"
 import type { ServerCtx } from "@/runtime/server/runtime"
 import { loadSessionInventory, type SessionIndex } from "./session-index"
 
+export const SESSION_INDEX_QUERY = "session-index"
+
 // Keep the immutable snapshot opaque so Solid Query does not unwrap every session on mount.
 export function sessionIndexQuery(conn: ServerConnection.Any | undefined, ctx: ServerCtx | undefined) {
   return queryOptions({
-    queryKey: ["home-sessions", conn] as const,
+    queryKey: [SESSION_INDEX_QUERY, conn] as const,
     queryFn: ctx
       ? ({ signal }) => loadSessionInventory((input, options) => ctx.sdk.api.session.list(input, options), signal)
       : skipToken,
@@ -26,7 +28,7 @@ export function removeIndexedSessions(
   ids: readonly string[],
 ) {
   queryClient.setQueryData<SessionIndex>(
-    ["home-sessions", conn],
+    [SESSION_INDEX_QUERY, conn],
     (current) =>
       current && {
         sessions: current.sessions.filter((item) => !ids.includes(item.id)),
@@ -37,7 +39,7 @@ export function removeIndexedSessions(
 
 export function renameIndexedSession(queryClient: QueryClient, conn: ServerConnection.Any, id: string, title: string) {
   queryClient.setQueryData<SessionIndex>(
-    ["home-sessions", conn],
+    [SESSION_INDEX_QUERY, conn],
     (current) =>
       current && { ...current, sessions: current.sessions.map((item) => (item.id === id ? { ...item, title } : item)) },
   )

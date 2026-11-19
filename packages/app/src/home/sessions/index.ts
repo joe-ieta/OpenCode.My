@@ -1,11 +1,7 @@
-import type { SessionInfo, SessionsResponse } from "@opencode/client/promise"
+import type { SessionInfo } from "@opencode/client/promise"
 import { pathKey } from "@/workspaces/path-key"
 import { mergeRootSessionIndex } from "@/runtime/server/session-index"
 import { SESSION_RECENT_LIMIT, SESSION_RECENT_WINDOW } from "@/runtime/server/global-sync/types"
-
-// One bounded page of the newest root sessions. Home shows 64 and the sidebar a handful per project, so older history
-// is reached through the titlebar's server-backed search instead of downloading every session on startup.
-export const HOME_SESSION_PAGE_LIMIT = 500
 
 export const HOME_SESSION_LIMIT = 64
 
@@ -15,28 +11,6 @@ export const HOME_SESSION_LIMIT = 64
 // index, so Home shows the same rows, order, and search results while the
 // query cache and every per-update re-merge stay bounded by directory count.
 export const HOME_SESSION_INDEX_LIMIT = HOME_SESSION_LIMIT + SESSION_RECENT_LIMIT
-
-export async function loadHomeSessionIndex(
-  list: (
-    input: {
-      limit: number
-      order: "desc"
-      parentID: null
-      cursor?: string
-    },
-    options: { signal?: AbortSignal },
-  ) => Promise<SessionsResponse>,
-  signal?: AbortSignal,
-) {
-  const response = await list({ limit: HOME_SESSION_PAGE_LIMIT, order: "desc", parentID: null }, { signal })
-
-  return retainHomeSessions(parseHomeSessionIndex(response.data), HOME_SESSION_INDEX_LIMIT, Date.now())
-}
-
-// Keep this filter for locally known sessions merged into the fetched index.
-export function parseHomeSessionIndex(sessions: SessionInfo[]) {
-  return sessions.filter((session) => !session.parentID && session.time.archived === undefined)
-}
 
 export function mergeHomeSessionIndex(fetched: readonly SessionInfo[], known: readonly SessionInfo[]) {
   return mergeRootSessionIndex(fetched, known).filter((session) => session.time.archived === undefined)

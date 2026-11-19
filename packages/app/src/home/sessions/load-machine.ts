@@ -15,7 +15,7 @@ export const HOME_SESSIONS_REVEAL_MS = 200
 export type HomeSessionsUnavailableReason = "offline" | "auth" | "incompatible"
 
 /**
- * The focused server as the list sees it. `cached` says the shared `["home-sessions", conn]` cache holds a list, which
+ * The focused server as the list sees it. `cached` says the shared session index holds a snapshot, which
  * the list shows whatever the phase; `stale` says that list is missing, invalidated or older than the stale time.
  */
 export type HomeSessionsTarget = {

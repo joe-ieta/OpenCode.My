@@ -1,4 +1,4 @@
-import { removeIndexedSessions } from "@/runtime/server/session-queries"
+import { removeIndexedSessions, SESSION_INDEX_QUERY } from "@/runtime/server/session-queries"
 import { createMemo, createSignal, onCleanup, Show, untrack, type JSX } from "solid-js"
 import { useQueryClient } from "@tanstack/solid-query"
 import type { SessionInfo } from "@opencode/client/promise"
@@ -102,7 +102,7 @@ export function ProjectSessionRow(props: {
           })
         })
         .finally(() => {
-          void queryClient.invalidateQueries({ queryKey: ["home-sessions", conn], exact: true })
+          void queryClient.invalidateQueries({ queryKey: [SESSION_INDEX_QUERY, conn], exact: true })
         })
     }
 
