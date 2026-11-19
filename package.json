@@ -123,7 +123,7 @@
     "oxlint": "1.93.0",
     "prettier": "3.6.2",
     "semver": "^7.6.0",
-    "turbo": "2.10.2"
+    "turbo": "2.11.11"
   },
   "dependencies": {
     "@opencode/plugin": "workspace:*",
