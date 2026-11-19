@@ -4,7 +4,23 @@
 
 > 当前仓库关系以顶层 [AGENTS.md](../../AGENTS.md) 为准：`origin` 是本仓库 GitHub，`upstream` 是官方 GitHub；同步及官方贡献使用官方对应分支。
 
-## clone 会话迁移修复已提交官方 PR（2026-11-19）
+## 最新审核修正与 CI 跟进（2026-11-19）
+
+再次核对官方 PR 的评论、逐行线程、当前 head 和 Actions workflow 状态；最新官方 dev 仍为 `d33b578333`。本轮处理新增审核意见，未通过空提交重跑无变化的分支。
+
+| 官方 PR                                                    | 当前 head    | 审核处理与验证                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [#62845](https://github.com/anomalyco/opencode/pull/62845) | `b696d7a81d` | `choose` 强制接收 `onSelect`，移除绕过 Home 项目添加队列的直接添加备用路径。完整检查 35/35、App 单测 2773/2773、生产构建及相关 Chromium 回归 4/4 通过。审核机器人已[复核确认无进一步意见](https://github.com/anomalyco/opencode/pull/62845#pullrequestreview-5974039965)，新线程已回复并解决。 |
+| [#62851](https://github.com/anomalyco/opencode/pull/62851) | `6af6f58b7b` | 无新增修改要求，现有线程全部解决；保持已验证的相同提交，沿用此前完整检查、App/Client 单测及 Running 组件回归结果，没有重复改动或测试。                                                                                                                                                         |
+| [#64850](https://github.com/anomalyco/opencode/pull/64850) | `9bc70a296a` | 三项新增意见均已修正并逐条回复：取消写入 `.git/opencode`，身份未变时跳过迁移扫描，采用 Git 根提交及应用数据库 checkout 记录核验迁移来源。完整检查 35/35、Core 五个相关测试文件 167/167、九个关键场景各重复十次 90/90 通过；五个针对性回归在前一版实现上均失败。                                |
+
+#64850 的 checkout 身份保存在既有 KV 表，未增加数据库迁移或修改 HTTP/event schema。旧 root-derived ID 可以直接按 Git 根提交确认；只有历史 remote-derived ID、没有可匹配 checkout 记录时不再仅凭路径自动迁移。两个目录复用场景（有/无身份记录）保留无关旧仓库的会话；服务重建后仍可恢复同一 checkout 的 origin 变化。重复解析的测试观察实际 SQL 与 Git 进程，确认不再进行会话/markerless 候选扫描。三个 PR 仍保持各自范围，所有临时 Windows 验证兼容改动均已撤回。
+
+三者均为 OPEN / MERGEABLE / BLOCKED，规范与合规检查成功。正式 `check`、`check-test`、`check-nix`、`check-bot-scope` 仍为 `action_required`，不是已执行失败：[#62845 check-test](https://github.com/anomalyco/opencode/actions/runs/44512936100)、[#62851 check-test](https://github.com/anomalyco/opencode/actions/runs/44490488735)、[#64850 check-test](https://github.com/anomalyco/opencode/actions/runs/44514957555)。已在 [#62845](https://github.com/anomalyco/opencode/pull/62845#issuecomment-7007813813) 和 [#64850](https://github.com/anomalyco/opencode/pull/64850#issuecomment-7007821297) 提交最新验证与批准 CI/人工审核请求；#62851 沿用仍待处理的请求。
+
+当前账号只有官方仓库读取权限，无 push/maintain/admin 权限。为 #64850 正式请求审核者时，GitHub 返回 `RequestReviewsByLogin` 权限不足，已改为在 PR 留言请求维护者处理。#62845 和 #62851 原有 Hona、Brendonovich 审核请求仍保留。尚未合并任何官方 PR；还需要官方维护者批准正式 CI 并完成人工审核。
+
+## clone 会话迁移修复已提交官方 PR（2026-11-19，首次提交快照）
 
 按用户优先级使用释放的一个名额，已创建 [#64850](https://github.com/anomalyco/opencode/pull/64850) `fix(core): preserve checkout sessions across origin changes`，目标为官方 `dev`。`origin-session-fix` 已无冲突合入最新官方 dev `d33b5783338b8b350aafc09f7dc2701eeba52a9a`，提交并推送 `883203cadc7cbb83f64e05c365b775a6964b0650`。PR 相对官方基线仅有 4 个 Core 源码/测试文件，216 行新增、9 行删除；`origin/dev` 同样保持该官方提交。
 
@@ -55,7 +71,7 @@
 
 | 官方问题                                                     | 已验证的独立贡献分支                                                                                                                             | 提交状态                                                                                                                                                                                                        |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [#64643](https://github.com/anomalyco/opencode/issues/64643) | [`origin-session-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:origin-session-fix)，最新 `883203cadc`，4 个文件 | Issue 按 [#57985](https://github.com/anomalyco/opencode/issues/57985) 的重复报告关闭；2026-11-19 已同步最新官方 dev、复验并提交 [PR #64850](https://github.com/anomalyco/opencode/pull/64850)，关联两条 Issue。 |
+| [#64643](https://github.com/anomalyco/opencode/issues/64643) | [`origin-session-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:origin-session-fix)，最新 `9bc70a296a`，4 个文件 | Issue 按 [#57985](https://github.com/anomalyco/opencode/issues/57985) 的重复报告关闭；2026-11-19 已同步最新官方 dev、复验并提交 [PR #64850](https://github.com/anomalyco/opencode/pull/64850)，关联两条 Issue。 |
 | [#64644](https://github.com/anomalyco/opencode/issues/64644) | [`clone-selection-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:clone-selection-fix)，`ba69969b54`，10 个文件   | Issue 已提交且开放；PR 尚未创建。浏览器截图保存在独立 `clone-review-proof` 证据分支，不在贡献补丁中。                                                                                                           |
 
 GitHub 当时拒绝创建两个官方 PR：CLI GraphQL 返回 `joe-ieta does not have the correct permissions to execute CreatePullRequest`，REST 返回 404，连接器返回 integration 403。2026-11-19 整合前复核时，账号有 [#62845](https://github.com/anomalyco/opencode/pull/62845)、[#62850](https://github.com/anomalyco/opencode/pull/62850)、[#62851](https://github.com/anomalyco/opencode/pull/62851) 三个开放 PR，与下文记录的历史名额限制一致。用户此前选择“保留现有 PR”，后来明确授权整合其中两个以释放一个名额，并优先提交 clone 会话迁移修复，结果见本文最新记录。两个贡献分支和本机提交说明（`.cache/upstream-origin-pr.md`、`.cache/upstream-clone-pr.md`）均保留；前者已提交 #64850，后者仍待提交，提交前须再核对官方最新基线。
