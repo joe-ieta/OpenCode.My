@@ -7,10 +7,18 @@
 | 通道         | 版本              | 平台               | 下载                                                                               |
 | ------------ | ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
 | 正式发行（Latest） | `v2.3.0-my.13` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.13) |
+| 人工审核预发行 | `v2.3.0-my.14` | Windows x64 | [NSIS 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.14) |
 | 2.2.6 系列末版 | `v2.2.6-my.1` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.6-my.1) |
 | 2.2.5 系列末版（预发行） | `v2.2.5-my.8` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.5-my.8) |
 
 桌面版按对应的官方版本号（如 `2.3.0`）保留最后一个 fork 迭代的附件。过程版本的发行页、说明和源码标签用于查阅历史。各维护线的附件分别管理。
+
+## v2.3.0-my.14 Windows x64 人工审核预发行
+
+- 2026-11-19（Asia/Shanghai）发布，构建提交为 `0b462b859ea66deef274e68101c50285f72d94a8`，官方基线为 `0220248dc1`。Windows 安装包未签名，等待人工安装与界面验收。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.14)
+- 审核场景包括重启后保留所选 clone 目录、更换 clone 的 Git origin 后保留历史会话归属，以及最新回复的复制按钮和 Side bar 的常用操作。
+- `bun run check` 通过（35/35）。包内 CLI 通过模型目录、服务发现、V1 升级确认和历史迁移冒烟。已核对 NSIS 载荷、ASAR 和包内 CLI 版本，以及 `latest.yml` 中的大小和 SHA512。
+- 安装包为 284,804,593 字节，SHA256 为 `b8ee00fba3688a1016da7d1fcc2139f97c463cf3e98ad7b3a85ed33ba4d95656`。[安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.14/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.14/SHA256SUMS)
 
 ## v2.3.0-my.13 Windows x64 与 Linux amd64/arm64 正式发行
 
