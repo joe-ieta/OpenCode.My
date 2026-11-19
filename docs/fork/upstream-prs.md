@@ -4,13 +4,25 @@
 
 > 当前仓库关系以顶层 [AGENTS.md](../../AGENTS.md) 为准：`origin` 是本仓库 GitHub，`upstream` 是官方 GitHub；同步及官方贡献使用官方对应分支。
 
+## clone 会话迁移修复已提交官方 PR（2026-11-19）
+
+按用户优先级使用释放的一个名额，已创建 [#64850](https://github.com/anomalyco/opencode/pull/64850) `fix(core): preserve checkout sessions across origin changes`，目标为官方 `dev`。`origin-session-fix` 已无冲突合入最新官方 dev `d33b5783338b8b350aafc09f7dc2701eeba52a9a`，提交并推送 `883203cadc7cbb83f64e05c365b775a6964b0650`。PR 相对官方基线仅有 4 个 Core 源码/测试文件，216 行新增、9 行删除；`origin/dev` 同样保持该官方提交。
+
+- GitHub 已确认 `Fixes #57985` 的关联，并引用被标记为重复的 [#64643](https://github.com/anomalyco/opencode/issues/64643)。两条 Issue 均已补充 PR 与验证说明：[主 Issue](https://github.com/anomalyco/opencode/issues/57985#issuecomment-7007118475)、[复现记录](https://github.com/anomalyco/opencode/issues/64643#issuecomment-7007119488)。
+- 修复覆盖一个 clone 改 origin 后只迁移自身目录内的会话、保留另一 clone 的归属，以及子目录路径、时间戳、无身份 marker 的历史目录和已有目标工作树行。PR 说明关联了 [#58668](https://github.com/anomalyco/opencode/pull/58668) 的跨 clone/子路径审核问题；项目权限规则与 snapshot 存储迁移不属于此补丁。
+- 完整 `bun run check` 35/35 通过；项目、会话创建、工作树、会话投影及状态重放共 163/163 通过。两个 clone 方向、无 marker、已注册目标目录四个关键场景各重复十次，40/40 通过，无重试。
+- Windows 验证使用的 CSS lint 路径归一化和声明符号链接等价导入已撤回，未进入提交；贡献工作树保持干净。测试使用隔离临时数据库和真实 Git 仓库，未操作用户会话。
+- PR 为 OPEN / MERGEABLE / BLOCKED；规范、合规及贡献者检查成功，[check-test](https://github.com/anomalyco/opencode/actions/runs/44510327640) 等正式 CI 为 `action_required`，待官方维护者批准运行与审核，尚未合并。
+
+当前官方开放 PR 为 #62845、#62851、#64850，共三个。clone 目录选择修复 `clone-selection-fix` / #64644 仍待提交，未占用额外名额。
+
 ## 两个基础重构整合为一个官方 PR（2026-11-19）
 
 用户最新要求是在控制改动规模的前提下合并其中两个 PR，释放一个名额。已将项目操作重构完整合入会话索引重构，复用 [#62845](https://github.com/anomalyco/opencode/pull/62845)，标题更新为 `refactor(app): share session index and project actions`。新 head 为 `cf0814f8d202755c03ca5299f0e7c52fa30b4cca`，同时包含两个已审核分支的最新提交，并合入官方 dev `d33b5783338b8b350aafc09f7dc2701eeba52a9a`。相对该官方基线共 25 个文件、171 行新增和 160 行删除，主要为模块搬移、命名及调用引用调整。
 
 - [#62850](https://github.com/anomalyco/opencode/pull/62850) 已关闭，未合并进官方 dev；[关闭说明](https://github.com/anomalyco/opencode/pull/62850#issuecomment-7006330812) 指向完整接替它的 #62845。`project-actions` 分支和审核历史保留。
 - [#62851](https://github.com/anomalyco/opencode/pull/62851) 继续独立开放，代码 head 仍为 `6af6f58b7b2229a4450635ed4e3a44a7c5124e20`；仅更新说明中的关联关系。Running 组件与 Side bar 界面模式未加入本次重构。
-- 官方开放 PR 已从三个降至两个，释放的一个名额尚未使用。此次明确授权替代此前“保留三个现有 PR”的选择。
+- 整合完成时官方开放 PR 从三个降至两个，释放的一个名额后来按用户要求用于 #64850，见上节。此次明确授权替代此前“保留三个现有 PR”的选择。
 - 整合后完整 `bun run check` 35/35、App 单元测试 2773/2773、生产构建及 Chromium 构建模式回归 15/15 均通过。浏览器测试使用两个 worker、零重试，覆盖 Home 会话/项目列表、目录及工作树选择、服务器重新配对、项目菜单/设置、位置卡片、最近关闭会话、最近会话排序和 Inbox 重命名。
 - Windows 验证使用的声明符号链接等价导入和 CSS lint 路径归一化已撤回，未进入提交。隔离静态测试服务器已停止，未操作用户运行中的服务；不据此次验证作性能结论。
 
@@ -41,12 +53,12 @@
 - 最终整合的根目录 `bun run check` 35/35 通过，App 单元测试 2776/2776 通过。Core 项目与会话创建测试 81/81 通过；双 clone 两个方向重复 10 次通过；Home 状态机重复测试 140/140；构建模式浏览器 clone 回归以 5 个 worker、零重试运行 10 次通过，dev-my 适配后两项 keeper 回归也通过。
 - 两个独立官方分支均从官方 dev 建立，未包含 fork 品牌、发布工具或其他补丁；各自完整 lint/typecheck 35/35 通过。官方工作树检查使用了临时 Windows 路径归一化和符号链接声明的等价导入，之后均已撤回。独立 `typecheck:e2e` 仍报告未改动用例及 CSS/Vite ambient 类型问题，新增 Home 用例没有诊断；实际构建和浏览器测试通过。
 
-| 官方问题                                                     | 已验证的独立贡献分支                                                                                                                           | 提交状态                                                                                                                                  |
-| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| [#64643](https://github.com/anomalyco/opencode/issues/64643) | [`origin-session-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:origin-session-fix)，`65b39d7234`，4 个文件    | Issue 已提交；机器人按 [#57985](https://github.com/anomalyco/opencode/issues/57985) 的重复报告关闭。PR 尚未创建，准备同时关联这两个记录。 |
-| [#64644](https://github.com/anomalyco/opencode/issues/64644) | [`clone-selection-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:clone-selection-fix)，`ba69969b54`，10 个文件 | Issue 已提交且开放；PR 尚未创建。浏览器截图保存在独立 `clone-review-proof` 证据分支，不在贡献补丁中。                                     |
+| 官方问题                                                     | 已验证的独立贡献分支                                                                                                                             | 提交状态                                                                                                                                                                                                        |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [#64643](https://github.com/anomalyco/opencode/issues/64643) | [`origin-session-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:origin-session-fix)，最新 `883203cadc`，4 个文件 | Issue 按 [#57985](https://github.com/anomalyco/opencode/issues/57985) 的重复报告关闭；2026-11-19 已同步最新官方 dev、复验并提交 [PR #64850](https://github.com/anomalyco/opencode/pull/64850)，关联两条 Issue。 |
+| [#64644](https://github.com/anomalyco/opencode/issues/64644) | [`clone-selection-fix`](https://github.com/anomalyco/opencode/compare/dev...joe-ieta:OpenCode.My:clone-selection-fix)，`ba69969b54`，10 个文件   | Issue 已提交且开放；PR 尚未创建。浏览器截图保存在独立 `clone-review-proof` 证据分支，不在贡献补丁中。                                                                                                           |
 
-GitHub 当时拒绝创建两个官方 PR：CLI GraphQL 返回 `joe-ieta does not have the correct permissions to execute CreatePullRequest`，REST 返回 404，连接器返回 integration 403。2026-11-19 整合前复核时，账号有 [#62845](https://github.com/anomalyco/opencode/pull/62845)、[#62850](https://github.com/anomalyco/opencode/pull/62850)、[#62851](https://github.com/anomalyco/opencode/pull/62851) 三个开放 PR，与下文记录的历史名额限制一致。用户此前选择“保留现有 PR”，后来明确授权整合其中两个以释放一个名额，结果见本文最新记录。两个已验证贡献分支和本机完整提交说明（`.cache/upstream-origin-pr.md`、`.cache/upstream-clone-pr.md`）均保留，仍待提交；提交前须再核对官方最新基线。
+GitHub 当时拒绝创建两个官方 PR：CLI GraphQL 返回 `joe-ieta does not have the correct permissions to execute CreatePullRequest`，REST 返回 404，连接器返回 integration 403。2026-11-19 整合前复核时，账号有 [#62845](https://github.com/anomalyco/opencode/pull/62845)、[#62850](https://github.com/anomalyco/opencode/pull/62850)、[#62851](https://github.com/anomalyco/opencode/pull/62851) 三个开放 PR，与下文记录的历史名额限制一致。用户此前选择“保留现有 PR”，后来明确授权整合其中两个以释放一个名额，并优先提交 clone 会话迁移修复，结果见本文最新记录。两个贡献分支和本机提交说明（`.cache/upstream-origin-pr.md`、`.cache/upstream-clone-pr.md`）均保留；前者已提交 #64850，后者仍待提交，提交前须再核对官方最新基线。
 
 ## 初次复核记录（2026-11-18，修正前）
 
