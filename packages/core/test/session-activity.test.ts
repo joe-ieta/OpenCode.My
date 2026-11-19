@@ -8,6 +8,7 @@ import { SessionActivity } from "@opencode/core/session/activity"
 import { SessionActivitySource } from "@opencode/core/session/activity-source"
 import { SessionTable } from "@opencode/core/session/sql"
 import { SessionStore } from "@opencode/core/session/store"
+import { VideoID } from "@opencode/schema/generate"
 import { Session } from "@opencode/schema/session"
 import { SessionMessage } from "@opencode/schema/session-message"
 import { Project } from "@opencode/schema/project"
@@ -75,6 +76,17 @@ it.effect("observes nested live jobs but not settled notifications or recovered 
     yield* jobs.wait({ id: "image" })
     expect(yield* jobs.pendingBackground).toMatchObject([{ status: "completed" }])
     expect((yield* SessionActivity.list()).map((item) => item.id)).toEqual([`session:${child}`])
+    yield* jobs.start({
+      id: "video",
+      type: "video",
+      recovery: { kind: "video", sessionID: grandchild, path: "/video.mp4", videoID: VideoID.create() },
+      run: Effect.never,
+    })
+    expect(yield* SessionActivity.list()).toMatchObject([
+      { id: `session:${child}`, kind: "subagent", sessionID: child, ancestors: [root] },
+      { id: "job:video", kind: "job", sessionID: grandchild, ancestors: [child, root] },
+    ])
+    yield* jobs.cancel("video")
     yield* jobs.cancel("child")
     expect(yield* SessionActivity.list()).toEqual([])
     const recovered = yield* Job.make

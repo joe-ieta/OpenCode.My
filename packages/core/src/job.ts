@@ -263,7 +263,7 @@ export const make = Effect.gen(function* () {
             {
               id: recovery.kind === "subagent" ? `session:${recovery.childSessionID}` : `job:${job.info.id}`,
               sessionID: recovery.kind === "subagent" ? recovery.childSessionID : recovery.sessionID,
-              kind: recovery.kind === "codemode" ? ("job" as const) : recovery.kind,
+              kind: recovery.kind === "codemode" || recovery.kind === "video" ? ("job" as const) : recovery.kind,
               title: job.info.title,
               startedAt: job.info.started_at,
             },

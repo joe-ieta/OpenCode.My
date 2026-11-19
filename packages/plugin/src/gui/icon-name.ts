@@ -143,6 +143,7 @@ export type AppIconName =
   | "select-element"
   | "selector"
   | "server"
+  | "sessions-stack"
   | "settings-gear"
   | "share"
   | "shield"
