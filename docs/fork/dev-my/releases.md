@@ -4,14 +4,20 @@
 
 ## 当前下载
 
-| 通道         | 版本              | 平台               | 下载                                                                               |
-| ------------ | ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| 正式发行（Latest） | `v2.3.0-my.16` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.16) |
-| 上一正式发行 | `v2.3.0-my.15` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.15) |
-| 2.2.6 系列末版 | `v2.2.6-my.1` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.6-my.1) |
-| 2.2.5 系列末版（预发行） | `v2.2.5-my.8` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.5-my.8) |
+| 通道 | 版本 | 平台 | 下载 |
+| --- | --- | --- | --- |
+| 正式发行（Latest） | `v2.3.0-my.18` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.18) |
 
-桌面版按对应的官方版本号（如 `2.3.0`）保留最后一个 fork 迭代的附件。过程版本的发行页、说明和源码标签用于查阅历史。各维护线的附件分别管理。
+早于 `v2.3.0-my.18` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
+
+## v2.3.0-my.18 Windows x64 与 Linux amd64/arm64 正式发行
+
+- 2026-11-19（Asia/Shanghai），用户已确认同一源码的本地审核构建。`v2.3.0-my.18` 基于 `0deac1b4aa10f52b9b9883cc2fc8a84399ae2712` 重新构建，并设为 GitHub Latest。与 `.16` 相比，Git 源码只增加了发行记录。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.18)
+- Windows 和 Linux 的 `bun run check` 各通过 35/35。三个目标使用同一份内置模型目录快照，SHA256 为 `07e30ec665660770ca22d04d98b3d0d80b1c8edc26859608e364dc38b9ba5e1e`。
+- Windows x64 未签名 NSIS 安装包为 284,896,889 字节，SHA256 为 `c0b3570619c8c172dbc7bc3b00d9ba4cee5218c6476f4d3f298f5226ba13a600`。已核对安装包、ASAR、包内 CLI 版本和更新清单，CLI 的 `/api/info` 返回 HTTP 200，`/api/event` 首帧为 `server.connected`。
+- Linux amd64 和 arm64 的 AppImage 与 deb 均已解包核对架构、桌面入口、应用版本、包内 CLI 和更新源。两种架构通过模型目录、服务发现和历史迁移冒烟，arm64 运行时使用 QEMU。
+- 已核对 GitHub 上全部 10 个附件的大小及 SHA256，验证五个安装包的公开下载链接，并完整下载校验三份更新清单、`SHA256SUMS` 和 `build.json`。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.18/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.18/build.json)
+- 发布成功后，按用户确认删除所有早于 `.18` 的桌面发行附件。本次涉及 6 个发行、54 个附件。历史发行页、发布说明、源码标签和两条 headless 发行的附件均已核对保留。
 
 ## v2.3.0-my.16 Windows x64 与 Linux amd64/arm64 正式发行
 
