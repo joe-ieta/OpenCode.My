@@ -15,6 +15,7 @@
 
 ## v2.3.0-my.15 Windows x64 人工审核预发行
 
+- 2026-11-19，用户确认 Windows x64 安装包已通过人工验收。
 - 2026-11-19（Asia/Shanghai）发布，构建提交为 `9160ad1d89d7139eb961c7fb56b92a28a6c7ec3c`。合并 PR #15 后，补齐未读会话恢复执行时的请求同步，以及运行与未读计数的无障碍标签。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.15)
 - `bun run check` 通过（35/35），Side bar 与 Home 定向浏览器回归 7/7。包内 CLI 通过模型目录、服务发现、V1 升级确认和历史迁移冒烟。已核对 NSIS 载荷、ASAR、CLI 版本，以及 `latest.yml` 中的大小和 SHA512。
 - 安装包未签名，大小为 284,809,412 字节，SHA256 为 `35e239209551899c60130e119c9f2555ab988c4e966defd340edbbd8ca92204c`。[安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.15/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.15/SHA256SUMS)
