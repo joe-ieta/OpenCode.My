@@ -4,6 +4,22 @@
 
 > 当前仓库关系以顶层 [AGENTS.md](../../AGENTS.md) 为准：`origin` 是本仓库 GitHub，`upstream` 是官方 GitHub；同步及官方贡献使用官方对应分支。
 
+## 同步与现有官方 PR 审核跟进（2026-11-19）
+
+官方 dev `a86ac3f1b9` 已合入 `dev-my`，同步提交 `bf25d250dc` 已推送 origin；`origin/dev` 与本次拉取的 `upstream/dev` 完全一致。保留 fork 的独立 Side bar，兼容上游导航原型及旧项目分组组件的删除；视频 Job 纳入现有后台活动分类，并补上实际 Job 生命周期回归。合并时遗漏的 Home 冒烟辅助函数导入已恢复。
+
+- dev-my 完整 `bun run check` 35/35 通过；Core 项目、Job 与会话活动 59/59 通过，视频生成独立复测 2/2 通过；Chromium 构建模式冒烟 7/7 通过，包含 Side bar、clone 目录恢复、远端选择恢复和项目入口。
+- 三个官方 PR 的原有审核线程均已解决，没有新增待处理审核意见。本轮均合入同一官方 dev 提交，保持各自范围独立。
+- 三个官方分支完整 `bun run check` 各 35/35、App 单测各 2773/2773 通过。Windows 检查使用临时声明符号链接等价导入和 CSS 路径归一化，均未进入提交。
+
+| 官方 PR | 更新提交 | 本轮处理与验证 |
+| --- | --- | --- |
+| [#62845](https://github.com/anomalyco/opencode/pull/62845) | `b69665da42` | 共享索引与上游同名模块合并，保留上游 recency 规则；项目专属查询仍由 Home 拥有，新项目历史浏览器与自定义侧栏改用共享索引。Home/tabs 构建模式浏览器回归 94/94 通过。 |
+| [#62850](https://github.com/anomalyco/opencode/pull/62850) | `1710919b50` | 修正新建会话入口及项目历史菜单的迁移引用，接受上游旧侧栏删除。项目菜单、工作树选择、服务器重新配对、设置及位置卡片浏览器回归 7/7 通过。 |
+| [#62851](https://github.com/anomalyco/opencode/pull/62851) | `6af6f58b7b` | 暂停虚拟时钟后挂载重试故事，消除加载时间推进重试次数的竞争。Running 两个真实组件场景各重复十次，20/20 通过；Client 数据测试 39/39 通过。 |
+
+用户要求保留这三个现有 PR，未关闭任何 PR。三个 PR 的更新均已推送并更新验证说明，GitHub 均为 OPEN / MERGEABLE / BLOCKED；规范与合规检查成功，正式 CI 仍为 `action_required`。已分别留言请求维护者批准 [#62845 的 check-test](https://github.com/anomalyco/opencode/actions/runs/44491017257)、[#62850 的 check-test](https://github.com/anomalyco/opencode/actions/runs/44490474185)、[#62851 的 check-test](https://github.com/anomalyco/opencode/actions/runs/44490488735) 并完成最终审核。当前账号无官方仓库 push/maintain 权限，尚未合并官方 PR。Strobe 对比已尝试，但因与冷构建负载重叠而中止，未据此作性能结论。浏览器测试改为先完成生产构建，再运行隔离静态服务，未调整测试超时或重试次数。
+
 ## 本轮修复与官方提交（2026-11-18）
 
 已将官方 dev `d412042beb` 合入 `dev-my`（同步提交 `62a06611ed`），并推送 origin。`origin/dev` 仍与此次拉取的 `upstream/dev` 完全一致。
