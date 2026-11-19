@@ -550,6 +550,7 @@ test("Side bar tracks unread results while project rows are collapsed", async ({
   const background = running.getByRole("button").filter({ hasText: "Background task" })
   await expect(background).toBeVisible()
   await expect(background).toContainText("Unread")
+  await expect(running.getByLabel("0 running sessions, 1 unread session", { exact: true })).toHaveText("1")
   await expect(sidebar.locator('[data-slot="project-sessions-running"]')).toHaveCount(0)
   await expect(sidebar.locator('[data-slot="project-sessions-unread"]')).toHaveText("1")
   await expect(pinned.locator('[data-slot="pinned-running-count"]')).toHaveCount(0)

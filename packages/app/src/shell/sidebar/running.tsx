@@ -45,7 +45,7 @@ export function RunningSessions(props: {
 
   const [clock, setClock] = createStore({ now: Date.now() })
 
-  // The same index Home and the project list read, so an unread session outside the loaded subset still appears.
+  // Include indexed sessions whose full metadata this window has not loaded.
   const indexes = createSessionIndexes(() =>
     props.connections.flatMap((item) => (item.ctx ? [{ conn: item.conn, ctx: item.ctx }] : [])),
   )
@@ -136,6 +136,11 @@ export function RunningSessions(props: {
   })
 
   const byKey = createMemo(() => new Map(entries().map((entry) => [entry.key, entry])))
+  const countLabel = () =>
+    [
+      language.plural("sidebar.running.count", activeEntries().length),
+      ...(unreadEntries().length ? [language.plural("sidebar.unread.count", unreadEntries().length)] : []),
+    ].join(", ")
   const disconnected = () => props.connections.some((item) => item.ctx?.sdk.connection.status() !== "connected")
   const unavailable = () => props.connections.some((item) => item.ctx?.data.session.activity.unavailable())
   const loading = () =>
@@ -162,7 +167,7 @@ export function RunningSessions(props: {
     <section data-component="active-sessions" aria-labelledby={heading}>
       <div data-slot="active-sessions-header">
         <h2 id={heading}>{language.t("sidebar.running.title")}</h2>
-        <span class="tabular-nums" aria-label={language.plural("sidebar.running.count", entries().length)}>
+        <span class="tabular-nums" aria-label={countLabel()}>
           {entries().length}
         </span>
       </div>
@@ -186,12 +191,12 @@ export function RunningSessions(props: {
           {(key) => (
             <Show when={byKey().get(key)}>
               {(entry) => {
-                // A keyed row survives other sessions and shells changing. Refresh only on arrival or a new connection.
+                // A keyed row also survives a transition from unread to active on the same connection.
                 const context = createMemo(() => entry().ctx)
 
                 createEffect(
-                  on(context, (ctx) => {
-                    if (entry().unread) {
+                  on([context, () => entry().unread], ([ctx, unread]) => {
+                    if (unread) {
                       void ctx.data.session.sync(entry().id).catch(() => undefined)
 
                       return
