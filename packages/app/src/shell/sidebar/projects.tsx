@@ -30,6 +30,7 @@ import { setSidebarUnread } from "@/shell/sidebar-peek"
 import { createSessionIndexes } from "./history"
 import { projectRemoteHint } from "./project-remotes"
 import { createProjectActions } from "@/shell/projects/actions"
+import { addProjects } from "@/shell/projects/add"
 import { ProjectMenuItems } from "@/shell/projects/menu"
 import { isServerFailed } from "@/runtime/server/health-machine"
 import type { LocalProject } from "@/shell/state/layout"
@@ -52,6 +53,13 @@ export function SidebarProjects(props: {
   const command = useCommand()
   const tabs = useTabs()
   const projectActions = createProjectActions()
+  function chooseProject(conn: ServerConnection.Any) {
+    projectActions.choose(conn, (server, directories) => {
+      const ctx = global.serverCtx(ServerConnection.key(server))
+      if (ctx) void addProjects(ctx, directories)
+    })
+  }
+
   const [projectMenu, setProjectMenu] = createStore<{ open?: string }>({})
   let projectMenuFocus: HTMLButtonElement | undefined
   let listRef!: HTMLDivElement
@@ -993,7 +1001,7 @@ export function SidebarProjects(props: {
                           {(conn) => (
                             <Menu.Item
                               disabled={isServerFailed(global.servers.health[ServerConnection.key(conn)])}
-                              onSelect={() => projectActions.choose(conn)}
+                              onSelect={() => chooseProject(conn)}
                             >
                               {serverName(conn)}
                             </Menu.Item>
@@ -1011,7 +1019,7 @@ export function SidebarProjects(props: {
                   aria-label={language.t("home.project.add")}
                   title={language.t("home.project.add")}
                   disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
-                  onClick={() => projectActions.choose(servers.visible[0])}
+                  onClick={() => chooseProject(servers.visible[0])}
                 />
               </Show>
             </Show>

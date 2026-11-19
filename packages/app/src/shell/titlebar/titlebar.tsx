@@ -24,6 +24,7 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useSettings } from "@/settings/model"
+import { createHomeSessionActions } from "@/home/model"
 import { useProjectNavigation } from "@/shell/project-navigation"
 import { useProjectBrowser } from "@/home/projects/browse"
 import { useProjectStart } from "@/home/projects/start"
@@ -343,6 +344,8 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
             }
 
             const openNewTab = () => openDraft(uuid())
+            const homeSessions = createHomeSessionActions(layout.home.selection)
+            const sidebarMode = () => settings.appearance.tabLayout() === "sidebar"
 
             const toggleHome = () => tabs.toggleHome({ home: layout.route().type === "home", current: currentTab() })
 
@@ -458,7 +461,11 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
             )
 
             const newSessionButton = () => (
-              <RecentlyClosedTabsMenu vertical onNewTab={openNewTab} keybind={command.keybindParts("tab.new")} />
+              <RecentlyClosedTabsMenu
+                vertical
+                onNewTab={() => (sidebarMode() ? homeSessions.openNewSession() : openNewTab())}
+                keybind={sidebarMode() ? undefined : command.keybindParts("tab.new")}
+              />
             )
 
             const settingsButton = () => {

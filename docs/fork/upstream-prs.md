@@ -4,6 +4,16 @@
 
 > 当前仓库关系以顶层 [AGENTS.md](../../AGENTS.md) 为准：`origin` 是本仓库 GitHub，`upstream` 是官方 GitHub；同步及官方贡献使用官方对应分支。
 
+## 审核修正回迁 dev-my（2026-11-19）
+
+以已同步的 `origin/dev-my` 为基线，将 [#62845](https://github.com/anomalyco/opencode/pull/62845) 的 `b696d7a81d` 和 [#64850](https://github.com/anomalyco/opencode/pull/64850) 的 `9bc70a296a` 分别回迁为 `81a443130d`、`fd937fda36`，提交说明保留原始提交引用。Core 源码与对应回归测试和官方贡献分支完全一致。
+
+- 保留独立 Side bar：单服务器按钮、多服务器菜单显式传入既有项目添加动作，并使用重新配对后的连接；Home 继续使用自己的添加队列。
+- 冒烟发现此前同步丢失的侧栏“新建会话”行为：在 Home 选择项目后切到另一会话，会错误使用当前会话的项目。恢复 `947eade9ed` 中的专用回调，沿用 Home 选择；原有 keeper 用例在修复前失败。
+- 保留 fork 的项目显示名处理；未修改官方 PR、其他维护分支或 `origin/sidebar-mode`。
+
+本轮验证：根目录 `bun run check` 35/35、Core 项目/会话创建/工作树/会话投影/重放回归 167/167、App 单测 2788/2788 通过。生产构建成功；恢复侧栏专用入口后，Chromium 构建模式冒烟 10/10 通过（2 workers、零重试），覆盖 Home/Side bar 共享索引、单/多服务器项目添加、草稿与运行中会话保留、项目菜单、新会话目标、列表模式、clone 目录恢复及服务器重新配对。
+
 ## 最新审核修正与 CI 跟进（2026-11-19）
 
 再次核对官方 PR 的评论、逐行线程、当前 head 和 Actions workflow 状态；最新官方 dev 仍为 `d33b578333`。本轮处理新增审核意见，未通过空提交重跑无变化的分支。
