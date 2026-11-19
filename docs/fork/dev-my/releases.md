@@ -10,11 +10,15 @@
 
 早于 `v2.3.0-my.18` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
 
-## v2.3.0-my.19 Windows x64 人工审查版
+## v2.3.0-my.19 Windows x64 与 Linux amd64/arm64 RC 预览
 
 - 2026-11-20（Asia/Shanghai）发布 Windows x64 预发行，构建及标签对应 `e484bb9707ad08501edd58351db73ffc11605c29`。GitHub Latest 为 `v2.3.0-my.18`。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.19)
 - 包含 Git diff 仓库配置修复、Windows 桌面打开 PowerShell 7 修复，以及 Shell 输出目录恢复修复。保留本地会话活动注册，Side bar 与 Home Chromium 回归 20/20，Core 回归 62/62，`bun run check` 35/35。
-- 未签名 NSIS 安装包为 284898564 字节，SHA256 为 `38d2e8dfcc545918d248f828d595961fd8b207740295ffe03c2717c2d3b212a5`。安装包、ASAR 和包内 CLI 版本已核验。包内 CLI 的 `/api/info` 返回 HTTP 200，`/api/event` 首帧为 `server.connected`。GitHub 四个附件的大小、SHA256 和公开下载链接均已核验，等待 Windows 人工安装验收。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.19/SHA256SUMS)
+- 未签名 NSIS 安装包为 284898564 字节，SHA256 为 `38d2e8dfcc545918d248f828d595961fd8b207740295ffe03c2717c2d3b212a5`。安装包、ASAR 和包内 CLI 版本已核验。包内 CLI 的 `/api/info` 返回 HTTP 200，`/api/event` 首帧为 `server.connected`。GitHub 四个附件的大小、SHA256 和公开下载链接均已核验。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.19/SHA256SUMS)
+
+- 2026-11-20（Asia/Shanghai）确认 Windows 安装包通过人工验收，保留安装包及 `latest.yml` 的原附件 ID 和 SHA256。基于同一源码及模型目录快照（SHA256 `07e30ec665660770ca22d04d98b3d0d80b1c8edc26859608e364dc38b9ba5e1e`）补齐 Linux amd64/arm64 的 AppImage 和 deb。
+- Linux `bun run check` 35/35。四个安装包完成解包和架构、版本、桌面入口及更新源核验。两架构的包内 CLI 均通过模型目录、服务发现、历史迁移、HTTP 健康检查和 SSE 冒烟，arm64 使用 QEMU。
+- 已核对全部 10 个发布附件的大小、SHA256 和公开下载链接。`.19` 保持预发行并标记 RC 预览，Latest 为 `.18`。[RC 预览](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.19)
 
 ## v2.3.0-my.18 Windows x64 与 Linux amd64/arm64 正式发行
 
