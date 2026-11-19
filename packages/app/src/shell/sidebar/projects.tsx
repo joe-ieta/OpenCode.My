@@ -395,25 +395,39 @@ export function SidebarProjects(props: {
   // A project runs while any of its sessions executes, the current one included.
   const isRunning = (tab: Tab) => !!status[tabKey(tab)]?.loading
 
+  const pinnedSummary = createMemo(() => {
+    const keys = new Set(pinnedGroups())
+    const tabs = groups().filter((group) => keys.has(group.key)).flatMap((group) => group.tabs)
+
+    return {
+      projects: keys.size,
+      running: new Set(tabs.filter(isRunning).map(tabKey)).size,
+      unread: new Set(tabs.filter(isUnread).map(tabKey)).size,
+    }
+  })
+
   const summary = createMemo(() => {
+    // Activity can name a child before its root metadata arrives; count the root session once.
     const active = new Set(displayedTabs().filter(isRunning).map(tabKey))
 
     sidebar.sources().forEach(({ conn, ctx }) => {
       const server = ServerConnection.key(conn)
       if (ctx.sdk.connection.status() !== "connected") return
       ctx.data.session.activity.active().forEach((id) => {
+        const root = ctx.data.session.root(id)
         const session =
-          ctx.data.session.get(id) ?? indexed().get(tabKey({ type: "session", server, sessionId: id }))?.session
+          ctx.data.session.get(root) ?? indexed().get(tabKey({ type: "session", server, sessionId: root }))?.session
         if (!session || session.parentID || session.time.archived !== undefined) return
-        const root = ctx.projects.forSession(session)?.worktree ?? session.location.directory
-        if (groupsByKey().has(JSON.stringify([server, pathKey(root)]))) {
-          active.add(tabKey({ type: "session", server, sessionId: id }))
+        const project = ctx.projects.forSession(session)?.worktree ?? session.location.directory
+        if (groupsByKey().has(JSON.stringify([server, pathKey(project)]))) {
+          active.add(tabKey({ type: "session", server, sessionId: root }))
         }
       })
     })
 
     return {
       active: active.size,
+      unread: new Set(displayedTabs().filter(isUnread).map(tabKey)).size,
       sessions: groups().reduce((total, group) => total + group.total, 0),
       projects: projectCount(),
     }
@@ -932,10 +946,32 @@ export function SidebarProjects(props: {
               </For>
             </div>
             <span
-              class="ms-auto shrink-0 whitespace-nowrap text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
+              class="ms-auto flex shrink-0 items-center gap-2 whitespace-nowrap text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
               title={language.t("sidebar.projectSessions.summary", summary())}
             >
-              {summary().active}/{summary().sessions}/{summary().projects}
+              <Show when={summary().active > 0}>
+                <span
+                  data-slot="project-sessions-running"
+                  class="flex items-center gap-1"
+                  title={language.plural("sidebar.running.count", summary().active)}
+                >
+                  <ActivityRing width={12} height={12} />
+                  <span>{summary().active}</span>
+                </span>
+              </Show>
+              <Show when={summary().unread > 0}>
+                <span
+                  data-slot="project-sessions-unread"
+                  class="flex items-center gap-1"
+                  title={language.plural("sidebar.unread.count", summary().unread)}
+                >
+                  <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
+                  <span>{summary().unread}</span>
+                </span>
+              </Show>
+              <span data-slot="project-sessions-totals">
+                {summary().sessions}/{summary().projects}
+              </span>
             </span>
             <Show when={listMode()}>{props.newSessionButton}</Show>
             <Show when={!listMode()}>
@@ -1013,12 +1049,40 @@ export function SidebarProjects(props: {
               <h2 class="min-w-0 truncate text-[13px] leading-4 font-medium text-v2-text-text-muted">
                 {language.t("sidebar.pinned.title")}
               </h2>
-              <span
-                class="shrink-0 rounded px-1 text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
-                title={language.plural("sidebar.pinned.count", pinnedGroups().length)}
+              <div
+                role="group"
+                aria-label={language.t("sidebar.pinned.title")}
+                class="flex shrink-0 items-center gap-2 text-[11px] leading-4 tabular-nums text-v2-text-text-faint"
               >
-                {pinnedGroups().length}
-              </span>
+                <span
+                  data-slot="pinned-projects-count"
+                  class="flex items-center gap-1"
+                  title={language.plural("sidebar.pinned.count", pinnedSummary().projects)}
+                >
+                  <Icon name="folder" size="small" class="text-v2-icon-icon-muted" />
+                  <span>{pinnedSummary().projects}</span>
+                </span>
+                <Show when={pinnedSummary().running > 0}>
+                  <span
+                    data-slot="pinned-running-count"
+                    class="flex items-center gap-1"
+                    title={language.plural("sidebar.running.count", pinnedSummary().running)}
+                  >
+                    <ActivityRing width={12} height={12} />
+                    <span>{pinnedSummary().running}</span>
+                  </span>
+                </Show>
+                <Show when={pinnedSummary().unread > 0}>
+                  <span
+                    data-slot="pinned-unread-count"
+                    class="flex items-center gap-1"
+                    title={language.plural("sidebar.unread.count", pinnedSummary().unread)}
+                  >
+                    <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
+                    <span>{pinnedSummary().unread}</span>
+                  </span>
+                </Show>
+              </div>
             </div>
             <div
               data-slot="sidebar-pinned-scroll"
