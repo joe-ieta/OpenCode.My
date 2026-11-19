@@ -6,22 +6,23 @@
 
 | 通道         | 版本              | 平台               | 下载                                                                               |
 | ------------ | ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| 人工审核预发行 | `v2.3.0-my.16` | Windows x64 | [NSIS 安装包与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.16) |
-| 正式发行（Latest） | `v2.3.0-my.15` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.15) |
-| 上一正式发行 | `v2.3.0-my.13` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.13) |
+| 正式发行（Latest） | `v2.3.0-my.16` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.16) |
+| 上一正式发行 | `v2.3.0-my.15` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.15) |
 | 2.2.6 系列末版 | `v2.2.6-my.1` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.6-my.1) |
 | 2.2.5 系列末版（预发行） | `v2.2.5-my.8` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.5-my.8) |
 
 桌面版按对应的官方版本号（如 `2.3.0`）保留最后一个 fork 迭代的附件。过程版本的发行页、说明和源码标签用于查阅历史。各维护线的附件分别管理。
 
-## v2.3.0-my.16 Windows x64 人工审核预发行
+## v2.3.0-my.16 Windows x64 与 Linux amd64/arm64 正式发行
 
-- 2026-11-19（Asia/Shanghai）公开为预发行，标签与构建源码均为 `4bccffbf2ef47234c6013d1ec556f1903c2a8712`。Windows 安装包未签名，人工安装与界面验收待完成。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.16)
+- 2026-11-19（Asia/Shanghai），用户确认 Windows x64 人工审核通过；补齐并验证 Linux amd64/arm64 后，将原预发行转为正式发行并设为 GitHub Latest。标签及三个目标的构建源码均为 `4bccffbf2ef47234c6013d1ec556f1903c2a8712`，标签未变。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.16)
 - 包含官方 PR [#62845](https://github.com/anomalyco/opencode/pull/62845)、[#64850](https://github.com/anomalyco/opencode/pull/64850) 本轮审核修正：项目选择显式传入添加动作；以 checkout 身份核验会话迁移来源，停止写入 `.git/opencode`，跳过身份未变时的迁移扫描。保留 Side bar 的单/多服务器项目添加，并恢复“新建会话”沿用 Home 所选项目的行为。
 - 根目录完整检查 35/35、Core 回归 167/167、App 单测 2788/2788、Chromium 冒烟 10/10 通过。冻结依赖安装后再次完整检查 35/35 通过；Bun 1.4.4 构建的 CLI 比对 8,740 个模型，并通过服务发现、V1 升级确认和历史迁移冒烟。
-- NSIS 完整性、内嵌 ASAR/CLI 版本、更新源及 `latest.yml` 的大小和 SHA512 均已核验。四个 GitHub 附件的大小与 SHA256 和本地一致。Latest 保持 `v2.3.0-my.15`。
-- 安装包为 284,970,598 字节，SHA256 为 `3731db9b470e018453142f16683d5c524e3c7166ebea18c69bbc67b019d02996`。[安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.16/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.16/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.16/build.json)
-- 本版模型快照保存在 `.cache/desktop-my/2.3.0-my.16/models-catalog.json`，SHA256 为 `54e91bab0c729fc98fb373556c23ab4a3d5fc4cfde357ae5d9319dcae1c5b5d7`，供后续同版其他平台构建复用。
+- Windows NSIS 完整性、内嵌 ASAR/CLI 版本、更新源及 `latest.yml` 的大小和 SHA512 均已核验。已验收的安装包和更新清单保留原附件 ID、大小和 SHA256。
+- Windows 安装包未签名，为 284,970,598 字节，SHA256 为 `3731db9b470e018453142f16683d5c524e3c7166ebea18c69bbc67b019d02996`。[安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.16/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.16/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.16/build.json)
+- Linux amd64、arm64 各提供 AppImage 和 deb，在 Ubuntu 24.04 构建容器中复用 Windows 模型快照 `.cache/desktop-my/2.3.0-my.16/models-catalog.json`，SHA256 为 `54e91bab0c729fc98fb373556c23ab4a3d5fc4cfde357ae5d9319dcae1c5b5d7`。Linux 完整检查 35/35、Core 回归 167/167；两种架构均比对 8,740 个模型，通过服务发现、V1 升级确认和历史迁移冒烟，arm64 运行时验证使用 QEMU。
+- 四个 Linux 包已解包核对 Electron、CLI、终端原生模块的架构，以及桌面入口、ASAR 版本和更新源；同架构 AppImage 与 deb 的应用内容一致。Linux 两份更新清单的大小和 SHA512 通过核验，联合校验文件覆盖五个安装包，构建信息记录三个目标。
+- GitHub 的 10 个附件均已核对大小和服务端 SHA256；公开下载链接已验证，五个安装包的下载片段与本地一致，更新清单、联合校验文件和构建信息均在完整下载后通过校验。
 
 ## v2.3.0-my.15 Windows x64 与 Linux amd64/arm64 正式发行
 
