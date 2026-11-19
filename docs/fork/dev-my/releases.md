@@ -6,19 +6,21 @@
 
 | 通道         | 版本              | 平台               | 下载                                                                               |
 | ------------ | ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| 正式发行（Latest） | `v2.3.0-my.13` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.13) |
-| 人工审核预发行 | `v2.3.0-my.15` | Windows x64 | [NSIS 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.15) |
+| 正式发行（Latest） | `v2.3.0-my.15` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.15) |
+| 上一正式发行 | `v2.3.0-my.13` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.13) |
 | 2.2.6 系列末版 | `v2.2.6-my.1` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.6-my.1) |
 | 2.2.5 系列末版（预发行） | `v2.2.5-my.8` | Windows x64、Linux amd64/arm64 | [历史附件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.2.5-my.8) |
 
 桌面版按对应的官方版本号（如 `2.3.0`）保留最后一个 fork 迭代的附件。过程版本的发行页、说明和源码标签用于查阅历史。各维护线的附件分别管理。
 
-## v2.3.0-my.15 Windows x64 人工审核预发行
+## v2.3.0-my.15 Windows x64 与 Linux amd64/arm64 正式发行
 
 - 2026-11-19，用户确认 Windows x64 安装包已通过人工验收。
-- 2026-11-19（Asia/Shanghai）发布，构建提交为 `9160ad1d89d7139eb961c7fb56b92a28a6c7ec3c`。合并 PR #15 后，补齐未读会话恢复执行时的请求同步，以及运行与未读计数的无障碍标签。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.15)
+- 2026-11-19（Asia/Shanghai）补齐 Linux 资产后设为正式发行和 GitHub Latest。标签及三种架构构建均对应 `9160ad1d89d7139eb961c7fb56b92a28a6c7ec3c`。合并 PR #15 后补齐未读会话恢复执行时的请求同步，以及运行与未读计数的无障碍标签。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.15)
 - `bun run check` 通过（35/35），Side bar 与 Home 定向浏览器回归 7/7。包内 CLI 通过模型目录、服务发现、V1 升级确认和历史迁移冒烟。已核对 NSIS 载荷、ASAR、CLI 版本，以及 `latest.yml` 中的大小和 SHA512。
-- 安装包未签名，大小为 284,809,412 字节，SHA256 为 `35e239209551899c60130e119c9f2555ab988c4e966defd340edbbd8ca92204c`。[安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.15/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.15/SHA256SUMS)
+- Windows 安装包未签名，大小为 284,809,412 字节，保留验收时的 SHA256 `35e239209551899c60130e119c9f2555ab988c4e966defd340edbbd8ca92204c`。
+- Linux amd64、arm64 均提供 AppImage 和 deb，复用 Windows 的模型快照 `66b706398e6993ac24d3a28e6ecff7f15e8ecaa21115aa44e38985fc41aa813b`。Linux 完整检查 35/35。两架构均比对 8,779 个模型，通过服务发现、V1 升级确认和历史迁移冒烟。arm64 运行时验证使用 QEMU。
+- 四个 Linux 包均已解包确认架构、桌面入口、ASAR、包内 CLI 版本和更新源。三份更新清单的大小和 SHA512 均已核对，联合校验文件覆盖五个安装包。GitHub 的 10 个附件均已核对大小、SHA256 和下载链接。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.15/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.15/build.json)
 
 ## v2.3.0-my.14 Windows x64 人工审核预发行
 
