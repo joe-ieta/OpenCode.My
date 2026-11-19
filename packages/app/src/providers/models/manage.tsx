@@ -101,7 +101,7 @@ export const DialogManageModels: Component = () => {
           <TextInput
             type="search"
             appearance="base"
-            class="!w-full self-stretch"
+            class="!h-8 !w-full self-stretch"
             leadingIcon={<Icon name="magnifying-glass" />}
             value={list.filter()}
             onInput={(event) => list.onInput(event.currentTarget.value)}
