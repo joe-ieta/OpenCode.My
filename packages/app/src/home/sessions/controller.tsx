@@ -38,7 +38,12 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { sessionLabel, sessionTitle } from "@/session/title"
 import { showToast } from "@/shell/notifications/toast"
 import { archiveHomeSession } from "./archive"
-import { removeIndexedSessions, renameIndexedSession, sessionIndexQuery } from "@/runtime/server/session-queries"
+import {
+  removeIndexedSessions,
+  renameIndexedSession,
+  SESSION_INDEX_QUERY,
+  sessionIndexQuery,
+} from "@/runtime/server/session-queries"
 import type { SessionIndex } from "@/runtime/server/session-index"
 import { lookupHomeSession, projectSessionDirectories, projectSessionsQuery } from "./queries"
 import {
@@ -120,7 +125,7 @@ export function createHomeSessionsController(home: HomeController) {
 
   function homeSessionsTarget(current = focus()): HomeSessionsTarget | undefined {
     if (!current) return
-    const cache = queryClient.getQueryState<SessionIndex>(["home-sessions", current.conn])
+    const cache = queryClient.getQueryState<SessionIndex>([SESSION_INDEX_QUERY, current.conn])
     const cached = cache?.data !== undefined
 
     return {
@@ -166,7 +171,7 @@ export function createHomeSessionsController(home: HomeController) {
     const conn = home.server.list().find((item) => ServerConnection.key(item) === effect.server)
 
     if (effect.type === "fetch.cancel") {
-      if (conn) void queryClient.cancelQueries({ queryKey: ["home-sessions", conn], exact: true })
+      if (conn) void queryClient.cancelQueries({ queryKey: [SESSION_INDEX_QUERY, conn], exact: true })
 
       return
     }
@@ -200,13 +205,13 @@ export function createHomeSessionsController(home: HomeController) {
   // The query refetched on invalidation and on reconnect while stale; the machine keeps both.
   onCleanup(
     queryClient.getQueryCache().subscribe((event) => {
-      if (event.type !== "updated" || event.query.queryKey[0] !== "home-sessions") return
+      if (event.type !== "updated" || event.query.queryKey[0] !== SESSION_INDEX_QUERY) return
       setCacheVersion((version) => version + 1)
 
       if (event.action.type !== "invalidate") return
       const current = untrack(focus)
 
-      if (current?.connection !== "connected" || event.query.queryHash !== hashKey(["home-sessions", current.conn]))
+      if (current?.connection !== "connected" || event.query.queryHash !== hashKey([SESSION_INDEX_QUERY, current.conn]))
         return
       dispatchLoad({ type: "refresh", server: current.key })
     }),
@@ -227,7 +232,7 @@ export function createHomeSessionsController(home: HomeController) {
     load()
     const conn = home.server.focused()
 
-    return (conn && queryClient.getQueryData<SessionIndex>(["home-sessions", conn])?.sessions) || []
+    return (conn && queryClient.getQueryData<SessionIndex>([SESSION_INDEX_QUERY, conn])?.sessions) || []
   })
 
   const scoped = useQuery(() =>
@@ -411,7 +416,9 @@ export function createHomeSessionsController(home: HomeController) {
         const request = Promise.try(() => target.ctx.data.session.remove(effect.sessionID))
         animateHomeRowsUp(rows)
         void request
-          .finally(() => void queryClient.invalidateQueries({ queryKey: ["home-sessions", target.conn], exact: true }))
+          .finally(
+            () => void queryClient.invalidateQueries({ queryKey: [SESSION_INDEX_QUERY, target.conn], exact: true }),
+          )
           .then(
             () => dispatch({ type: "delete.succeeded", attempt: effect.attempt, target: effect.target }),
             (cause: unknown) => dispatch({ type: "delete.failed", attempt: effect.attempt, cause }),
@@ -425,7 +432,7 @@ export function createHomeSessionsController(home: HomeController) {
       if (effect.type === "session.removed") {
         const conn = serverContext(props.server)?.conn
 
-        if (conn) removeIndexedSessions(queryClient, conn, [...effect.target.removedIDs])
+        if (conn) removeIndexedSessions(queryClient, conn, effect.target.removedIDs)
         notifySessionTabsRemoved({
           server: props.server,
           directory: props.session.location.directory,

@@ -20,6 +20,7 @@ import { Persist, persisted } from "@/runtime/persistence/storage"
 import { rawTime } from "@/runtime/server/data"
 import { ServerConnection, useServers } from "@/runtime/server/registry"
 import { useGlobal, type ServerCtx } from "@/runtime/server/runtime"
+import { SESSION_INDEX_QUERY } from "@/runtime/server/session-queries"
 import { sessionTreeIDs } from "@/session/requests/session-request-tree"
 import { errorMessage } from "@/shell/layout/helpers"
 import { useSessionTabAvatarState } from "@/shell/layout/project-avatar-state"
@@ -720,7 +721,7 @@ export function RecentSessions() {
 
     if (!conn) return
 
-    for (const queryKey of ["home-sessions", "inbox-sessions", "inbox-archived-sessions"]) {
+    for (const queryKey of [SESSION_INDEX_QUERY, "inbox-sessions", "inbox-archived-sessions"]) {
       void queryClient.invalidateQueries({ queryKey: [queryKey, conn], exact: true })
     }
   }

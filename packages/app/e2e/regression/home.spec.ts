@@ -54,6 +54,23 @@ test("Home keeps the session list in every interface mode", async ({ page }) => 
   }
 })
 
+test("Home opens after Side bar loads the shared session index", async ({ page }) => {
+  const active = { id: "ses_home_index_active", title: "Active session" }
+  const history = { id: "ses_home_index_history", title: "Earlier session" }
+  await mockWorkspace(page, {
+    name: "Shared index",
+    sessions: [active, history],
+    seed: { tabs: [active.id], settings: { appearance: { tabLayout: "sidebar" } } },
+  })
+  await page.goto(sessionHref(active.id))
+  await expectSessionTitle(page, active.title)
+
+  const sidebar = page.locator('[data-slot="vertical-tabs-sidebar"]')
+  await expect(sidebar.getByText(history.title, { exact: true })).toBeVisible({ timeout: APP_READY_TIMEOUT })
+  await sidebar.getByRole("button", { name: "Home", exact: true }).click()
+  await expect(row(page, history.title)).toBeVisible({ timeout: APP_READY_TIMEOUT })
+})
+
 test("choosing Customize replaces Home with Settings in desktop side tabs", async ({ page }) => {
   await mockWorkspace(page, {
     name: "Website",
