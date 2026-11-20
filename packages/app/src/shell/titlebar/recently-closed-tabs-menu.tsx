@@ -25,6 +25,8 @@ export function RecentlyClosedTabsMenu(props: {
   onNewTab: () => void
   tooltip?: JSX.Element
   vertical?: boolean
+  /** A compact trigger for sitting beside another action, matching its row and padding. */
+  dense?: boolean
   size?: "small" | "large"
   icon?: JSX.Element
   keybind?: string[]
@@ -114,7 +116,8 @@ export function RecentlyClosedTabsMenu(props: {
           type="button"
           data-titlebar-tab-action
           data-action="vertical-tabs-new-session"
-          class="group flex h-7 w-full shrink-0 items-center gap-2 rounded-[6px] px-2 text-[13px] leading-4 text-v2-text-text-faint hover:text-v2-text-text-base"
+          class="group flex h-7 w-full shrink-0 items-center rounded-[6px] text-[13px] leading-4 text-v2-text-text-faint hover:text-v2-text-text-base"
+          classList={{ "gap-2 px-2": !props.dense, "gap-1.5 px-1": !!props.dense }}
           onClick={props.onNewTab}
           aria-label={language.t("command.session.new")}
         >

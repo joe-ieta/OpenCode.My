@@ -110,6 +110,9 @@ export default [
           },
         },
         define: {
+          "import.meta.env.VITE_OPENCODE_BUILD_TIME": JSON.stringify(
+            process.env.OPENCODE_BUILD_TIME ?? new Date().toISOString(),
+          ),
           "import.meta.env.VITE_OPENCODE_CHANNEL": JSON.stringify(channel),
         },
         worker: {

@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_OPENCODE_SERVER_HOST: string
   readonly VITE_OPENCODE_SERVER_PORT: string
   readonly VITE_OPENCODE_CHANNEL?: "local" | "dev" | "beta" | "prod"
+  /** When this build was produced, as an ISO timestamp. */
+  readonly VITE_OPENCODE_BUILD_TIME?: string
   /** The release of the CLI whose server embeds this build. Absent in the hosted web app. */
   readonly VITE_OPENCODE_VERSION?: string
 

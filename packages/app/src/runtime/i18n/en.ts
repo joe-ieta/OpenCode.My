@@ -1028,6 +1028,9 @@ export const dict = {
 
   "sidebar.settings": "Settings",
   "sidebar.help": "Help",
+  "sidebar.identity.released": "Released {{date}}",
+  "sidebar.identity.server": "Server: {{server}}",
+  "sidebar.identity.serverVersion": "Server version {{version}}",
   "sidebar.grouping.other": "Other sessions",
   "sidebar.grouping.label": "Group sessions",
   "sidebar.grouping.project": "By project",

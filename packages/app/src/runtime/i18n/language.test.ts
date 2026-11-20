@@ -40,6 +40,16 @@ describe("dictionaries", () => {
     expect(keys.filter((key) => !(key in zh.dict))).toEqual([])
     expect(keys.filter((key) => !(key in zht.dict))).toEqual([])
   })
+
+  test("the Side bar pinned project and identity labels are translated in both Chinese locales", async () => {
+    const [en, zh, zht] = await Promise.all([import("./en"), import("./zh"), import("./zht")])
+    const keys = Object.keys(en.dict).filter(
+      (key) => key.startsWith("sidebar.pinned.") || key.startsWith("sidebar.identity."),
+    )
+
+    expect(keys.filter((key) => !(key in zh.dict))).toEqual([])
+    expect(keys.filter((key) => !(key in zht.dict))).toEqual([])
+  })
 })
 
 describe("language preference", () => {

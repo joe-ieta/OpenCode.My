@@ -370,15 +370,21 @@ export function SidebarProjects(props: {
           const promoted = new Set(activity.map(tabKey))
 
           if (collapsed[0].includes(group.key)) return [group.key, { rows: [] as Tab[], promoted }] as const
-          const ordered = [...activity, ...group.tabs.filter((tab) => !promoted.has(tabKey(tab)))]
+          // Unsent drafts stay first in their project, ahead of running or recently active sessions.
+          const drafts = group.tabs.filter((tab) => tab.type === "draft")
+          const ordered = [
+            ...drafts,
+            ...activity,
+            ...group.tabs.filter((tab) => tab.type !== "draft" && !promoted.has(tabKey(tab))),
+          ]
 
           if (expanded[group.key]) return [group.key, { rows: ordered, promoted }] as const
           const rows = ordered.slice(0, PROJECT_SESSION_LIMIT)
           const selected = group.tabs.find((tab) => tabKey(tab) === currentKey())
 
           if (!selected || rows.includes(selected)) return [group.key, { rows, promoted }] as const
-          // Keep an otherwise hidden selection after the activity, within the preview limit.
-          const index = Math.min(activity.length, PROJECT_SESSION_LIMIT - 1)
+          // Keep an otherwise hidden selection at its place in the order, within the preview limit.
+          const index = Math.min(ordered.indexOf(selected), PROJECT_SESSION_LIMIT - 1)
           promoted.add(tabKey(selected))
 
           return [group.key, { rows: [...rows.slice(0, index), selected, ...rows.slice(index, -1)], promoted }] as const
@@ -963,8 +969,8 @@ export function SidebarProjects(props: {
                   class="flex items-center gap-1"
                   title={language.plural("sidebar.running.count", summary().active)}
                 >
-                  <ActivityRing width={12} height={12} />
                   <span>{summary().active}</span>
+                  <ActivityRing width={12} height={12} />
                 </span>
               </Show>
               <Show when={summary().unread > 0}>
@@ -973,8 +979,8 @@ export function SidebarProjects(props: {
                   class="flex items-center gap-1"
                   title={language.plural("sidebar.unread.count", summary().unread)}
                 >
-                  <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
                   <span>{summary().unread}</span>
+                  <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
                 </span>
               </Show>
               <span data-slot="project-sessions-totals">
@@ -1067,8 +1073,8 @@ export function SidebarProjects(props: {
                   class="flex items-center gap-1"
                   title={language.plural("sidebar.pinned.count", pinnedSummary().projects)}
                 >
-                  <Icon name="folder" size="small" class="text-v2-icon-icon-muted" />
                   <span>{pinnedSummary().projects}</span>
+                  <Icon name="folder" size="small" class="text-v2-icon-icon-muted" />
                 </span>
                 <Show when={pinnedSummary().running > 0}>
                   <span
@@ -1076,8 +1082,8 @@ export function SidebarProjects(props: {
                     class="flex items-center gap-1"
                     title={language.plural("sidebar.running.count", pinnedSummary().running)}
                   >
-                    <ActivityRing width={12} height={12} />
                     <span>{pinnedSummary().running}</span>
+                    <ActivityRing width={12} height={12} />
                   </span>
                 </Show>
                 <Show when={pinnedSummary().unread > 0}>
@@ -1086,8 +1092,8 @@ export function SidebarProjects(props: {
                     class="flex items-center gap-1"
                     title={language.plural("sidebar.unread.count", pinnedSummary().unread)}
                   >
-                    <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
                     <span>{pinnedSummary().unread}</span>
+                    <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
                   </span>
                 </Show>
               </div>

@@ -405,6 +405,9 @@ export const dict = {
   "common.key.esc": "ESC",
 
   "sidebar.settings": "设置",
+  "sidebar.identity.released": "发布于 {{date}}",
+  "sidebar.identity.server": "服务器：{{server}}",
+  "sidebar.identity.serverVersion": "服务器版本 {{version}}",
   "sidebar.help": "帮助",
   "sidebar.grouping.other": "其他会话",
   "sidebar.grouping.label": "会话分组",
