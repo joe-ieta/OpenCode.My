@@ -4,6 +4,14 @@
 
 > 当前仓库关系以顶层 [AGENTS.md](../../AGENTS.md) 为准：`origin` 是本仓库 GitHub，`upstream` 是官方 GitHub；同步及官方贡献使用官方对应分支。
 
+## 中文翻译 PR 审核修正（2026-11-20）
+
+- 官方 [#65049](https://github.com/anomalyco/opencode/pull/65049) 已推送审核修正 `c054c39f75`，来源为 `origin/chinese-translations`，目标仍为官方 `dev`。本轮只修改两份 App 中文词典，整个 PR 仍限于四份中文词典。
+- 补齐审查指出的五个 ChatGPT 工作区用量提示和两个共享侧边面板词条，并补充完整审计发现的相机权限说明；繁体断开 Provider 的两处“供應商”统一为既有的“提供者”。原 PR 每种中文新增 95 个 App 词条和 2 个共享 UI 词条。
+- 在独立 Linux 工作区按冻结锁文件安装依赖，完整检查 35/35、现有语言测试 31/31、App/UI 正式 TypeScript 检查通过。两种中文的 App 1,488 个词条及 UI 383 个词条无缺失、重复键、未知键和占位符差异；格式检查通过。正常 pre-push 检查保留并通过。
+- 隔离 Chromium 的三组截图检查通过，覆盖简体修改前后及繁体修改后的时间线与扩展设置。六张截图和来源说明发布在独立 `origin/chinese-review-proof@b15817d797`，已核对远端 Git 对象摘要，并在 PR 说明中引用[不可变审核证据](https://github.com/joe-ieta/OpenCode.My/blob/b15817d797ba6969d550795daadb2c9e8708c693/docs/review/65049/README.md)，未混入官方翻译补丁。
+- PR 说明已更新，术语审查线程已解决。规范和合规检查成功；正式 `check`、`check-test`、`check-nix`、`check-bot-scope` 为 `action_required`，需要上游维护者批准运行。PR 仍为 OPEN / MERGEABLE / BLOCKED，尚未合并。
+
 ## 审核修正回迁 dev-my（2026-11-19）
 
 以已同步的 `origin/dev-my` 为基线，将 [#62845](https://github.com/anomalyco/opencode/pull/62845) 的 `b696d7a81d` 和 [#64850](https://github.com/anomalyco/opencode/pull/64850) 的 `9bc70a296a` 分别回迁为 `81a443130d`、`fd937fda36`，提交说明保留原始提交引用。Core 源码与对应回归测试和官方贡献分支完全一致。
