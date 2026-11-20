@@ -584,6 +584,7 @@ export function SidebarCustomized(props: {
 
     return (
       <div
+        data-slot="sidebar-project-row"
         class="group/sidebar-group relative flex min-w-0 shrink-0 items-center rounded-[6px] pe-1"
         classList={{
           "h-7 hover:bg-v2-overlay-simple-overlay-hover has-[:focus-visible]:bg-v2-overlay-simple-overlay-hover":

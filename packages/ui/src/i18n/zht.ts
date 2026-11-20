@@ -384,6 +384,8 @@ export const dict = {
   "ui.message.voice": "語音",
   "ui.message.deletePending": "刪除",
   "ui.message.copyOutput": "複製輸出",
+  "ui.message.wrapLines": "自動換行",
+  "ui.message.unwrapLines": "不自動換行",
   "ui.message.duration.hoursMinutes": "{{hours}}小時 {{minutes}}分",
   "ui.message.tokensPerSecond": "{{value}} tok/s",
   "ui.message.modelVariant": "{{model}}（{{variant}}）",
