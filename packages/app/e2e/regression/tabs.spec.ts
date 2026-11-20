@@ -536,6 +536,7 @@ test("Side bar tracks unread results while project rows are collapsed", async ({
   const pinned = sidebar.getByRole("region", { name: "Pinned projects", exact: true })
   await expect(pinned.locator('[data-slot="pinned-projects-count"]')).toHaveText("1")
   await expect(pinned.locator('[data-slot="pinned-running-count"]')).toHaveText("1")
+  await expect(pinned.locator('[data-slot="pinned-running-count"] > :first-child')).toHaveText("1")
   await sidebar.getByRole("button", { name: "Collapse project Background", exact: true }).click()
   await sidebar.getByRole("button", { name: "Collapse project UnreadCurrent", exact: true }).click()
   await expect(sidebar.locator("[data-titlebar-tab-slot]")).toHaveCount(0)
@@ -556,8 +557,10 @@ test("Side bar tracks unread results while project rows are collapsed", async ({
   await expect(running.getByLabel("0 running sessions, 1 unread session", { exact: true })).toHaveText("1")
   await expect(sidebar.locator('[data-slot="project-sessions-running"]')).toHaveCount(0)
   await expect(sidebar.locator('[data-slot="project-sessions-unread"]')).toHaveText("1")
+  await expect(sidebar.locator('[data-slot="project-sessions-unread"] > :first-child')).toHaveText("1")
   await expect(pinned.locator('[data-slot="pinned-running-count"]')).toHaveCount(0)
   await expect(pinned.locator('[data-slot="pinned-unread-count"]')).toHaveText("1")
+  await expect(pinned.locator('[data-slot="pinned-unread-count"] > :first-child')).toHaveText("1")
   await expect(group.getByRole("img", { name: "Running sessions", exact: true })).toHaveCount(0)
   await expect(group.getByRole("img", { name: "Unread sessions", exact: true })).toBeVisible()
   await sidebar.getByRole("button", { name: "Toggle sidebar", exact: true }).click()
@@ -668,7 +671,9 @@ test("Side bar keeps pinned projects fixed while the regular project list scroll
   ])
   await expect(sidebar.locator('[data-slot="project-sessions-totals"]')).toHaveText("12/13")
   await expect(sidebar.locator('[data-slot="project-sessions-running"]')).toHaveText("6")
+  await expect(sidebar.locator('[data-slot="project-sessions-running"] > :first-child')).toHaveText("6")
   await expect(pinned.locator('[data-slot="pinned-projects-count"]')).toHaveText("2")
+  await expect(pinned.locator('[data-slot="pinned-projects-count"] > :first-child')).toHaveText("2")
   await expect(pinned.getByTitle("2 pinned projects", { exact: true })).toHaveText("2")
   await expect
     .poll(() =>
