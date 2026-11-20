@@ -11,6 +11,7 @@
 - 在独立 Linux 工作区按冻结锁文件安装依赖，完整检查 35/35、现有语言测试 31/31、App/UI 正式 TypeScript 检查通过。两种中文的 App 1,488 个词条及 UI 383 个词条无缺失、重复键、未知键和占位符差异；格式检查通过。正常 pre-push 检查保留并通过。
 - 隔离 Chromium 的三组截图检查通过，覆盖简体修改前后及繁体修改后的时间线与扩展设置。六张截图和来源说明发布在独立 `origin/chinese-review-proof@b15817d797`，已核对远端 Git 对象摘要，并在 PR 说明中引用[不可变审核证据](https://github.com/joe-ieta/OpenCode.My/blob/b15817d797ba6969d550795daadb2c9e8708c693/docs/review/65049/README.md)，未混入官方翻译补丁。
 - PR 说明已更新，术语审查线程已解决。规范和合规检查成功；正式 `check`、`check-test`、`check-nix`、`check-bot-scope` 为 `action_required`，需要上游维护者批准运行。PR 仍为 OPEN / MERGEABLE / BLOCKED，尚未合并。
+- 同日按用户要求将本轮修正回迁到 `dev-my`：`c054c39f75` → `12f8d12a71`。逐项审计确认已有 Side bar 和其他 fork 词条完整保留；根检查 35/35、语言与 Side bar 单测 63/63、正式构建 Chromium 冒烟 15/15。回迁与此前已验证的上游同步历史一并推送到 `origin/dev-my`。
 
 ## 审核修正回迁 dev-my（2026-11-19）
 

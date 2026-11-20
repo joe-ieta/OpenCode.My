@@ -2,12 +2,14 @@
 
 二进制发行以 [GitHub Releases](https://github.com/joe-ieta/OpenCode.My/releases) 的完整资产为准。自 2026-11-02 起，所有平台仅使用本仓库 GitHub 的完整安装包与更新清单；旧镜像和分卷流程已停用。源码标签只证明提交已标记，不代表为该版本构建或上传了安装包。环境准备、构建和排障见 [发布环境与多架构构建](../KB/release-environment.md)。
 
-## 2026-11-20 本机源码同步
+## 2026-11-20 源码同步与审核回迁
 
 - 本机 `dev-my` 从 `0deac1b4aa` 快进到 `origin/dev-my@61e1b94c23`，拉取 19 个提交；随后合入官方 `upstream/dev@c98608c513` 的 72 个提交，保留维护分支历史。
 - 解决 12 个冲突文件，保留独立 Side bar、Home 的 clone/worktree 选择、自定义 Provider 管理和会话活动观察；接入上游焦点处理、任务更新事件及功能开关。客户端和 OpenAPI 均由生成脚本更新，重复生成与一致性检查通过。
 - 按锁文件安装依赖后，`bun run check` 35/35、Core 回归 147/147、App 单元测试 2846/2846、客户端回归 46/46、桌面打包配置 25/25、Protocol 测试 14/14 通过。
-- 正式构建的 Chromium 冒烟 12/12，覆盖 Side bar 项目操作、共享历史、Home 所选项目的新建会话、clone 目录恢复、键盘焦点及 Provider 账号移除。本轮仅同步本机源码。
+- 首次同步的正式构建 Chromium 冒烟 12/12，覆盖 Side bar 项目操作、共享历史、Home 所选项目的新建会话、clone 目录恢复、键盘焦点及 Provider 账号移除。该次同步先保存在本机，随后与下述审核回迁一并推送至 `origin/dev-my`。
+- 同日将官方 [PR #65049](https://github.com/anomalyco/opencode/pull/65049) 的审核修正 `c054c39f75` 回迁为 `12f8d12a71`，提交保留来源引用。两种中文各补充 8 个词条，繁体两处 Provider 用词统一为“提供者”；解决与本地模型测试提示相邻的冲突，逐项核验其余已有词条全部保留。Side bar、Home 和设置的实现文件未因本次回迁变化。
+- 回迁后 `bun run check` 35/35、语言与 Side bar 单元测试 63/63、正式构建 Chromium 冒烟 15/15 通过。浏览器验证覆盖项目菜单、项目关闭与恢复、排序与置顶、未读状态、跨项目/服务器 Running sessions、Home 选择的新建会话目标、列表模式、clone 目录恢复及语言切换。
 
 ## 当前下载
 
