@@ -23,10 +23,18 @@
 
 | 通道 | 版本 | 平台 | 下载 |
 | --- | --- | --- | --- |
-| 人工审核预发行 | `v2.3.0-my.20` | Windows x64 | [NSIS 安装包与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.20) |
+| 人工审核预发行 | `v2.3.0-my.21` | Windows x64 | [NSIS 安装包与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.21) |
 | 正式发行（Latest） | `v2.3.0-my.18` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.18) |
 
 早于 `v2.3.0-my.18` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
+
+## v2.3.0-my.21 Windows x64 人工审核预发行
+
+- 2026-11-20（Asia/Shanghai）发布 Windows x64 人工审核预发行，构建源码和不可变标签均指向 `9fc8d1a9d611b6e65aefaed20cc4fd987f7e4ee9`。`draft=false`、`prerelease=true`；Latest 保持 `v2.3.0-my.18`，人工安装与界面验收待完成。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.21)
+- 包含上文官方 `dev@f0df6070f9` 同步及已审查合并的 PR #16；补齐新增身份提示的简繁中文，保留 Side bar、共享历史、自定义 Provider/模型管理、clone 归属与目录选择、V1 迁移补丁。完整检查 35/35、App 单测 2858/2858、Core 定向回归 116/116、Protocol 14/14、客户端 268 项通过（4 项平台条件跳过）、App 官方 TypeScript 检查与正式构建 Chromium 冒烟 23/23 通过。
+- 使用 Bun 1.4.4 构建，包内 CLI 比对 8,760 个模型，并通过服务发现、共享 V1 数据库、升级确认和历史迁移冒烟。模型快照 `.cache/desktop-my/2.3.0-my.21/models-catalog.json` 的 SHA256 为 `b12f4063cd47e2349d7a6052d3cea677dabd82930727d072a71142fb14dc0eb7`，供同版本其他平台构建复用。
+- 未签名 NSIS 安装包为 286,186,904 字节，SHA256 为 `1fde05d38cf272fb5bc3d4a5184117b007672782f286caa048f08726e1c4148d`。安装包完整性、应用/CLI 的 x64 架构和版本、更新源、清单 SHA512 及包内简繁中文提示均已核验；内嵌 CLI 与通过冒烟的构建输入逐字节一致。
+- 四个 GitHub 附件的大小和服务端 SHA256 均与本地一致，四个公开链接的完整下载也已核对大小和 SHA256。[Windows 安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.21/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.21/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.21/build.json)
 
 ## v2.3.0-my.20 Windows x64 人工审核预发行
 
