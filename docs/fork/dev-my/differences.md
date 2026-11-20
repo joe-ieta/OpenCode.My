@@ -34,7 +34,7 @@ Side tabs 继续只显示已打开标签，是“标签的竖排布局”。Side
 
 | 能力 | 官方 Side tabs | `dev-my` Side bar |
 | --- | --- | --- |
-| 导航内容 | 已打开标签 | Home、New session、Search sessions、Pinned projects、Recent sessions、Running sessions |
+| 导航内容 | 已打开标签 | Home、Add project、Search sessions、Pinned projects、Recent sessions、Running sessions |
 | 项目来源 | 不列项目历史 | 当前可见服务器的项目清单；仅此模式使用 `projects.visible()`，其他模式继续使用 `projects.used()` |
 | 项目操作 | 无独立项目区 | 打开项目草稿、Pin/Unpin、整组收起、项目菜单、显示计数和远程提示 |
 | 历史会话 | 不承载 | 按 Project/worktree 分组，默认每项目 5 条，可展开 More/Show less |
@@ -43,7 +43,7 @@ Side tabs 继续只显示已打开标签，是“标签的竖排布局”。Side
 
 ### 3.2 导航与项目清单
 
-- 顶部导航固定为三行：第一行是“OpenCode My”标识与 Home、Settings，第二行是 New session 与 Add project（均为图标+文字），第三行是 Search sessions；Project sessions 标题行保留原有的添加项目按钮。之后为 Pinned projects、Recent sessions，Running sessions 始终位于底部。标识的提示列出应用版本、构建/发行时间与当前后台服务器及版本；设置只保留图标与提示。Project sessions 与 Pinned projects 的运行、未读和项目计数均为数字在前、图标在后。只有 Side bar 这样排列，其他界面模式保留原有导航顺序。
+- 顶部导航固定为三行：第一行是“OpenCode My”标识与 Home、Settings，第二行是 Add project（图标+文字），第三行是 Search sessions；项目自身提供新建会话入口，因此顶部不再显示全局 New session 按钮。Project sessions 标题行保留原有的添加项目按钮。之后为 Pinned projects、Recent sessions，Running sessions 始终位于底部。标识的提示列出应用版本、构建/发行时间与当前后台服务器及版本；设置只保留图标与提示。Project sessions 与 Pinned projects 的运行、未读和项目计数均为数字在前、图标在后。只有 Side bar 这样排列，其他界面模式保留原有导航顺序。
 - 普通项目按显示名称自然排序，不沿用服务端最近活跃顺序；置顶项目进入独立的 Pinned projects 区域，最多占项目/会话区域的 40%，该区域内部滚动，Recent sessions 使用剩余空间。
 - 项目身份为“服务器 + 规范化项目路径”，同名跨服务器项目不会合并。置顶、收起、排序和隐藏分别持久化在窗口本地：
   - `sidebar.pinnedProjects`

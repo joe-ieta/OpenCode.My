@@ -18,7 +18,7 @@ import {
 import { openFileLauncher, reviewTabs } from "../utils/side-panel"
 import { mockServers } from "../utils/mock-server"
 import { fixture, mockStressTimeline } from "../utils/session-fixture"
-import { fileNode, mockWorkspace, newSessionLocation, openSession } from "../utils/workspace"
+import { fileNode, mockWorkspace, openSession } from "../utils/workspace"
 import { expectSessionTitle } from "../utils/waits"
 import { openWithDirection } from "../utils/direction"
 
@@ -626,10 +626,10 @@ test("Side bar keeps pinned projects fixed while the regular project list scroll
   expect(
     await sidebar
       .locator(
-        '[data-action="vertical-tabs-home"], [data-action="vertical-tabs-new-session"], [data-action="vertical-tabs-search"]',
+        '[data-action="vertical-tabs-home"], [data-action="vertical-tabs-add-project"], [data-action="vertical-tabs-search"]',
       )
       .evaluateAll((elements) => elements.map((element) => element.getAttribute("data-action"))),
-  ).toEqual(["vertical-tabs-home", "vertical-tabs-new-session", "vertical-tabs-search"])
+  ).toEqual(["vertical-tabs-home", "vertical-tabs-add-project", "vertical-tabs-search"])
   const heading = sidebar.getByRole("heading", { name: "Project 0", exact: true })
   const pin = sidebar.getByRole("button", { name: "Pin project Project 0", exact: true, includeHidden: true })
   const add = sidebar.getByRole("button", { name: "New session in Project 0", exact: true, includeHidden: true })
@@ -1424,31 +1424,6 @@ test("sidebar grouping keeps servers separate and reorders only the chosen proje
   await expect(titles).toHaveText([c.title, a.title, b.title])
 })
 
-test("Side bar New session opens the project selected on Home", async ({ page }) => {
-  const other = "C:/OpenCode/Other"
-  await mockWorkspace(page, {
-    name: "Tabs",
-    projects: [
-      project({ id: "proj_tabs", directory: "C:/OpenCode/Tabs", name: "Tabs" }),
-      project({ id: "proj_other", directory: other, name: "Other project" }),
-    ],
-    sessions: [a, { ...b, directory: other, projectID: "proj_other" }],
-    seed: { settings: { appearance: { tabLayout: "sidebar" } } },
-  })
-  await page.goto("/")
-
-  const home = page.locator('[data-slot="home-panel"]')
-  const sidebar = page.locator('[data-slot="vertical-tabs-sidebar"]')
-  await home.locator('[data-component="home-project-row"]').filter({ hasText: "Other project" }).click()
-  await home.locator('[data-action="home-new-session"]').click()
-  await expect(newSessionLocation(page)).toContainText("Other project")
-
-  await sidebar.locator(`a[data-titlebar-tab-link][href="${sessionHref(a.id)}"]`).click()
-  await expectSessionTitle(page, a.title)
-  await sidebar.locator('[data-action="vertical-tabs-new-session"]').click()
-  await expect(newSessionLocation(page)).toContainText("Other project")
-})
-
 test("Side bar switches between project navigation and a most-recent list with global counts", async ({ page }) => {
   const directory = "C:/OpenCode/Tabs"
   const other = "C:/OpenCode/Other"
@@ -1563,7 +1538,7 @@ for (const [locale, title, grouping, projectMode, listMode, addProject, newSessi
     const list = mode.getByRole("button", { name: listMode, exact: true })
     const count = sidebar.locator('[data-slot="project-sessions-totals"]')
     const add = sidebar.locator('[data-action="vertical-tabs-add-project"]')
-    const navNewSession = sidebar.locator('[data-action="vertical-tabs-new-session"]')
+    const globalNewSession = sidebar.locator('[data-action="vertical-tabs-new-session"]')
     const headerAdd = sidebar
       .locator('[data-slot="vertical-tabs"]')
       .getByRole("button", { name: addProject, exact: true })
@@ -1603,24 +1578,17 @@ for (const [locale, title, grouping, projectMode, listMode, addProject, newSessi
       expect(actionBox.x + actionBox.width).toBeLessThanOrEqual(sidebarBox.x + sidebarBox.width)
     }
 
-    async function expectNewSessionRow() {
-      await expect(navNewSession).toBeVisible()
+    async function expectAddProjectRow() {
+      await expect(globalNewSession).toHaveCount(0)
       await expect(add).toBeVisible()
-      await expect(navNewSession).toHaveAccessibleName(newSession)
       await expect(add).toHaveAccessibleName(addProject)
-
-      const [newBox, addBox] = await Promise.all([navNewSession.boundingBox(), add.boundingBox()])
-
-      if (!newBox || !addBox) throw new Error("Incomplete Side bar actions")
-      expect(Math.abs(newBox.y + newBox.height / 2 - (addBox.y + addBox.height / 2))).toBeLessThanOrEqual(1)
-      expect(addBox.x).toBeGreaterThan(newBox.x + newBox.width)
     }
 
     await expect(byProject).toHaveAttribute("aria-pressed", "true")
     await expectHeaderRow(headerAdd)
-    await expectNewSessionRow()
+    await expectAddProjectRow()
 
-    for (const action of [navNewSession, add]) {
+    for (const action of [add]) {
       const label = action.locator("span.truncate")
       await expect(label).toBeVisible()
       expect(await label.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
@@ -1639,7 +1607,7 @@ for (const [locale, title, grouping, projectMode, listMode, addProject, newSessi
     await page.mouse.up()
     await expect(sidebar).toHaveCSS("width", "136px")
     await expectHeaderRow(headerAdd)
-    await expectNewSessionRow()
+    await expectAddProjectRow()
 
     await list.hover()
     await expect(page.getByRole("tooltip")).toHaveText(listMode)
@@ -1648,11 +1616,12 @@ for (const [locale, title, grouping, projectMode, listMode, addProject, newSessi
     await expect(byProject).toHaveAttribute("aria-pressed", "false")
     await expect(headerAdd).toHaveCount(0)
     await expectHeaderRow(headerNewSession)
-    await expectNewSessionRow()
+    await expect(headerNewSession).toHaveAccessibleName(newSession)
+    await expect(globalNewSession).toHaveCount(0)
   })
 }
 
-test("Side bar shows its version hint above New session and Add project, then Search sessions", async ({ page }) => {
+test("Side bar shows its version hint above Add project, then Search sessions", async ({ page }) => {
   await mockWorkspace(page, {
     name: "SidebarHeader",
     sessions: [a],
@@ -1668,9 +1637,9 @@ test("Side bar shows its version hint above New session and Add project, then Se
   const toggle = sidebar
     .locator('[data-slot="sidebar-header"]')
     .getByRole("button", { name: "Toggle sidebar", exact: true })
-  const newSession = sidebar.locator('[data-action="vertical-tabs-new-session"]')
   const addProject = sidebar.locator('[data-action="vertical-tabs-add-project"]')
   const search = sidebar.locator('[data-action="vertical-tabs-search"]')
+  await expect(sidebar.locator('[data-action="vertical-tabs-new-session"]')).toHaveCount(0)
 
   await brand.hover()
   const tooltip = page.getByRole("tooltip")
@@ -1683,20 +1652,11 @@ test("Side bar shows its version hint above New session and Add project, then Se
   await settings.hover()
   await expect(page.getByRole("tooltip").filter({ hasText: "Settings" })).toBeVisible()
 
-  const [brandBox, homeBox, settingsBox, toggleBox, newBox, addBox, searchBox, sidebarBox] = await Promise.all(
-    [brand, home, settings, toggle, newSession, addProject, search, sidebar].map((item) => item.boundingBox()),
+  const [brandBox, homeBox, settingsBox, toggleBox, addBox, searchBox, sidebarBox] = await Promise.all(
+    [brand, home, settings, toggle, addProject, search, sidebar].map((item) => item.boundingBox()),
   )
 
-  if (
-    !brandBox ||
-    !homeBox ||
-    !settingsBox ||
-    !toggleBox ||
-    !newBox ||
-    !addBox ||
-    !searchBox ||
-    !sidebarBox
-  )
+  if (!brandBox || !homeBox || !settingsBox || !toggleBox || !addBox || !searchBox || !sidebarBox)
     throw new Error("Incomplete Side bar header")
 
   const center = (box: { y: number; height: number }) => box.y + box.height / 2
@@ -1708,10 +1668,9 @@ test("Side bar shows its version hint above New session and Add project, then Se
   expect(toggleBox.x - (settingsBox.x + settingsBox.width)).toBeLessThanOrEqual(8)
   expect(await brand.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
 
-  expect(Math.abs(center(addBox) - center(newBox))).toBeLessThanOrEqual(1)
-  expect(addBox.x).toBeGreaterThan(newBox.x + newBox.width)
-  expect(center(newBox)).toBeGreaterThan(center(homeBox))
-  expect(center(searchBox)).toBeGreaterThan(center(newBox))
+  expect(center(addBox)).toBeGreaterThan(center(homeBox))
+  expect(center(searchBox)).toBeGreaterThan(center(addBox))
+  expect(addBox.y + addBox.height).toBeLessThanOrEqual(searchBox.y)
 })
 
 test("recently closed shows ten sessions and searches older closures in close order", async ({ page }) => {

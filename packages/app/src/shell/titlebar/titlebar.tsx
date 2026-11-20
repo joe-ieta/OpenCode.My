@@ -675,11 +675,9 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
               </div>
             )
 
-            const sidebarNewSessionRow = () => (
-              <div class="flex h-7 w-full shrink-0 items-center gap-1">
-                <div class="min-w-0 flex-1">{newSessionButton(true)}</div>
-                <div class="min-w-0 flex-1">{addProjectButton()}</div>
-              </div>
+            // The project groups provide their own new-session actions, so this row only adds projects.
+            const sidebarAddProjectRow = () => (
+              <div class="flex h-7 w-full shrink-0 items-center">{addProjectButton()}</div>
             )
 
             const firstSidebarAction = () => (
@@ -1207,7 +1205,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                           </Show>
                                         }
                                       >
-                                        {sidebarNewSessionRow()}
+                                        {sidebarAddProjectRow()}
                                         {searchButton(true)}
                                       </Show>
                                     </div>
