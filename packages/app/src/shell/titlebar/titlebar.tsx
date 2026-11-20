@@ -557,7 +557,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                 })
 
               const actionClass =
-                "group flex h-7 w-full min-w-0 items-center gap-1.5 rounded-[6px] px-1 text-[13px] leading-4 text-v2-text-text-faint hover:text-v2-text-text-base disabled:opacity-50"
+                "group flex h-7 w-full min-w-0 shrink-0 items-center gap-2 rounded-[6px] px-2 text-[13px] leading-[var(--line-height-compact)] text-v2-text-text-faint hover:text-v2-text-text-base disabled:opacity-50"
               const content = (
                 <>
                   <Icon name="folder-add-left" class="shrink-0" />
@@ -573,6 +573,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                       <Menu.Trigger
                         as="button"
                         type="button"
+                        data-titlebar-tab-action
                         data-action="vertical-tabs-add-project"
                         class={actionClass}
                         aria-label={language.t("home.project.add")}
@@ -599,6 +600,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                 >
                   <button
                     type="button"
+                    data-titlebar-tab-action
                     data-action="vertical-tabs-add-project"
                     class={actionClass}
                     aria-label={language.t("home.project.add")}
