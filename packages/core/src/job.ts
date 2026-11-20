@@ -10,12 +10,15 @@ import {
   Effect,
   Exit,
   Layer,
+  Option,
   Ref,
   Schema,
   Scope,
   SynchronizedRef,
 } from "effect"
 import { makeGlobalNode } from "@opencode/util/effect/app-node"
+import { Job as JobSchema } from "@opencode/schema/job"
+import { Bus } from "./bus.js"
 import { Database } from "./database/database.js"
 import { JobList } from "./job/list.js"
 import { type Recovery, RecoverySchema } from "./job/recovery.js"
@@ -105,6 +108,7 @@ type FinishResult = {
   cancel?: Effect.Effect<void>
   scope?: Scope.Closeable
   generation?: Scope.Closeable
+  listed?: JobSchema.Info
 }
 
 type BackgroundResult = {
@@ -250,6 +254,12 @@ export const make = Effect.gen(function* () {
     generations: yield* Ref.make(0),
     scope: yield* Scope.Scope,
   }
+  const bus = Option.getOrUndefined(yield* Effect.serviceOption(Bus.Service))
+
+  // Clients follow listed jobs through this instead of polling the list.
+  const updated = (listed: JobSchema.Info | undefined) =>
+    bus && listed ? bus.publish(JobSchema.Event.Updated, { info: listed }).pipe(Effect.asVoid) : Effect.void
+  const listed = (info: Info, recovery: Recovery | undefined) => (recovery ? JobList.item(info, recovery) : undefined)
 
   // Shell processes have their own source, including user shells that never create a Job.
   // A subagent Job and its child execution share one identity in the observation layer.
@@ -369,6 +379,7 @@ export const make = Effect.gen(function* () {
     )
     if (result.done) yield* activity.changed
     if (result.info && result.done) yield* Deferred.succeed(result.done, result.info)
+    if (result.done && result.info) yield* updated(listed(result.info, active.recovery))
     if (result.scope) {
       yield* Scope.close(result.scope, Exit.void).pipe(Effect.forkIn(state.scope, { startImmediately: true }))
     }
@@ -430,6 +441,7 @@ export const make = Effect.gen(function* () {
           }),
         )
         if ("job" in result) yield* activity.changed
+        if ("job" in result && result.job.isBackgrounded) yield* updated(listed(result.info, result.job.recovery))
         if ("job" in result)
           yield* restore(input.run).pipe(
             Effect.exit,
@@ -519,6 +531,7 @@ export const make = Effect.gen(function* () {
   })
 
   const background: Interface["background"] = Effect.fn("Job.background")(function* (id) {
+    let moved: JobSchema.Info | undefined
     const result = yield* SynchronizedRef.modifyEffect(
       state.jobs,
       Effect.fnUntraced(function* (jobs): Effect.fn.Return<readonly [BackgroundResult, Map<string, Active>]> {
@@ -527,14 +540,17 @@ export const make = Effect.gen(function* () {
         if (!job || (job.info.status !== "running" && !job.recovery)) return [{}, jobs]
         if (job.isBackgrounded) return [{ info: snapshot(job) }, jobs]
         const next = yield* markBackground(job)
+        moved = listed(next.info, next.recovery)
         return [{ info: snapshot(next), backgrounded: job.backgrounded }, new Map(jobs).set(id, next)]
       }),
     )
     if (result.info && result.backgrounded) yield* Deferred.succeed(result.backgrounded, result.info)
+    yield* updated(moved)
     return result.info
   })
 
   const backgroundAll: Interface["backgroundAll"] = Effect.fn("Job.backgroundAll")(function* (input) {
+    const moved: (JobSchema.Info | undefined)[] = []
     const result = yield* SynchronizedRef.modifyEffect(
       state.jobs,
       Effect.fnUntraced(function* (jobs): Effect.fn.Return<
@@ -549,12 +565,14 @@ export const make = Effect.gen(function* () {
           if (!job.blockingSessions.has(input.sessionID)) continue
           const updated = yield* markBackground(job)
           results.push({ info: snapshot(updated), backgrounded: job.backgrounded })
+          moved.push(listed(updated.info, updated.recovery))
           next.set(id, updated)
         }
         return [results, next]
       }),
     )
     yield* Effect.forEach(result, (item) => Deferred.succeed(item.backgrounded, item.info), { discard: true })
+    yield* Effect.forEach(moved, updated, { discard: true })
     return result.map((item) => item.info)
   })
 
@@ -579,7 +597,14 @@ export const make = Effect.gen(function* () {
         // Settling work owns its outbox row: the settlement commit writes or deletes it.
         if (persist && !job.settling) yield* persistBackground(next)
         return [
-          { info: snapshot(next), done: job.done, scope: job.scope, generation: job.scope, cancel: job.cancel },
+          {
+            info: snapshot(next),
+            done: job.done,
+            scope: job.scope,
+            generation: job.scope,
+            cancel: job.cancel,
+            listed: listed(next.info, job.recovery),
+          },
           new Map(jobs).set(id, next),
         ]
       }),
@@ -587,6 +612,7 @@ export const make = Effect.gen(function* () {
     if (result.cancel) yield* result.cancel
     if (result.info && result.done) yield* Deferred.succeed(result.done, result.info)
     if (result.done) yield* activity.changed
+    if (result.done) yield* updated(result.listed)
     if (result.scope) yield* Scope.close(result.scope, Exit.void)
     if (result.generation) yield* consume(id, result.generation)
     return result.info
@@ -764,4 +790,4 @@ export const make = Effect.gen(function* () {
 
 const layer = Layer.effect(Service, make)
 
-export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node, SessionActivitySource.node] })
+export const node = makeGlobalNode({ service: Service, layer, deps: [Database.node, SessionActivitySource.node, Bus.node] })

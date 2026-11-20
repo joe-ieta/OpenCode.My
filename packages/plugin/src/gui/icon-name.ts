@@ -136,6 +136,7 @@ export type AppIconName =
   | "post-skill"
   | "prompt"
   | "providers"
+  | "puzzle"
   | "refresh"
   | "reset"
   | "review"

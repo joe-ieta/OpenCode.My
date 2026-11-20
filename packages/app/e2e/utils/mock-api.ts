@@ -269,6 +269,7 @@ const Group = HttpApiGroup.make("mock")
     }),
   )
   .add(HttpApiEndpoint.get("usageLimits", "/api/experimental/usage/limits", { success: Json }))
+  .add(HttpApiEndpoint.get("jobList", "/api/experimental/job", { success: Json }))
   .add(
     HttpApiEndpoint.get("worktreeList", "/api/worktree", {
       query: Schema.Struct({ projectID: Schema.String }),
