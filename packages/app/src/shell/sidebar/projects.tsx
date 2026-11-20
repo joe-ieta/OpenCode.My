@@ -30,7 +30,6 @@ import { setSidebarUnread } from "@/shell/sidebar-peek"
 import { createSessionIndexes } from "./history"
 import { projectRemoteHint } from "./project-remotes"
 import { createProjectActions } from "@/shell/projects/actions"
-import { addProjects } from "@/shell/projects/add"
 import { ProjectMenuItems } from "@/shell/projects/menu"
 import { isServerFailed } from "@/runtime/server/health-machine"
 import type { LocalProject } from "@/shell/state/layout"
@@ -53,12 +52,6 @@ export function SidebarProjects(props: {
   const command = useCommand()
   const tabs = useTabs()
   const projectActions = createProjectActions()
-  function chooseProject(conn: ServerConnection.Any) {
-    projectActions.choose(conn, (server, directories) => {
-      const ctx = global.serverCtx(ServerConnection.key(server))
-      if (ctx) void addProjects(ctx, directories)
-    })
-  }
 
   const [projectMenu, setProjectMenu] = createStore<{ open?: string }>({})
   let projectMenuFocus: HTMLButtonElement | undefined
@@ -370,15 +363,21 @@ export function SidebarProjects(props: {
           const promoted = new Set(activity.map(tabKey))
 
           if (collapsed[0].includes(group.key)) return [group.key, { rows: [] as Tab[], promoted }] as const
-          const ordered = [...activity, ...group.tabs.filter((tab) => !promoted.has(tabKey(tab)))]
+          // Unsent drafts stay first in their project, ahead of running or recently active sessions.
+          const drafts = group.tabs.filter((tab) => tab.type === "draft")
+          const ordered = [
+            ...drafts,
+            ...activity,
+            ...group.tabs.filter((tab) => tab.type !== "draft" && !promoted.has(tabKey(tab))),
+          ]
 
           if (expanded[group.key]) return [group.key, { rows: ordered, promoted }] as const
           const rows = ordered.slice(0, PROJECT_SESSION_LIMIT)
           const selected = group.tabs.find((tab) => tabKey(tab) === currentKey())
 
           if (!selected || rows.includes(selected)) return [group.key, { rows, promoted }] as const
-          // Keep an otherwise hidden selection after the activity, within the preview limit.
-          const index = Math.min(activity.length, PROJECT_SESSION_LIMIT - 1)
+          // Keep an otherwise hidden selection at its place in the order, within the preview limit.
+          const index = Math.min(ordered.indexOf(selected), PROJECT_SESSION_LIMIT - 1)
           promoted.add(tabKey(selected))
 
           return [group.key, { rows: [...rows.slice(0, index), selected, ...rows.slice(index, -1)], promoted }] as const
@@ -982,47 +981,6 @@ export function SidebarProjects(props: {
               </span>
             </span>
             <Show when={listMode()}>{props.newSessionButton}</Show>
-            <Show when={!listMode()}>
-              <Show
-                when={servers.visible.length === 1}
-                fallback={
-                  <Menu gutter={6} modal={false} placement="bottom-end">
-                    <Menu.Trigger
-                      as={IconButton}
-                      variant="ghost-muted"
-                      size="small"
-                      icon={<Icon name="folder-add-left" />}
-                      aria-label={language.t("home.project.add")}
-                      disabled={!servers.visible.length}
-                    />
-                    <Menu.Portal>
-                      <Menu.Content>
-                        <For each={servers.visible}>
-                          {(conn) => (
-                            <Menu.Item
-                              disabled={isServerFailed(global.servers.health[ServerConnection.key(conn)])}
-                              onSelect={() => chooseProject(conn)}
-                            >
-                              {serverName(conn)}
-                            </Menu.Item>
-                          )}
-                        </For>
-                      </Menu.Content>
-                    </Menu.Portal>
-                  </Menu>
-                }
-              >
-                <IconButton
-                  variant="ghost-muted"
-                  size="small"
-                  icon={<Icon name="folder-add-left" />}
-                  aria-label={language.t("home.project.add")}
-                  title={language.t("home.project.add")}
-                  disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
-                  onClick={() => chooseProject(servers.visible[0])}
-                />
-              </Show>
-            </Show>
           </div>
         </>
         <div

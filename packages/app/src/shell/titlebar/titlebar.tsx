@@ -3,6 +3,7 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  For,
   Match,
   on,
   onCleanup,
@@ -17,6 +18,7 @@ import { useDialog } from "@opencode/ui/context/dialog"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
+import { Menu } from "@opencode/ui/menu"
 import { Tooltip } from "@opencode/ui/tooltip"
 
 import { useLayout } from "@/shell/state/layout"
@@ -43,7 +45,10 @@ import { makeEventListener } from "@solid-primitives/event-listener"
 import { createMediaQuery } from "@solid-primitives/media"
 import { readSessionTabsRemovedDetail, SESSION_TABS_REMOVED_EVENT } from "@/shell/titlebar/session-events"
 import { useGlobal } from "@/runtime/server/runtime"
-import { ServerConnection } from "@/runtime/server/registry"
+import { ServerConnection, serverName, useServers } from "@/runtime/server/registry"
+import { isServerFailed, selectServerVersion } from "@/runtime/server/health-machine"
+import { addProjects } from "@/shell/projects/add"
+import { createProjectActions } from "@/shell/projects/actions"
 import { tabKey, useTabs, type Tab } from "@/shell/tabs/tabs"
 import type { ComposerState } from "@/composer/persistence"
 import "./titlebar.css"
@@ -81,6 +86,9 @@ export const goForwardCommand = { id: "common.goForward", keybind: "mod+]" }
 
 const titlebarHeight = 36
 
+// The fork's product name is the same in every language.
+const productName = "OpenCode My"
+
 const windowsTitlebarHeight = 44 // Includes the content inset; matches the native Windows overlay.
 
 const minTitlebarZoom = 0.25
@@ -103,6 +111,8 @@ function SidebarAction(props: {
   icon: string
   label: string
   keybind: string[]
+  /** Sits beside other controls in one row instead of owning the row, so its hint belongs to a tooltip. */
+  compact?: boolean
   pressed?: boolean
   current?: boolean
   onClick: () => void
@@ -113,7 +123,8 @@ function SidebarAction(props: {
       data-titlebar-tab-action
       data-action={props.action}
       data-state={props.pressed || props.current ? "pressed" : undefined}
-      class="group flex h-7 w-full shrink-0 items-center gap-2 rounded-[6px] px-2 text-[13px] leading-[var(--line-height-compact)] text-v2-text-text-faint hover:text-v2-text-text-base data-[state=pressed]:text-v2-text-text-base"
+      class="group flex h-7 shrink-0 items-center rounded-[6px] text-[13px] leading-[var(--line-height-compact)] text-v2-text-text-faint hover:text-v2-text-text-base data-[state=pressed]:text-v2-text-text-base"
+      classList={{ "w-full px-2 gap-2": !props.compact, "px-1 gap-1": !!props.compact }}
       aria-label={props.label}
       aria-pressed={props.pressed}
       aria-current={props.current ? "page" : undefined}
@@ -121,9 +132,11 @@ function SidebarAction(props: {
     >
       <Icon name={props.icon} class="shrink-0" />
       <span class="min-w-0 truncate">{props.label}</span>
-      <div class="ms-auto hidden shrink-0 group-hover:block group-focus-visible:block" aria-hidden="true">
-        <Keybind keys={props.keybind} variant="neutral" dir="ltr" />
-      </div>
+      <Show when={!props.compact}>
+        <div class="ms-auto hidden shrink-0 group-hover:block group-focus-visible:block" aria-hidden="true">
+          <Keybind keys={props.keybind} variant="neutral" dir="ltr" />
+        </div>
+      </Show>
     </button>
   )
 }
@@ -231,6 +244,10 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
           {(_) => {
             const layout = useLayout()
             const global = useGlobal()
+
+            const servers = useServers()
+
+            const projectActions = createProjectActions()
 
             const projectNavigation = useProjectNavigation()
 
@@ -385,44 +402,64 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
             const homeIcon = () => (settings.appearance.navigationPrototype() ? "sessions-stack" : "grid-plus")
 
-            const homeButton = (vertical = false) => (
-              <Show
-                when={vertical}
-                fallback={
-                  <Tooltip
-                    placement="bottom"
-                    value={
-                      <>
-                        {homeLabel()}
-                        <Keybind keys={command.keybindParts("home.toggle")} variant="neutral" />
-                      </>
-                    }
-                    class="shrink-0"
-                  >
-                    <IconButton
-                      type="button"
-                      variant="ghost-muted"
-                      size="large"
-                      class="!w-9 shrink-0"
-                      icon={<Icon name={homeIcon()} />}
-                      state={layout.route().type === "home" ? "pressed" : undefined}
-                      onClick={toggleHome}
-                      aria-label={homeLabel()}
-                      aria-pressed={layout.route().type === "home"}
-                    />
-                  </Tooltip>
-                }
-              >
+            const homeButton = (vertical = false, compact = false) => {
+              const action = (isCompact: boolean) => (
                 <SidebarAction
                   action="vertical-tabs-home"
                   icon={homeIcon()}
                   label={homeLabel()}
                   keybind={command.keybindParts("home.toggle")}
+                  compact={isCompact}
                   pressed={layout.route().type === "home"}
                   onClick={toggleHome}
                 />
-              </Show>
-            )
+              )
+
+              return (
+                <Show
+                  when={vertical}
+                  fallback={
+                    <Tooltip
+                      placement="bottom"
+                      value={
+                        <>
+                          {homeLabel()}
+                          <Keybind keys={command.keybindParts("home.toggle")} variant="neutral" />
+                        </>
+                      }
+                      class="shrink-0"
+                    >
+                      <IconButton
+                        type="button"
+                        variant="ghost-muted"
+                        size="large"
+                        class="!w-9 shrink-0"
+                        icon={<Icon name={homeIcon()} />}
+                        state={layout.route().type === "home" ? "pressed" : undefined}
+                        onClick={toggleHome}
+                        aria-label={homeLabel()}
+                        aria-pressed={layout.route().type === "home"}
+                      />
+                    </Tooltip>
+                  }
+                >
+                  <Show when={compact} fallback={action(false)}>
+                    <Tooltip
+                      placement="bottom"
+                      class="shrink-0"
+                      value={
+                        <>
+                          {homeLabel()}
+                          <Keybind keys={command.keybindParts("home.toggle")} variant="neutral" />
+                        </>
+                      }
+                    >
+                      {action(true)}
+                    </Tooltip>
+                  </Show>
+                </Show>
+              )
+            }
 
             const searchButton = (vertical = false) => (
               <Show
@@ -468,7 +505,33 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
               />
             )
 
-            const settingsButton = () => {
+            const settingsButton = (iconOnly = false) => {
+              if (iconOnly)
+                return (
+                  <Tooltip
+                    placement="bottom"
+                    class="shrink-0"
+                    value={
+                      <>
+                        {language.t("sidebar.settings")}
+                        <Keybind keys={command.keybindParts("settings.open")} variant="neutral" />
+                      </>
+                    }
+                  >
+                    <IconButton
+                      type="button"
+                      data-action="vertical-tabs-settings"
+                      variant="ghost-muted"
+                      size="large"
+                      icon={<Icon name="settings-gear" />}
+                      state={layout.route().type === "settings" ? "pressed" : undefined}
+                      aria-label={language.t("sidebar.settings")}
+                      aria-current={layout.route().type === "settings" ? "page" : undefined}
+                      onClick={openSettings}
+                    />
+                  </Tooltip>
+                )
+
               const show = useSettingsCommand()
 
               return (
@@ -482,6 +545,132 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                 />
               )
             }
+
+            const addProjectButton = () => {
+              const add = (conn: ServerConnection.Any) =>
+                projectActions.choose(conn, (server, directories) => {
+                  const ctx = global.serverCtx(ServerConnection.key(server))
+
+                  if (ctx) void addProjects(ctx, directories)
+                })
+
+              return (
+                <Show
+                  when={servers.visible.length === 1}
+                  fallback={
+                    <Menu gutter={6} modal={false} placement="bottom-end">
+                      <Menu.Trigger
+                        as={IconButton}
+                        data-action="vertical-tabs-add-project"
+                        variant="ghost-muted"
+                        size="small"
+                        icon={<Icon name="folder-add-left" />}
+                        aria-label={language.t("home.project.add")}
+                        disabled={!servers.visible.length}
+                      />
+                      <Menu.Portal>
+                        <Menu.Content>
+                          <For each={servers.visible}>
+                            {(conn) => (
+                              <Menu.Item
+                                disabled={isServerFailed(global.servers.health[ServerConnection.key(conn)])}
+                                onSelect={() => add(conn)}
+                              >
+                                {serverName(conn)}
+                              </Menu.Item>
+                            )}
+                          </For>
+                        </Menu.Content>
+                      </Menu.Portal>
+                    </Menu>
+                  }
+                >
+                  <Tooltip placement="bottom" class="shrink-0" value={language.t("home.project.add")}>
+                    <IconButton
+                      type="button"
+                      data-action="vertical-tabs-add-project"
+                      variant="ghost-muted"
+                      size="small"
+                      icon={<Icon name="folder-add-left" />}
+                      aria-label={language.t("home.project.add")}
+                      disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
+                      onClick={() => add(servers.visible[0])}
+                    />
+                  </Tooltip>
+                </Show>
+              )
+            }
+
+            const primaryServer = () => {
+              const list = global.servers.list()
+
+              return list.find((conn) => servers.current(conn)) ?? list[0]
+            }
+
+            const released = () => {
+              const value = import.meta.env.VITE_OPENCODE_BUILD_TIME
+
+              if (!value) return
+
+              const date = new Date(value)
+
+              if (Number.isNaN(date.getTime())) return
+
+              return new Intl.DateTimeFormat(language.intl(), { dateStyle: "medium" }).format(date)
+            }
+
+            const serverVersion = () => {
+              const conn = primaryServer()
+
+              return conn ? selectServerVersion(global.servers.health[ServerConnection.key(conn)]) : undefined
+            }
+
+            const identityHint = () => (
+              <div class="flex flex-col gap-0.5 text-start">
+                <span class="font-medium">{productName}</span>
+                <span>
+                  {language.t("settings.about.version", {
+                    version: platform.version ?? language.t("settings.about.devVersion"),
+                  })}
+                </span>
+                <Show when={released()}>
+                  {(date) => <span>{language.t("sidebar.identity.released", { date: date() })}</span>}
+                </Show>
+                <Show when={primaryServer()}>
+                  {(conn) => (
+                    <>
+                      <span>{language.t("sidebar.identity.server", { server: servers.label(conn()) })}</span>
+                      <Show when={serverVersion()}>
+                        {(version) => (
+                          <span>{language.t("sidebar.identity.serverVersion", { version: version() })}</span>
+                        )}
+                      </Show>
+                    </>
+                  )}
+                </Show>
+              </div>
+            )
+
+            const sidebarIdentityRow = () => (
+              <div class="flex h-7 w-full shrink-0 items-center gap-0.5">
+                <Tooltip placement="bottom" class="min-w-0 flex-1" value={identityHint()}>
+                  <span class="block truncate text-[13px] leading-[var(--line-height-compact)] font-medium text-v2-text-text-base">
+                    {productName}
+                  </span>
+                </Tooltip>
+                <div class="flex shrink-0 items-center gap-2">
+                  {homeButton(true, true)}
+                  {settingsButton(true)}
+                </div>
+              </div>
+            )
+
+            const sidebarNewSessionRow = () => (
+              <div class="flex h-7 w-full shrink-0 items-center gap-2">
+                <div class="min-w-0 flex-1">{newSessionButton()}</div>
+                {addProjectButton()}
+              </div>
+            )
 
             const firstSidebarAction = () => (
               <Show when={projectNavigation() || settings.appearance.navigationPrototype()} fallback={homeButton(true)}>
@@ -948,8 +1137,10 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                       <div
                                         data-slot="sidebar-header"
                                         data-has-action={actionInSidebarHeader() ? "" : undefined}
-                                        class="flex w-full shrink-0 gap-2"
+                                        class="flex w-full shrink-0"
                                         classList={{
+                                          "gap-2": !sidebarMode(),
+                                          "gap-1": sidebarMode(),
                                           "items-start pt-2.5 pb-[3px]": actionInSidebarHeader(),
                                           "mb-0.5 h-12 items-center": !actionInSidebarHeader(),
                                         }}
@@ -971,26 +1162,43 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                           />
                                         </Show>
                                         <Show when={actionInSidebarHeader()} fallback={<div class="flex-1" />}>
-                                          <div class="min-w-0 flex-1">{firstSidebarAction()}</div>
+                                          <Show
+                                            when={sidebarMode()}
+                                            fallback={<div class="min-w-0 flex-1">{firstSidebarAction()}</div>}
+                                          >
+                                            <div class="min-w-0 flex-1">{sidebarIdentityRow()}</div>
+                                          </Show>
                                         </Show>
                                         <SidebarToggle handoff="out" />
                                       </div>
                                     </Show>
                                     <div class="flex w-full shrink-0 flex-col gap-[3px]">
-                                      <Show when={!actionInSidebarHeader()}>{firstSidebarAction()}</Show>
+                                      <Show when={!actionInSidebarHeader()}>
+                                        <Show when={sidebarMode()} fallback={firstSidebarAction()}>
+                                          {sidebarIdentityRow()}
+                                        </Show>
+                                      </Show>
                                       <Show
-                                        when={settings.appearance.navigationPrototype()}
+                                        when={sidebarMode()}
                                         fallback={
-                                          <>
-                                            {searchButton(true)}
-                                            <Show when={projectNavigation()} fallback={newSessionButton()}>
-                                              {settingsButton()}
-                                            </Show>
-                                          </>
+                                          <Show
+                                            when={settings.appearance.navigationPrototype()}
+                                            fallback={
+                                              <>
+                                                {searchButton(true)}
+                                                <Show when={projectNavigation()} fallback={newSessionButton()}>
+                                                  {settingsButton()}
+                                                </Show>
+                                              </>
+                                            }
+                                          >
+                                            {homeButton(true)}
+                                            {settingsButton()}
+                                          </Show>
                                         }
                                       >
-                                        {homeButton(true)}
-                                        {settingsButton()}
+                                        {sidebarNewSessionRow()}
+                                        {searchButton(true)}
                                       </Show>
                                     </div>
                                     <Show
