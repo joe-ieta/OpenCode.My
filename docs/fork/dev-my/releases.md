@@ -23,19 +23,19 @@
 
 | 通道 | 版本 | 平台 | 下载 |
 | --- | --- | --- | --- |
-| 人工审核预发行 | `v2.3.0-my.22` | Windows x64 | [NSIS 安装包与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.22) |
-| 正式发行（Latest） | `v2.3.0-my.18` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.18) |
+| 正式发行（Latest） | `v2.3.0-my.22` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.22) |
 
 早于 `v2.3.0-my.18` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
 
-## v2.3.0-my.22 Windows x64 人工审核预发行
+## v2.3.0-my.22 正式发行（Windows x64 / Linux amd64、arm64）
 
-- 2026-11-20（Asia/Shanghai）发布 Windows x64 人工审核预发行，构建源码和不可变标签均指向样式修正提交 `68fdc0684378e771159638d14263efd928973850`。`draft=false`、`prerelease=true`；Latest 保持 `v2.3.0-my.18`，人工安装与界面验收待完成。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.22)
+- 2026-11-20（Asia/Shanghai）Windows x64 人工审核通过；基于同一不可变标签 `68fdc0684378e771159638d14263efd928973850` 补齐 Linux amd64、arm64 的 AppImage 和 deb，并验证后转为正式版、设为 Latest。`draft=false`、`prerelease=false`；源码标签未移动。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.22)
 - Side bar 左上角“添加项目”与“搜索会话”统一行高、左右留白、图标/文字间距和对齐，并使用相同的悬停背景反馈；同时覆盖单服务器按钮和多服务器选择菜单。保留上一版官方 dev 同步、PR #16 顶栏与草稿排序改进，以及现有 Side bar、共享历史、Provider/模型管理和 clone/V1 迁移修正。
-- 冻结依赖安装未改变锁文件；完整检查 35/35、正式构建 Chromium 回归 5/5 通过。隔离浏览器实际核对单/多服务器控件的布局、文字对齐和悬停前后背景，并确认两种入口均能打开目录选择器。
-- 使用 Bun 1.4.4 构建，包内 CLI 比对 8,760 个模型，并通过服务发现、共享 V1 数据库、升级确认和历史迁移冒烟。模型快照 `.cache/desktop-my/2.3.0-my.22/models-catalog.json` 的 SHA256 为 `b12f4063cd47e2349d7a6052d3cea677dabd82930727d072a71142fb14dc0eb7`，供同版本其他平台构建复用。
-- 未签名 NSIS 安装包为 286,188,625 字节，SHA256 为 `d7d836c4223bd064bbec20b6de150723e9efbebff4b4f874e4bdb1147b64021a`。安装包完整性、应用/CLI 的 x64 架构和版本、更新源、清单 SHA512 及包内简繁中文资源均已核验；内嵌 CLI 与通过冒烟的构建输入逐字节一致。
-- 四个 GitHub 附件的大小和服务端 SHA256 均与本地一致；四个公开附件完整下载后也逐项核对了大小和 SHA256。[Windows 安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.22/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.22/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.22/build.json)
+- 冻结依赖安装未改变锁文件；Windows、Linux 完整检查均为 35/35，正式构建 Chromium 回归 5/5、Linux 项目相关回归 32/32 通过。隔离浏览器核对单/多服务器控件的布局、文字对齐和悬停背景，两种入口均能打开目录选择器。
+- 使用 Bun 1.4.4 和同一模型快照构建三个目标。Windows 与两种 Linux 架构的包内 CLI 均比对 8,760 个模型，并通过服务发现、共享 V1 数据库、升级确认和历史迁移冒烟；两种 Linux 包内 CLI 的 HTTP 信息接口与 SSE 连接检查通过，ARM64 使用 QEMU 验证。模型快照 SHA256 为 `b12f4063cd47e2349d7a6052d3cea677dabd82930727d072a71142fb14dc0eb7`，保存在 `.cache/desktop-my/2.3.0-my.22/models-catalog.json`。
+- 保留已验收 Windows 安装包（附件 ID `771610352`）和更新清单（ID `771610371`）原字节、大小与哈希。NSIS 为 286,188,625 字节，SHA256 为 `d7d836c4223bd064bbec20b6de150723e9efbebff4b4f874e4bdb1147b64021a`；内嵌 CLI 与通过冒烟的构建输入一致。
+- 四个 Linux 安装包均解包核对 ELF 架构、ASAR/CLI 版本、简繁中文资源、原生终端模块、桌面入口及更新源；同架构 AppImage/deb 的应用内容一致。ARM64 AppImage 使用已验证的静态运行时。两个 Linux 更新清单的 SHA512 与大小均通过核验。
+- `SHA256SUMS` 扩展为五个安装包，`build.json` 记录共同源码和三个目标。十个 GitHub 附件的大小及服务端 SHA256 均与本地一致；公开下载的五个安装包片段与本地一致，三个更新清单、完整校验清单和构建信息均完整下载后核对哈希。Windows 预发行阶段四个附件的完整下载核验记录保留。所有安装包未签名。[Windows 安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.22/opencode-desktop-win-x64.exe) · [Linux amd64/arm64](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.22) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.22/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.22/build.json)
 
 ## v2.3.0-my.21 Windows x64 人工审核预发行
 
