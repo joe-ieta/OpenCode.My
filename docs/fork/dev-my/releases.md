@@ -15,9 +15,18 @@
 
 | 通道 | 版本 | 平台 | 下载 |
 | --- | --- | --- | --- |
+| 人工审核预发行 | `v2.3.0-my.20` | Windows x64 | [NSIS 安装包与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.20) |
 | 正式发行（Latest） | `v2.3.0-my.18` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.18) |
 
 早于 `v2.3.0-my.18` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
+
+## v2.3.0-my.20 Windows x64 人工审核预发行
+
+- 2026-11-20（Asia/Shanghai）发布 Windows x64 预发行，标签和构建源码均为 `a3a02b2e0e4c554f30d6d37b4788790f6d1ea7d0`。`draft=false`、`prerelease=true`；GitHub Latest 保持 `v2.3.0-my.18`，人工安装与界面验收待完成。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.20)
+- 包含官方 `dev@c98608c513` 同步及 PR #65049 本轮中文审核修正，保留独立 Side bar、共享历史、自定义 Provider/模型管理及升级迁移补丁。冻结依赖安装成功，根完整检查 35/35；同源码语言与 Side bar 单测 63/63、正式构建 Chromium 冒烟 15/15 通过。
+- 使用 Bun 1.4.4 构建，包内 CLI 比对 8,760 个模型，并通过服务发现、V1 升级确认和历史迁移冒烟。模型快照位于 `.cache/desktop-my/2.3.0-my.20/models-catalog.json`，SHA256 为 `7aa3f98dad6ae5d18a91f668ff553118d4ed23c843df6f6bea96743619ea1848`，供后续同版本其他平台复用。
+- 未签名 NSIS 安装包为 286,112,493 字节，SHA256 为 `4692e61e23350b1c0066994938b0110662ae943a9d60a95e1a238e721ebd14af`。安装包完整性、应用/CLI 的 x64 架构和版本、更新源、更新清单 SHA512 均已核验；内嵌 CLI 与通过冒烟的构建输入完全一致。包内两种中文的审核修正、Side bar 及模型测试词条均与源码匹配。
+- 四个 GitHub 附件的大小和服务端 SHA256 均与本地一致；公开链接和 GitHub CLI 完整下载的四个文件也已核对大小与 SHA256。[Windows 安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.20/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.20/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.20/build.json)
 
 ## v2.3.0-my.19 Windows x64 与 Linux amd64/arm64 RC 预览
 
