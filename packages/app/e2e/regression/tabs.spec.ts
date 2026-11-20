@@ -420,7 +420,10 @@ test("Side bar closes and reopens projects while preserving drafts and running s
   await page.reload()
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Empty project"])
   await expect(running.getByRole("button").filter({ hasText: a.title })).toBeVisible()
-  await sidebar.getByRole("button", { name: "Add project", exact: true }).click()
+  await sidebar
+    .locator('[data-slot="vertical-tabs"]')
+    .getByRole("button", { name: "Add project", exact: true })
+    .click()
   const picker = page.getByRole("dialog")
   await expect(picker.getByRole("button", { name: "Select folder", exact: true })).toBeEnabled()
   await picker.getByRole("button", { name: "Select folder", exact: true }).click()
@@ -1403,7 +1406,10 @@ test("sidebar grouping keeps servers separate and reorders only the chosen proje
   await page.getByRole("menuitem", { name: "Close", exact: true }).click()
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Tabs"])
   await expect(titles).toHaveText([c.title, a.title])
-  await sidebar.getByRole("button", { name: "Add project", exact: true }).click()
+  await sidebar
+    .locator('[data-slot="vertical-tabs"]')
+    .getByRole("button", { name: "Add project", exact: true })
+    .click()
   await page.getByRole("menuitem", { name: "Remote", exact: true }).click()
   const picker = page.getByRole("dialog")
   await expect(picker.getByRole("button", { name: "Select folder", exact: true })).toBeEnabled()
@@ -1468,7 +1474,10 @@ test("Side bar switches between project navigation and a most-recent list with g
   const titles = sidebar.locator("[data-titlebar-tab-title]")
   const byProject = sidebar.getByRole("button", { name: "By project", exact: true })
   const list = sidebar.getByRole("button", { name: "List", exact: true })
-  const addProject = sidebar.getByRole("button", { name: "Add project", exact: true })
+  const addProject = sidebar.locator('[data-action="vertical-tabs-add-project"]')
+  const headerAddProject = sidebar
+    .locator('[data-slot="vertical-tabs"]')
+    .getByRole("button", { name: "Add project", exact: true })
   const newSession = sidebar
     .locator('[data-slot="vertical-tabs"]')
     .getByRole("button", { name: "New session", exact: true })
@@ -1477,6 +1486,7 @@ test("Side bar switches between project navigation and a most-recent list with g
   await expect(byProject).toHaveAttribute("aria-pressed", "true")
   await expect(counts).toHaveText("3/3")
   await expect(addProject).toBeVisible()
+  await expect(headerAddProject).toBeVisible()
   await expect(newSession).toHaveCount(0)
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Other", "Quiet", "Tabs"])
   await expect(titles).toHaveText([b.title, a.title, c.title])
@@ -1501,6 +1511,7 @@ test("Side bar switches between project navigation and a most-recent list with g
   await expect(list).toHaveAttribute("aria-pressed", "true")
   await expect(counts).toBeVisible()
   await expect(addProject).toBeVisible()
+  await expect(headerAddProject).toHaveCount(0)
   await expect(newSession).toBeVisible()
   await expect(newSession.locator("svg use")).toHaveAttribute("href", projectNewSessionIcon)
   const [counterBox, buttonBox] = await Promise.all([counts.boundingBox(), newSession.boundingBox()])
@@ -1520,6 +1531,7 @@ test("Side bar switches between project navigation and a most-recent list with g
   await expect(sidebar.getByRole("heading", { name: "Project sessions", exact: true })).toBeVisible()
   await expect(counts).toBeVisible()
   await expect(addProject).toBeVisible()
+  await expect(headerAddProject).toBeVisible()
   await expect(newSession).toHaveCount(0)
   await expect(expand).toBeVisible()
   await expand.click()
@@ -1547,6 +1559,12 @@ for (const [locale, title, grouping, projectMode, listMode, addProject, newSessi
     const count = sidebar.locator('[data-slot="project-sessions-totals"]')
     const add = sidebar.locator('[data-action="vertical-tabs-add-project"]')
     const navNewSession = sidebar.locator('[data-action="vertical-tabs-new-session"]')
+    const headerAdd = sidebar
+      .locator('[data-slot="vertical-tabs"]')
+      .getByRole("button", { name: addProject, exact: true })
+    const headerNewSession = sidebar
+      .locator('[data-slot="vertical-tabs"]')
+      .getByRole("button", { name: newSession, exact: true })
 
     async function expectHeaderRow(action?: Locator) {
       if (action) await expect(action).toBeVisible()
@@ -1594,8 +1612,15 @@ for (const [locale, title, grouping, projectMode, listMode, addProject, newSessi
     }
 
     await expect(byProject).toHaveAttribute("aria-pressed", "true")
-    await expectHeaderRow()
+    await expectHeaderRow(headerAdd)
     await expectNewSessionRow()
+
+    for (const action of [navNewSession, add]) {
+      const label = action.locator("span.truncate")
+      await expect(label).toBeVisible()
+      expect(await label.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
+    }
+
     expect(await heading.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(1)
 
     const handle = await sidebar.locator('[data-component="resize-handle"]').boundingBox()
@@ -1608,7 +1633,7 @@ for (const [locale, title, grouping, projectMode, listMode, addProject, newSessi
     await page.mouse.move(x - 200, y)
     await page.mouse.up()
     await expect(sidebar).toHaveCSS("width", "136px")
-    await expectHeaderRow()
+    await expectHeaderRow(headerAdd)
     await expectNewSessionRow()
 
     await list.hover()
@@ -1616,9 +1641,8 @@ for (const [locale, title, grouping, projectMode, listMode, addProject, newSessi
     await list.press("Enter")
     await expect(list).toHaveAttribute("aria-pressed", "true")
     await expect(byProject).toHaveAttribute("aria-pressed", "false")
-    await expectHeaderRow(
-      sidebar.locator('[data-slot="vertical-tabs"]').getByRole("button", { name: newSession, exact: true }),
-    )
+    await expect(headerAdd).toHaveCount(0)
+    await expectHeaderRow(headerNewSession)
     await expectNewSessionRow()
   })
 }

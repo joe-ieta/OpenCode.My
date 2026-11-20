@@ -497,9 +497,10 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
               </Show>
             )
 
-            const newSessionButton = () => (
+            const newSessionButton = (dense = false) => (
               <RecentlyClosedTabsMenu
                 vertical
+                dense={dense}
                 onNewTab={() => (sidebarMode() ? homeSessions.openNewSession() : openNewTab())}
                 keybind={sidebarMode() ? undefined : command.keybindParts("tab.new")}
               />
@@ -554,20 +555,30 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   if (ctx) void addProjects(ctx, directories)
                 })
 
+              const actionClass =
+                "group flex h-7 w-full min-w-0 items-center gap-1.5 rounded-[6px] px-1 text-[13px] leading-4 text-v2-text-text-faint hover:text-v2-text-text-base disabled:opacity-50"
+              const content = (
+                <>
+                  <Icon name="folder-add-left" class="shrink-0" />
+                  <span class="min-w-0 truncate">{language.t("home.project.add")}</span>
+                </>
+              )
+
               return (
                 <Show
                   when={servers.visible.length === 1}
                   fallback={
                     <Menu gutter={6} modal={false} placement="bottom-end">
                       <Menu.Trigger
-                        as={IconButton}
+                        as="button"
+                        type="button"
                         data-action="vertical-tabs-add-project"
-                        variant="ghost-muted"
-                        size="small"
-                        icon={<Icon name="folder-add-left" />}
+                        class={actionClass}
                         aria-label={language.t("home.project.add")}
                         disabled={!servers.visible.length}
-                      />
+                      >
+                        {content}
+                      </Menu.Trigger>
                       <Menu.Portal>
                         <Menu.Content>
                           <For each={servers.visible}>
@@ -585,18 +596,16 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                     </Menu>
                   }
                 >
-                  <Tooltip placement="bottom" class="shrink-0" value={language.t("home.project.add")}>
-                    <IconButton
-                      type="button"
-                      data-action="vertical-tabs-add-project"
-                      variant="ghost-muted"
-                      size="small"
-                      icon={<Icon name="folder-add-left" />}
-                      aria-label={language.t("home.project.add")}
-                      disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
-                      onClick={() => add(servers.visible[0])}
-                    />
-                  </Tooltip>
+                  <button
+                    type="button"
+                    data-action="vertical-tabs-add-project"
+                    class={actionClass}
+                    aria-label={language.t("home.project.add")}
+                    disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
+                    onClick={() => add(servers.visible[0])}
+                  >
+                    {content}
+                  </button>
                 </Show>
               )
             }
@@ -666,9 +675,9 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
             )
 
             const sidebarNewSessionRow = () => (
-              <div class="flex h-7 w-full shrink-0 items-center gap-2">
-                <div class="min-w-0 flex-1">{newSessionButton()}</div>
-                {addProjectButton()}
+              <div class="flex h-7 w-full shrink-0 items-center gap-1">
+                <div class="min-w-0 flex-1">{newSessionButton(true)}</div>
+                <div class="min-w-0 flex-1">{addProjectButton()}</div>
               </div>
             )
 

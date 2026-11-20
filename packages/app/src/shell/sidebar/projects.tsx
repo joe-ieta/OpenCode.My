@@ -30,6 +30,7 @@ import { setSidebarUnread } from "@/shell/sidebar-peek"
 import { createSessionIndexes } from "./history"
 import { projectRemoteHint } from "./project-remotes"
 import { createProjectActions } from "@/shell/projects/actions"
+import { addProjects } from "@/shell/projects/add"
 import { ProjectMenuItems } from "@/shell/projects/menu"
 import { isServerFailed } from "@/runtime/server/health-machine"
 import type { LocalProject } from "@/shell/state/layout"
@@ -52,6 +53,12 @@ export function SidebarProjects(props: {
   const command = useCommand()
   const tabs = useTabs()
   const projectActions = createProjectActions()
+  function chooseProject(conn: ServerConnection.Any) {
+    projectActions.choose(conn, (server, directories) => {
+      const ctx = global.serverCtx(ServerConnection.key(server))
+      if (ctx) void addProjects(ctx, directories)
+    })
+  }
 
   const [projectMenu, setProjectMenu] = createStore<{ open?: string }>({})
   let projectMenuFocus: HTMLButtonElement | undefined
@@ -962,8 +969,8 @@ export function SidebarProjects(props: {
                   class="flex items-center gap-1"
                   title={language.plural("sidebar.running.count", summary().active)}
                 >
-                  <ActivityRing width={12} height={12} />
                   <span>{summary().active}</span>
+                  <ActivityRing width={12} height={12} />
                 </span>
               </Show>
               <Show when={summary().unread > 0}>
@@ -972,8 +979,8 @@ export function SidebarProjects(props: {
                   class="flex items-center gap-1"
                   title={language.plural("sidebar.unread.count", summary().unread)}
                 >
-                  <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
                   <span>{summary().unread}</span>
+                  <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
                 </span>
               </Show>
               <span data-slot="project-sessions-totals">
@@ -981,6 +988,47 @@ export function SidebarProjects(props: {
               </span>
             </span>
             <Show when={listMode()}>{props.newSessionButton}</Show>
+            <Show when={!listMode()}>
+              <Show
+                when={servers.visible.length === 1}
+                fallback={
+                  <Menu gutter={6} modal={false} placement="bottom-end">
+                    <Menu.Trigger
+                      as={IconButton}
+                      variant="ghost-muted"
+                      size="small"
+                      icon={<Icon name="folder-add-left" />}
+                      aria-label={language.t("home.project.add")}
+                      disabled={!servers.visible.length}
+                    />
+                    <Menu.Portal>
+                      <Menu.Content>
+                        <For each={servers.visible}>
+                          {(conn) => (
+                            <Menu.Item
+                              disabled={isServerFailed(global.servers.health[ServerConnection.key(conn)])}
+                              onSelect={() => chooseProject(conn)}
+                            >
+                              {serverName(conn)}
+                            </Menu.Item>
+                          )}
+                        </For>
+                      </Menu.Content>
+                    </Menu.Portal>
+                  </Menu>
+                }
+              >
+                <IconButton
+                  variant="ghost-muted"
+                  size="small"
+                  icon={<Icon name="folder-add-left" />}
+                  aria-label={language.t("home.project.add")}
+                  title={language.t("home.project.add")}
+                  disabled={isServerFailed(global.servers.health[ServerConnection.key(servers.visible[0])])}
+                  onClick={() => chooseProject(servers.visible[0])}
+                />
+              </Show>
+            </Show>
           </div>
         </>
         <div
@@ -1025,8 +1073,8 @@ export function SidebarProjects(props: {
                   class="flex items-center gap-1"
                   title={language.plural("sidebar.pinned.count", pinnedSummary().projects)}
                 >
-                  <Icon name="folder" size="small" class="text-v2-icon-icon-muted" />
                   <span>{pinnedSummary().projects}</span>
+                  <Icon name="folder" size="small" class="text-v2-icon-icon-muted" />
                 </span>
                 <Show when={pinnedSummary().running > 0}>
                   <span
@@ -1034,8 +1082,8 @@ export function SidebarProjects(props: {
                     class="flex items-center gap-1"
                     title={language.plural("sidebar.running.count", pinnedSummary().running)}
                   >
-                    <ActivityRing width={12} height={12} />
                     <span>{pinnedSummary().running}</span>
+                    <ActivityRing width={12} height={12} />
                   </span>
                 </Show>
                 <Show when={pinnedSummary().unread > 0}>
@@ -1044,8 +1092,8 @@ export function SidebarProjects(props: {
                     class="flex items-center gap-1"
                     title={language.plural("sidebar.unread.count", pinnedSummary().unread)}
                   >
-                    <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
                     <span>{pinnedSummary().unread}</span>
+                    <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-v2-background-bg-accent" />
                   </span>
                 </Show>
               </div>
