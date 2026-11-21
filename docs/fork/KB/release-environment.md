@@ -92,10 +92,10 @@ flowchart TD
 bun run release:desktop:my --series=0.1
 
 # 只构建 arm64
-bun run release:desktop:my --version=2.3.0-my.0.1.25-rc --arch=arm64
+bun run release:desktop:my --version=2.3.0-my-0.1.26-rc --arch=arm64
 
 # 同一标签同时构建 x64 与 arm64（推荐 Linux 发行）
-bun run release:desktop:my --version=2.3.0-my.0.1.25-rc --arch=all
+bun run release:desktop:my --version=2.3.0-my-0.1.26-rc --arch=all
 ```
 
 - `--arch` 省略时使用 `process.arch`。
@@ -358,7 +358,7 @@ Windows 和 Linux 在不同文件系统构建，需要把 Linux 产物复制到 
 
 ## 7. 发布流程
 
-桌面版本规则见 [项目顶层约束](../../../AGENTS.md#desktop-release-versions-dev-my)。先拉取 `origin` 标签，再用 `--series=<n1>.<n2>` 分配候选版本。`n3` 在同一 fork 系列内递增，即使上游版本变化也继续计数。计数包含本地预留、已有构建输出及已拉取标签。当前系列是 `0.1`，历史 `.24` 对应 `v2.3.0-my.0.1.24`，首次新格式候选是 `v2.3.0-my.0.1.25-rc`。历史标签继续保留。
+桌面版本规则见 [项目顶层约束](../../../AGENTS.md#desktop-release-versions-dev-my)。先拉取 `origin` 标签，再用 `--series=<n1>.<n2>` 分配候选版本。`n3` 在同一 fork 系列内递增，即使上游版本变化也继续计数。计数包含本地预留、已有构建输出及已拉取标签。当前系列是 `0.1`，历史 `.24` 对应旧格式的 `v2.3.0-my.0.1.24`；新的 tag 使用 `-my-` 分隔符（如 `v2.3.0-my-0.1.26`），展示文本使用空格（`v2.3.0-my 0.1.26`），因为 Git ref 不允许空格。历史标签继续保留。
 
 候选版始终以预发行公开。仅在明确批准发为 Latest 时，使用 `--stable --version=<无 -rc 的完整版本>` 按正式版本号重建，再用独立正式标签发布。不要用候选包充当正式包。Windows 和 Linux 补建时共用同一源码和模型快照。GitHub Latest 由发布时显式设置。
 

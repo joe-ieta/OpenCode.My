@@ -37,7 +37,7 @@ const stable = process.argv.includes("--stable")
 if ((explicit === undefined) === (series === undefined) || (stable && explicit === undefined))
   throw new Error("Pass --series=<fork-major>.<fork-minor> for a new candidate or --version=<assigned-version>")
 const number = "(?:0|[1-9]\\d*)"
-const forkVersion = new RegExp(`^(${number}\\.${number}\\.${number})-my\\.(${number})\\.(${number})\\.(${number})(-rc)?$`)
+const forkVersion = new RegExp(`^(${number}\\.${number}\\.${number})-my-(${number})\\.(${number})\\.(${number})(-rc)?$`)
 await mkdir(workspace, { recursive: true })
 await mkdir(releases, { recursive: true })
 process.chdir(root)
@@ -46,18 +46,18 @@ const version = await (async () => {
   if (explicit !== undefined) {
     const match = forkVersion.exec(explicit)
     if (!match || !semver.valid(explicit) || stable === Boolean(match[5]))
-      throw new Error("Use <upstream>-my.<major>.<minor>.<build>-rc, or pass --stable with the suffix-free version")
+      throw new Error("Use <upstream>-my-<major>.<minor>.<build>-rc, or pass --stable with the suffix-free version")
     return explicit
   }
   if (!series || !new RegExp(`^${number}\\.${number}$`).test(series)) throw new Error("Pass --series=<major>.<minor>")
-  const tags = (await $`git tag --list ${`v*-my.${series}.*`}`.text()).trim().split("\n")
+  const tags = (await $`git tag --list ${`v*-my-${series}.*`}`.text()).trim().split("\n")
   const reserved = [...tags.map((tag) => tag.trim()), ...(await readdir(releases)), ...(await readdir(workspace))]
   const baseline = series === "0.1" ? 24 : 0
   const latest = reserved.reduce((max, item) => {
     const match = forkVersion.exec(item.replace(/^v/, ""))
     return match && `${match[2]}.${match[3]}` === series ? Math.max(max, Number(match[4])) : max
   }, baseline)
-  return `${rootPackage.version}-my.${series}.${latest + 1}-rc`
+  return `${rootPackage.version}-my-${series}.${latest + 1}-rc`
 })()
 if (!semver.valid(version)) throw new Error(`Invalid release version: ${version}`)
 const tag = `v${version}`
