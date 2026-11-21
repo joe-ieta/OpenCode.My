@@ -30,6 +30,7 @@ if (process.versions.bun !== rootPackage.packageManager.slice("bun@".length))
   throw new Error(`Use the pinned ${rootPackage.packageManager} runtime for release builds`)
 const root = path.resolve(import.meta.dir, "../../..")
 const workspace = path.join(root, ".cache", "desktop-my")
+const releases = path.join(root, "dist", "releases")
 const explicit = process.argv.find((argument) => argument.startsWith("--version="))?.slice("--version=".length)
 const series = process.argv.find((argument) => argument.startsWith("--series="))?.slice("--series=".length)
 const stable = process.argv.includes("--stable")
@@ -38,6 +39,7 @@ if ((explicit === undefined) === (series === undefined) || (stable && explicit =
 const number = "(?:0|[1-9]\\d*)"
 const forkVersion = new RegExp(`^(${number}\\.${number}\\.${number})-my\\.(${number})\\.(${number})\\.(${number})(-rc)?$`)
 await mkdir(workspace, { recursive: true })
+await mkdir(releases, { recursive: true })
 process.chdir(root)
 
 const version = await (async () => {
@@ -48,22 +50,20 @@ const version = await (async () => {
     return explicit
   }
   if (!series || !new RegExp(`^${number}\\.${number}$`).test(series)) throw new Error("Pass --series=<major>.<minor>")
-  const prefix = `${rootPackage.version}-my.${series}.`
-  const tags = (await $`git tag --list ${`v${prefix}*`}`.text()).trim().split("\n")
-  const reserved = [...tags.map((tag) => tag.trim().slice(1)), ...(await readdir(workspace))]
-  const baseline = prefix === "2.3.0-my.0.1." ? 24 : 0
+  const tags = (await $`git tag --list ${`v*-my.${series}.*`}`.text()).trim().split("\n")
+  const reserved = [...tags.map((tag) => tag.trim()), ...(await readdir(releases)), ...(await readdir(workspace))]
+  const baseline = series === "0.1" ? 24 : 0
   const latest = reserved.reduce((max, item) => {
-    const match = item.startsWith(prefix) ? forkVersion.exec(item) : null
-    return match ? Math.max(max, Number(match[4])) : max
+    const match = forkVersion.exec(item.replace(/^v/, ""))
+    return match && `${match[2]}.${match[3]}` === series ? Math.max(max, Number(match[4])) : max
   }, baseline)
-  return `${prefix}${latest + 1}-rc`
+  return `${rootPackage.version}-my.${series}.${latest + 1}-rc`
 })()
 if (!semver.valid(version)) throw new Error(`Invalid release version: ${version}`)
 const tag = `v${version}`
 const work = path.join(workspace, version)
-const output = path.join(root, "dist", "releases", tag)
+const output = path.join(releases, tag)
 await mkdir(work)
-await mkdir(path.dirname(output), { recursive: true })
 await mkdir(output)
 console.log(`Desktop release version: ${version}`)
 
