@@ -23,15 +23,21 @@
 
 | 通道 | 版本 | 平台 | 下载 |
 | --- | --- | --- | --- |
-| 正式发行（Latest） | `v2.3.0-my.24` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.24) |
+| 正式发行（Latest） | `v2.3.0-my.0.1.25` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.0.1.25) |
 
 早于 `v2.3.0-my.24` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
+
+## v2.3.0-my.0.1.25 正式发行（Windows x64 / Linux amd64、arm64）
+
+- 2026-11-21（Asia/Shanghai）候选版通过人工验收。正式版按新版本号重建，三个目标均使用构建提交 `d3d52458636c95325fa9256dc60708f8e9bf005f` 和原候选模型目录快照，SHA256 为 `9b679293eb100564645d1c1cd755afbf406d736172124ffa8d6278677d08f359`。候选标签和发行附件均保留。[正式发行](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.0.1.25) · [候选版](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.0.1.25-rc)
+- Windows 提供 NSIS，Linux 两种架构各提供 AppImage 和 deb。三个目标均通过包内 CLI 版本、HTTP 健康和 SSE 冒烟，arm64 使用 QEMU。已核对包内版本、三个更新清单及 10 个 GitHub 附件的大小、SHA256 和公开下载链接。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.0.1.25/SHA256SUMS)
+- 正式标签和候选标签指向同一源码提交。GitHub Latest 已切换到 `v2.3.0-my.0.1.25`。
 
 ## v2.3.0-my.0.1.25-rc Windows x64 与 Linux amd64/arm64 候选版
 
 - 2026-11-21（Asia/Shanghai）发布新规则下首个桌面候选。官方基线为 `2.3.0`，fork 系列为 `0.1`，构建脚本从历史基线 24 自动分配 25。标签指向 `d3d52458636c95325fa9256dc60708f8e9bf005f`，包含 `upstream/dev@cfbf3f7171`。[候选版](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.0.1.25-rc)
 - Windows x64 提供 NSIS，Linux amd64、arm64 各提供 AppImage 和 deb。三个目标复用同一模型目录快照。`bun run check` 通过，包内 CLI 的版本、HTTP 健康和 SSE 均通过；arm64 使用 QEMU。
-- 已核对 GitHub 上 10 个附件的大小、SHA256 和公开下载链接。该候选为预发行，正式 Latest 为 `v2.3.0-my.24`。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.0.1.25-rc/SHA256SUMS)
+- 已核对 GitHub 上 10 个附件的大小、SHA256 和公开下载链接。该候选发布时为预发行，当时的正式 Latest 为 `v2.3.0-my.24`。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.0.1.25-rc/SHA256SUMS)
 
 ## v2.3.0-my.24 正式发行（Windows x64 / Linux amd64、arm64）
 
