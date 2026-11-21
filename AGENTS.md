@@ -17,6 +17,12 @@
 - Keep runtime dependencies directed from Schema to Core and Protocol, then from Core and Protocol to Server. Client runtime code may depend on Schema and Protocol but never Core or Server; `sdk` composes Client, Core, and Server.
 - This repository does not use Changesets. Do not add `.changeset` files; follow the existing release workflow instead.
 
+## Desktop Release Versions (`dev-my`)
+
+- Use `v<upstream-version>-my.<n1>.<n2>.<n3>-rc` for desktop release candidates. The upstream version is the official release version used as the desktop baseline. The fork has its own major (`n1`), minor (`n2`), and build (`n3`) numbers. Maintainers explicitly choose `n1` and `n2`.
+- Allocate `n3` automatically for each new build from the highest reserved or published number in that upstream version and fork series. All platforms of the same release use the same version, source commit, and model snapshot. Fetch `origin` before allocating a version and verify that the intended remote tag is free before pushing it. The current series is `0.1`, with `v2.3.0-my.24` as the historical baseline equivalent to `v2.3.0-my.0.1.24`.
+- Publish candidates as GitHub prereleases with `--latest=false`. Only when explicitly authorized to publish a formal Latest release, use `v<upstream-version>-my.<n1>.<n2>.<n3>` and build assets with that exact version. Keep candidate and historical tags immutable. Keep the `oc-headless` and `qt-headless` version schemes separate.
+
 ## Live TUI Testing
 
 - Run `bun run dev:live` from a development worktree to test its TUI against the currently elected `opencode` background server and live sessions.

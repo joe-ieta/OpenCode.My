@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { $ } from "bun"
 import { createHash } from "node:crypto"
-import { cp, mkdir, mkdtemp, readdir, rm, stat } from "node:fs/promises"
+import { cp, mkdir, mkdtemp, readdir, stat } from "node:fs/promises"
 import path from "node:path"
 import semver from "semver"
 import rootPackage from "../../../package.json"
@@ -28,19 +28,44 @@ if (platform === "linux" && foreign) {
 }
 if (process.versions.bun !== rootPackage.packageManager.slice("bun@".length))
   throw new Error(`Use the pinned ${rootPackage.packageManager} runtime for release builds`)
-const version = process.argv.find((argument) => argument.startsWith("--version="))?.slice("--version=".length)
-if (!version || !semver.valid(version) || !/^\d+\.\d+\.\d+-my\.\d+$/.test(version))
-  throw new Error("Pass --version=<major>.<minor>.<patch>-my.<release>")
-
 const root = path.resolve(import.meta.dir, "../../..")
-const tag = `v${version}`
-const work = path.join(root, ".cache", "desktop-my", version)
-const output = path.join(root, "dist", "releases", tag)
-await mkdir(work, { recursive: true })
-// A multi-architecture build must not mix in artifacts from an earlier run.
-await rm(output, { recursive: true, force: true })
-await mkdir(output, { recursive: true })
+const workspace = path.join(root, ".cache", "desktop-my")
+const explicit = process.argv.find((argument) => argument.startsWith("--version="))?.slice("--version=".length)
+const series = process.argv.find((argument) => argument.startsWith("--series="))?.slice("--series=".length)
+const stable = process.argv.includes("--stable")
+if ((explicit === undefined) === (series === undefined) || (stable && explicit === undefined))
+  throw new Error("Pass --series=<fork-major>.<fork-minor> for a new candidate or --version=<assigned-version>")
+const number = "(?:0|[1-9]\\d*)"
+const forkVersion = new RegExp(`^(${number}\\.${number}\\.${number})-my\\.(${number})\\.(${number})\\.(${number})(-rc)?$`)
+await mkdir(workspace, { recursive: true })
 process.chdir(root)
+
+const version = await (async () => {
+  if (explicit !== undefined) {
+    const match = forkVersion.exec(explicit)
+    if (!match || !semver.valid(explicit) || stable === Boolean(match[5]))
+      throw new Error("Use <upstream>-my.<major>.<minor>.<build>-rc, or pass --stable with the suffix-free version")
+    return explicit
+  }
+  if (!series || !new RegExp(`^${number}\\.${number}$`).test(series)) throw new Error("Pass --series=<major>.<minor>")
+  const prefix = `${rootPackage.version}-my.${series}.`
+  const tags = (await $`git tag --list ${`v${prefix}*`}`.text()).trim().split("\n")
+  const reserved = [...tags.map((tag) => tag.trim().slice(1)), ...(await readdir(workspace))]
+  const baseline = prefix === "2.3.0-my.0.1." ? 24 : 0
+  const latest = reserved.reduce((max, item) => {
+    const match = item.startsWith(prefix) ? forkVersion.exec(item) : null
+    return match ? Math.max(max, Number(match[4])) : max
+  }, baseline)
+  return `${prefix}${latest + 1}-rc`
+})()
+if (!semver.valid(version)) throw new Error(`Invalid release version: ${version}`)
+const tag = `v${version}`
+const work = path.join(workspace, version)
+const output = path.join(root, "dist", "releases", tag)
+await mkdir(work)
+await mkdir(path.dirname(output), { recursive: true })
+await mkdir(output)
+console.log(`Desktop release version: ${version}`)
 
 process.env.OPENCODE_VERSION = version
 // dev-my is the source branch. Desktop discovery and V1 history use the official dev runtime profile.

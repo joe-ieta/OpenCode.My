@@ -88,19 +88,19 @@ flowchart TD
 ### 3.2 多架构参数
 
 ```bash
-# 当前主机架构
-bun run release:desktop:my --version=<version>-my.<N>
+# 分配新的候选版本并构建当前主机架构
+bun run release:desktop:my --series=0.1
 
 # 只构建 arm64
-bun run release:desktop:my --version=<version>-my.<N> --arch=arm64
+bun run release:desktop:my --version=2.3.0-my.0.1.25-rc --arch=arm64
 
 # 同一标签同时构建 x64 与 arm64（推荐 Linux 发行）
-bun run release:desktop:my --version=<version>-my.<N> --arch=all
+bun run release:desktop:my --version=2.3.0-my.0.1.25-rc --arch=all
 ```
 
 - `--arch` 省略时使用 `process.arch`。
 - Windows 目前只允许 x64。
-- `--arch=all` 会先清理输出目录，避免混入上一次构建的残留。
+- 构建为每个版本预留独立目录，拒绝覆盖已有输出。补建同一候选版的其他平台使用独立工作区和已分配的完整版本号。
 - 跨架构构建在开始前检查 `qemu-aarch64`/`qemu-x86_64` binfmt；缺失时立即失败并给出提示。
 - 跨架构模型目录冒烟自动使用 `catalog-smoke --via-server`，避免 QEMU 下 5 秒插件激活超时。
 
@@ -274,7 +274,7 @@ bun run check
 ```powershell
 bun install --frozen-lockfile
 bun run check
-bun run release:desktop:my --version=<version>-my.<N>
+bun run release:desktop:my --series=0.1
 ```
 
 产物：`dist/releases/v<version>/`，包含 NSIS 安装包、`latest.yml`、单架构 `SHA256SUMS` 和 `build.json`。
@@ -288,7 +288,7 @@ export HTTPS_PROXY="http://<wsl-gateway>:<port>"
 export HTTP_PROXY="$HTTPS_PROXY"
 
 cd ~/opencode-my
-bun run release:desktop:my --version=<version>-my.<N> --arch=all
+bun run release:desktop:my --version=<已分配的完整候选版本> --arch=all
 ```
 
 产物：
@@ -357,6 +357,10 @@ Windows 和 Linux 在不同文件系统构建，需要把 Linux 产物复制到 
 - [ ] 公开下载本版更新清单和安装包成功。
 
 ## 7. 发布流程
+
+桌面版本规则见 [项目顶层约束](../../../AGENTS.md#desktop-release-versions-dev-my)。先拉取 `origin` 标签，再用 `--series=<n1>.<n2>` 分配候选版本。`n3` 按上游版本和 fork 系列递增，计入本地预留构建及已拉取标签。当前系列是 `0.1`，历史 `.24` 对应 `v2.3.0-my.0.1.24`，首次新格式候选是 `v2.3.0-my.0.1.25-rc`。历史标签继续保留。
+
+候选版始终以预发行公开。仅在明确批准发为 Latest 时，使用 `--stable --version=<无 -rc 的完整版本>` 按正式版本号重建，再用独立正式标签发布。不要用候选包充当正式包。Windows 和 Linux 补建时共用同一源码和模型快照。GitHub Latest 由发布时显式设置。
 
 ```powershell
 # 1. 用 build.json 的源码提交打标签；标签对象指向构建来源
