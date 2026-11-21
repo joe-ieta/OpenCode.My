@@ -63,14 +63,14 @@ Share feedback and ideas through [GitHub Issues](https://github.com/joe-ieta/Ope
 
 ## Desktop screenshots
 
-- **Side bar** · Add projects or search sessions from the top of the sidebar. Browse by project or recent activity and see running sessions across connected servers.
+- **Side bar** · Choose **Side bar** under **Preferences → Interface layout**. Add projects or search sessions from the sidebar, with pinned projects and running sessions in their own sections.
 
-  <img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with Add project, Search sessions, project groups, and running sessions across two servers">
+  <img src="docs/fork/dev-my/side-bar-en.png" alt="Desktop Preferences with Side bar selected, showing project groups, pinned projects, and running sessions">
 
 - **Custom models** · Open **Custom providers** from the model picker to fetch models or add them manually. Test a saved model and see the result alongside its configuration.
 
   <img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider editor with model discovery, model settings, and a successful text test">
 
-_Screenshots use sample data._
+_The custom models screenshot uses sample data._
 
 [Download OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [Desktop maintenance](docs/fork/dev-my/README.md) · [Official OpenCode README](https://github.com/anomalyco/opencode#readme)

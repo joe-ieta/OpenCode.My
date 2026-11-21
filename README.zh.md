@@ -63,14 +63,14 @@ OpenCode My 是 OpenCode 生态中的桌面项目，聚焦高负荷开发中的�
 
 ## 桌面界面截图
 
-- **侧栏（Side bar）** · 从顶部添加项目或搜索会话。可按项目或最近活动浏览，并集中查看已连接服务器上的运行中会话。
+- **侧栏（Side bar）** · 在 **偏好设置 → 界面布局** 中选择 **侧栏**。可直接添加项目或搜索会话，置顶项目和运行中的会话各有独立区域。
 
-  <img src="docs/fork/dev-my/side-bar-zh.png" alt="侧栏中的添加项目、搜索会话、项目分组和跨服务器运行中的会话">
+  <img src="docs/fork/dev-my/side-bar-zh.png" alt="桌面偏好设置中已选择侧栏，同时显示项目分组、置顶项目和运行中的会话">
 
 - **自定义模型（Custom models）** · 在模型选择器中打开 **自定义 Provider**，可获取或手动添加模型，并在同一表单中查看已保存模型的文本测试结果。
 
   <img src="docs/fork/dev-my/custom-models-zh.png" alt="自定义 Provider 编辑器中的模型发现、模型设置和文本测试成功提示">
 
-_截图使用示例数据。_
+_自定义模型截图使用示例数据。_
 
 [下载 OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [桌面维护说明](docs/fork/dev-my/README.md) · [官方 OpenCode README](https://github.com/anomalyco/opencode#readme)
