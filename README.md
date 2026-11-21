@@ -61,15 +61,15 @@ Share feedback and ideas through [GitHub Issues](https://github.com/joe-ieta/Ope
 - **Model visibility.** Use **Manage models** to choose which models appear in the picker. Close the panel to return to the same picker.
 - **Built-in integrations.** Open **Connect an integration** from the picker footer or from the search field on desktop. Confirming removal deletes the integration's saved credentials and refreshes the model catalog.
 
-## Personalization features at a glance
+## Desktop screenshots
 
-- **Side bar** · Select **Side bar** under **Settings → General → Interface layout**. Pin or collapse projects, browse recent sessions by project, and see running work across connected servers, including background Shell tasks and subagents.
+- **Side bar** · Add projects or search sessions from the top of the sidebar. Browse by project or recent activity and see running sessions across connected servers.
 
-  <img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with project groups, recent sessions, and running work">
+  <img src="docs/fork/dev-my/side-bar-en.png" alt="Side bar with Add project, Search sessions, project groups, and running sessions across two servers">
 
-- **Custom models** · Open **Custom providers** from the model picker to configure a global OpenAI-compatible provider. Discover and import models or enter them manually, set the display name, request ID, and context limit, and test text responses. Use **Manage models** to choose which models appear in the picker.
+- **Custom models** · Open **Custom providers** from the model picker to fetch models or add them manually. Test a saved model and see the result alongside its configuration.
 
-  <img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider model form with the request ID, display name, context limit, and text test">
+  <img src="docs/fork/dev-my/custom-models-en.png" alt="Custom provider editor with model discovery, model settings, and a successful text test">
 
 _Screenshots use sample data._
 

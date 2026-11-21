@@ -25,7 +25,7 @@
 | --- | --- | --- | --- |
 | 正式发行（Latest） | `v2.3.0-my.24` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.24) |
 
-早于 `v2.3.0-my.18` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
+早于 `v2.3.0-my.24` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
 
 ## v2.3.0-my.24 正式发行（Windows x64 / Linux amd64、arm64）
 
@@ -35,6 +35,7 @@
 - 2026-11-21（Asia/Shanghai）Windows x64 人工验收通过。保留安装包及 `latest.yml` 的原附件 ID 和 SHA256，以同一标签 `1cebbb83412b0012415dee8cf6044c45a55465de` 和同一模型目录快照补齐 Linux amd64、arm64 的 AppImage 和 deb。快照 SHA256 为 `9b679293eb100564645d1c1cd755afbf406d736172124ffa8d6278677d08f359`。
 - Linux `bun run check` 35/35。四个 Linux 安装包通过解包、架构、版本、桌面入口及更新源核验；两种架构通过 CLI 服务发现、历史迁移、HTTP 健康和 SSE 冒烟，arm64 使用 QEMU。
 - 全部 10 个附件的大小、SHA256 和公开下载链接均已核验。`.24` 已转为正式发行并设为 GitHub Latest。[发行页](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.24)
+- 清理了早于 `.24` 的桌面发行附件，涉及 `.18`、`.19`、`.20`、`.21`、`.22` 共 5 个发行、38 个附件。已核验历史发行页面、发布说明和源码标签均保留，`oc-headless` 与 `qt-headless` 发行附件未受影响。`.24` 清理后仍是 Latest，10 个资产全部保留。
 
 ## v2.3.0-my.22 正式发行（Windows x64 / Linux amd64、arm64）
 
