@@ -86,15 +86,21 @@ export interface InviteOptions {
 export interface Interface {
   /** Makes the machine known for good, returning its validated ID. Its live state is whatever its next connection reports. */
   readonly add: (name: string) => Effect.Effect<Environment.ID, InvalidName | AlreadyExists>
-  /** Forgets the machine and ends it, failing what waits on it as `NotFound` and its processes at once. */
-  readonly remove: (id: Environment.ID) => Effect.Effect<void>
+  /**
+   * Forgets the machine and ends it, failing what waits on it as `NotFound` and its processes at once. False when there
+   * was no such machine.
+   */
+  readonly remove: (id: Environment.ID) => Effect.Effect<boolean>
   readonly list: () => Effect.Effect<ReadonlyArray<Info>>
   /** The machine's environment, connected or not: calls on an offline machine fail with `NotSent`. */
   readonly get: (id: Environment.ID) => Effect.Effect<Environment.Interface, NotFound>
   /** The home directory in the hello of the machine's connection, failing with `NotSent` while it is offline. */
   readonly home: (id: Environment.ID) => Effect.Effect<string, NotFound | Machine.NotSent>
-  /** Serves one worker's connection, routed by the name in its hello, until it is lost or replaced. */
-  readonly connect: (connection: Machine.Connection) => Effect.Effect<void, NotFound>
+  /**
+   * Serves one worker's connection as the machine `id` until it is lost or replaced. `id` is the one the link's handshake
+   * proved, never one the worker named.
+   */
+  readonly connect: (id: Environment.ID, connection: Machine.Connection) => Effect.Effect<void, NotFound>
   /** Prints one join string for this machine, good once and for five minutes. A second invite replaces the first. */
   readonly invite: (
     id: Environment.ID,
@@ -167,15 +173,16 @@ const layer = Layer.effect(
         return id
       }),
       remove: Effect.fn("Machines.remove")(function* (id) {
-        yield* locks.withLock(id)(
+        return yield* locks.withLock(id)(
           Effect.gen(function* () {
             const machine = instances.get(id)
-            if (!machine) return
+            if (!machine) return false
             yield* db.delete(MachineTable).where(eq(MachineTable.id, id)).run().pipe(Effect.orDie)
             invitations.delete(id)
             keys.delete(id)
             instances.delete(id)
             machine.close(new NotFound({ machine: id }))
+            return true
           }).pipe(Effect.uninterruptible),
         )
       }),
@@ -201,8 +208,7 @@ const layer = Layer.effect(
         if (!hello) return yield* new Machine.NotSent({ machine: id })
         return hello.home
       }),
-      connect: Effect.fn("Machines.connect")(function* (connection) {
-        const id = Environment.ID.make(connection.hello.name)
+      connect: Effect.fn("Machines.connect")(function* (id, connection) {
         const machine = instances.get(id)
         if (!machine) return yield* new NotFound({ machine: id })
         yield* machine.connect(connection)
