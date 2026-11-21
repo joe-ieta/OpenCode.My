@@ -23,15 +23,18 @@
 
 | 通道 | 版本 | 平台 | 下载 |
 | --- | --- | --- | --- |
-| 正式发行（Latest） | `v2.3.0-my.22` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.22) |
+| 正式发行（Latest） | `v2.3.0-my.24` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.24) |
 
 早于 `v2.3.0-my.18` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
 
-## v2.3.0-my.24 Windows x64 人工审查版
+## v2.3.0-my.24 正式发行（Windows x64 / Linux amd64、arm64）
 
-- 2026-11-21（Asia/Shanghai）发布 Windows x64 预发行，构建及标签对应 `1cebbb83412b0012415dee8cf6044c45a55465de`。GitHub Latest 为 `v2.3.0-my.22`。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.24)
+- 2026-11-21（Asia/Shanghai）发布 Windows x64 预发行，构建及标签对应 `1cebbb83412b0012415dee8cf6044c45a55465de`。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.24)
 - 官方 dev 同步至 656c273638，保留本地 Side bar 补丁。同步验证包括 Side bar 与 Home Chromium 20/20、会话活动 Core 31/31、Windows MCP pool 22/22，`bun run check` 35/35。
-- 未签名 NSIS 安装包为 286414517 字节，SHA256 为 `eecbb2df33c5f2a64a84710b8599f93d0c4b3c588f7ef531d8b951511f13fe01`。安装包、ASAR 和包内 CLI 版本已核验。包内 CLI 的 `/api/info` 返回 HTTP 200，`/api/event` 首帧为 `server.connected`。GitHub 四个附件的大小、SHA256 和公开下载链接均已核验，等待 Windows 人工安装验收。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.24/SHA256SUMS)
+- 未签名 NSIS 安装包为 286414517 字节，SHA256 为 `eecbb2df33c5f2a64a84710b8599f93d0c4b3c588f7ef531d8b951511f13fe01`。安装包、ASAR 和包内 CLI 版本已核验。包内 CLI 的 `/api/info` 返回 HTTP 200，`/api/event` 首帧为 `server.connected`。GitHub 四个附件的大小、SHA256 和公开下载链接均已核验。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.24/SHA256SUMS)
+- 2026-11-21（Asia/Shanghai）Windows x64 人工验收通过。保留安装包及 `latest.yml` 的原附件 ID 和 SHA256，以同一标签 `1cebbb83412b0012415dee8cf6044c45a55465de` 和同一模型目录快照补齐 Linux amd64、arm64 的 AppImage 和 deb。快照 SHA256 为 `9b679293eb100564645d1c1cd755afbf406d736172124ffa8d6278677d08f359`。
+- Linux `bun run check` 35/35。四个 Linux 安装包通过解包、架构、版本、桌面入口及更新源核验；两种架构通过 CLI 服务发现、历史迁移、HTTP 健康和 SSE 冒烟，arm64 使用 QEMU。
+- 全部 10 个附件的大小、SHA256 和公开下载链接均已核验。`.24` 已转为正式发行并设为 GitHub Latest。[发行页](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.24)
 
 ## v2.3.0-my.22 正式发行（Windows x64 / Linux amd64、arm64）
 
