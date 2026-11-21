@@ -27,6 +27,12 @@
 
 早于 `v2.3.0-my.18` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
 
+## v2.3.0-my.24 Windows x64 人工审查版
+
+- 2026-11-21（Asia/Shanghai）发布 Windows x64 预发行，构建及标签对应 `1cebbb83412b0012415dee8cf6044c45a55465de`。GitHub Latest 为 `v2.3.0-my.22`。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.24)
+- 官方 dev 同步至 656c273638，保留本地 Side bar 补丁。同步验证包括 Side bar 与 Home Chromium 20/20、会话活动 Core 31/31、Windows MCP pool 22/22，`bun run check` 35/35。
+- 未签名 NSIS 安装包为 286414517 字节，SHA256 为 `eecbb2df33c5f2a64a84710b8599f93d0c4b3c588f7ef531d8b951511f13fe01`。安装包、ASAR 和包内 CLI 版本已核验。包内 CLI 的 `/api/info` 返回 HTTP 200，`/api/event` 首帧为 `server.connected`。GitHub 四个附件的大小、SHA256 和公开下载链接均已核验，等待 Windows 人工安装验收。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.24/SHA256SUMS)
+
 ## v2.3.0-my.22 正式发行（Windows x64 / Linux amd64、arm64）
 
 - 2026-11-20（Asia/Shanghai）Windows x64 人工审核通过；基于同一不可变标签 `68fdc0684378e771159638d14263efd928973850` 补齐 Linux amd64、arm64 的 AppImage 和 deb，并验证后转为正式版、设为 Latest。`draft=false`、`prerelease=false`；源码标签未移动。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.22)
