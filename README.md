@@ -2,21 +2,41 @@
 
 **English** · [简体中文](README.zh.md)
 
-`OpenCode My` is a desktop AI coding workspace for everyday development and long-running tasks. Built on `opencode`, it helps developers stay in control, understand progress, and work with AI agents across multiple projects at once. It retains the full coding and agent capabilities of `opencode` while improving the interface, personal workflows, and the experience of running models locally. The desktop edition is maintained on `dev-my`.
+OpenCode My is a desktop workspace for long-running agent coding, built on `opencode`. It helps developers work across several projects and follow tasks that take time to complete. It retains OpenCode's coding and agent capabilities and improves desktop interactions, personal workflows, and access to locally hosted models. The desktop edition is maintained on `dev-my`.
 
-- **Control** · Manage projects and sessions, and use session summaries to steer long-running, system-level development.
-- **Understanding** · See facts, summaries, and rollups for project design, task breakdown, task progress, and session activity.
-- **Ease of use** · Work in a streamlined interface with personalization features and support for local deployments.
+- **Control** · Organize sessions by project and see running work and tasks waiting for input, so you can switch projects and intervene when needed.
+- **Visibility** · Use project overviews, task status, and session context to see what has finished and what still needs attention.
+- **Ease of use** · Use simpler desktop controls, choose the layout and workflow that fit your work, and connect custom or locally hosted models.
 
-## Personalization features
+## What this project does
 
-### Side bar
+OpenCode My is a desktop project in the OpenCode ecosystem. It focuses on how developers work with agents across demanding projects. Desktop enhancements follow upstream conventions and are optional where practical.
 
-Browse sessions by project or recent activity, and see which tasks are running or waiting across connected servers. The Side bar keeps project navigation and session activity visible while you work.
+### Respond to community feedback
 
-### Custom models
+We prioritize community issues with concrete use cases, such as the Side bar layout and connecting custom models hosted locally. We release verified fixes in the fork and submit suitable changes upstream for review.
+
+### Develop and validate new features
+
+We evaluate agent coding features in real workflows when they make tasks easier to control, progress easier to understand, or common actions simpler. Those results inform what we ship in the desktop edition.
+
+## Roadmap
+
+### Released features
+
+#### Side bar
+
+Browse sessions by project or recent activity, and see running and waiting tasks across connected servers.
+
+#### Custom models
 
 Connect an OpenAI-compatible provider from the model picker. Import models or add them manually, test saved models, and choose which ones appear in the picker.
+
+### Planned features
+
+- **Session Overview** · Review long or multi-turn sessions more quickly. The first phase is planned around read-only navigation and finding supporting evidence. [Design draft](docs/fork/dev-my/session-overview.md)
+
+Share feedback and ideas through [GitHub Issues](https://github.com/joe-ieta/OpenCode.My/issues).
 
 ## New features in detail in `OpenCode My`
 
