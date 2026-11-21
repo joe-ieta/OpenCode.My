@@ -27,6 +27,12 @@
 
 早于 `v2.3.0-my.24` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
 
+## v2.3.0-my.0.1.25-rc Windows x64 与 Linux amd64/arm64 候选版
+
+- 2026-11-21（Asia/Shanghai）发布新规则下首个桌面候选。官方基线为 `2.3.0`，fork 系列为 `0.1`，构建脚本从历史基线 24 自动分配 25。标签指向 `d3d52458636c95325fa9256dc60708f8e9bf005f`，包含 `upstream/dev@cfbf3f7171`。[候选版](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.0.1.25-rc)
+- Windows x64 提供 NSIS，Linux amd64、arm64 各提供 AppImage 和 deb。三个目标复用同一模型目录快照。`bun run check` 通过，包内 CLI 的版本、HTTP 健康和 SSE 均通过；arm64 使用 QEMU。
+- 已核对 GitHub 上 10 个附件的大小、SHA256 和公开下载链接。该候选为预发行，正式 Latest 为 `v2.3.0-my.24`。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.3.0-my.0.1.25-rc/SHA256SUMS)
+
 ## v2.3.0-my.24 正式发行（Windows x64 / Linux amd64、arm64）
 
 - 2026-11-21（Asia/Shanghai）发布 Windows x64 预发行，构建及标签对应 `1cebbb83412b0012415dee8cf6044c45a55465de`。[GitHub Release](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.24)
