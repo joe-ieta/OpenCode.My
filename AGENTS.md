@@ -19,9 +19,9 @@
 
 ## Desktop Release Versions (`dev-my`)
 
-- Use `v<upstream-version>-my.<n1>.<n2>.<n3>-rc` for desktop release candidates. The upstream version is the official release version used as the desktop baseline. The fork has its own major (`n1`), minor (`n2`), and build (`n3`) numbers. Maintainers explicitly choose `n1` and `n2`.
+- Use `v<upstream-version>-my-<n1>.<n2>.<n3>-rc` for desktop candidate tags and omit the leading `v` for the package version. Use `OpenCode My <upstream-version>-my <n1>.<n2>.<n3>-rc` for the GitHub release title. The upstream version is the official baseline. Maintainers explicitly choose the fork major (`n1`) and minor (`n2`).
 - Allocate `n3` automatically for each new build from the highest reserved or published number in the selected fork series. Updating the upstream version does not restart that series. All platforms of the same release use the same version, source commit, and model snapshot. Fetch `origin` before allocating a version and verify that the intended remote tag is free before pushing it. The current series is `0.1`, with `v2.3.0-my.24` as the historical baseline equivalent to `v2.3.0-my.0.1.24`.
-- Publish candidates as GitHub prereleases with `--latest=false`. Only when explicitly authorized to publish a formal Latest release, use `v<upstream-version>-my.<n1>.<n2>.<n3>` and build assets with that exact version. Keep candidate and historical tags immutable. Keep the `oc-headless` and `qt-headless` version schemes separate.
+- Publish candidates as GitHub prereleases with `--latest=false`. Only when explicitly authorized to publish a formal Latest release, omit `-rc` from the tag, package version, and display title and build assets with that exact package version. Keep published tags immutable and count historical `-my.` builds when allocating `n3`. Keep the `oc-headless` and `qt-headless` version schemes separate.
 
 ## Live TUI Testing
 
