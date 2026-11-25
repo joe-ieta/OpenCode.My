@@ -64,6 +64,7 @@ export function SessionScreenView(props: { session: SessionModel }) {
         view={mounted.view}
         bindBackground={mounted.bindBackground}
         bindPrompt={mounted.bindPrompt}
+        bindReveal={mounted.bindReveal}
       />
     </PluginLinks>
   )
@@ -76,6 +77,7 @@ function SessionScreenContent(props: {
   screen: SessionScreen
   bindBackground: (tasks: () => readonly BackgroundTask[]) => void
   bindPrompt: (prompt: ScreenPrompt) => void
+  bindReveal: (reveal: SessionScreen["reveal"]) => void
 }) {
   const session = props.session
   const language = useLanguage()
@@ -131,6 +133,44 @@ function SessionScreenContent(props: {
   const conversationVisible = createMemo(() => isDesktop() || mobileView() === "session")
 
   const timeline = createSessionTimelineInteraction(session, conversationVisible)
+
+  // A source reveal pages history into the timeline only as far as the target, then detaches follow.
+  const reveal: SessionScreen["reveal"] = async (messageID, options) => {
+    const id = session.identity.sessionID()
+
+    if (!id || !timeline.ready()) return false
+
+    const signal = options?.signal
+      ? AbortSignal.any([options.signal, AbortSignal.timeout(60_000)])
+      : AbortSignal.timeout(60_000)
+
+    try {
+      while (!server.ctx.data.session.message.get(id, messageID)) {
+        if (!server.ctx.data.session.message.more(id)) return false
+
+        await server.ctx.data.session.message.loadMore(id, { signal })
+        signal.throwIfAborted()
+      }
+
+      if (server.ctx.data.session.input.has(id, messageID)) return false
+
+      const messages = server.ctx.data.session.message.list(id)
+      const index = messages.findIndex((message) => message.id === messageID)
+      const prompt = messages.slice(0, index + 1).findLast((message) => message.type === "user")
+
+      if (!prompt) return false
+
+      // The cursor's jump owns history seeking, the hash and detaching follow.
+      timeline.actions.jumpToMessage(prompt.id)
+
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  props.bindReveal(reveal)
+  onCleanup(() => props.bindReveal(() => Promise.resolve(false)))
 
   const timelineSearch = createTimelineSearchController({
     sessionID: session.identity.sessionID,

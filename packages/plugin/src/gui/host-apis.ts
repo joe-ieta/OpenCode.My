@@ -791,6 +791,21 @@ export interface SessionScreen {
   readonly comment: Comments
   /** The routed session's composer. */
   readonly composer: Composer
+  /**
+   * Scrolls the timeline to a message's turn and detaches follow-the-end, so the message stays in place. Pages
+   * older history into the timeline when needed. Resolves false when the message is unavailable, the timeline is
+   * not mounted, or the signal aborts.
+   *
+   * @param messageID - The message to reveal.
+   * @param options - A signal that cancels paging.
+   */
+  readonly reveal: (
+    messageID: string,
+    options?: {
+      /** Cancels paging when aborted. */
+      readonly signal?: AbortSignal
+    },
+  ) => Promise<boolean>
 }
 
 /** The session screen, while it routes the mounted session. */
@@ -815,6 +830,23 @@ export interface Sessions {
    * Reactive.
    */
   current(): MountedSession | undefined
+  /**
+   * Scrolls the routed session's timeline to a message's turn. The message may be older than the loaded timeline;
+   * the host pages history in until it is there. Resolves false for a session that is not routed, a message that is
+   * unavailable, or an aborted signal.
+   *
+   * @param session - The session to reveal in. It must be the routed session.
+   * @param messageID - The message to reveal.
+   * @param options - A signal that cancels paging.
+   */
+  reveal(
+    session: SessionRef,
+    messageID: string,
+    options?: {
+      /** Cancels paging when aborted. */
+      readonly signal?: AbortSignal
+    },
+  ): Promise<boolean>
 }
 
 /**

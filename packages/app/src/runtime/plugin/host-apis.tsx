@@ -394,6 +394,14 @@ export function createHostApis() {
     sessions: () => ({
       list: () => current()?.sessions() ?? [],
       current: () => current()?.current(),
+      reveal: (session, messageID, options) => {
+        const view = current()?.current()
+        const screen = current()?.screen()
+
+        if (!view || view.key !== session.key || !screen) return Promise.resolve(false)
+
+        return screen.reveal(messageID, options)
+      },
     }),
     // Before the interface mounts, no tabs are listed and writes wait for it.
     tabs: () => ({

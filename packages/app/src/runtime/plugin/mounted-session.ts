@@ -75,6 +75,8 @@ export function createMountedSession(session: SessionModel) {
   // The screen's composer view, created after this object, says whether it takes quotes, focuses its prompt and sends
   // one attached part.
   const [prompt, setPrompt] = createSignal<ScreenPrompt>()
+  // The screen's timeline navigation, bound after the screen renders.
+  const [reveal, setReveal] = createSignal<SessionScreen["reveal"]>()
 
   const serverRef: ServerRef = {
     get id() {
@@ -370,6 +372,8 @@ export function createMountedSession(session: SessionModel) {
     file: files,
     comment,
     composer: composerRef,
+    reveal: (messageID: string, options?: { signal?: AbortSignal }) =>
+      reveal()?.(messageID, options) ?? Promise.resolve(false),
   })
 
   const owner = getOwner()
@@ -416,5 +420,6 @@ export function createMountedSession(session: SessionModel) {
     view: mounted,
     bindBackground: (tasks: Accessor<readonly BackgroundTask[]>) => setBackground(() => tasks),
     bindPrompt: (value: ScreenPrompt) => setPrompt(() => value),
+    bindReveal: (value: SessionScreen["reveal"]) => setReveal(() => value),
   }
 }
