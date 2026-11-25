@@ -23,9 +23,17 @@
 
 | 通道 | 版本 | 平台 | 下载 |
 | --- | --- | --- | --- |
+| 候选版（RC） | `2.4.1-my 0.1.27-rc` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.27-rc) |
 | 正式发行（Latest） | `2.3.0-my 0.1.25` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.0.1.25) |
 
 早于 `v2.3.0-my.24` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
+
+## OpenCode My 2.4.1-my 0.1.27-rc 候选版
+
+- 2026-11-26（Asia/Shanghai）同步官方 `upstream/dev@a75fcac14c` 的 22 个提交，并将 Session Go 合入 `dev-my`。浏览器回归发现关闭分组标签时可能跳入折叠的远端分组，已修复并用下一构建号重建。候选标签指向修复后的提交 `b8dd12bf4f0750bab76329ed38ae62c9d346e501`。[PR #18](https://github.com/joe-ieta/OpenCode.My/pull/18) · [候选版](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.27-rc)
+- 客户端重新生成无差异，`bun run check` 36/36、定向测试 135/135、正式构建 Chromium 回归 17/17 通过。浏览器用例覆盖 Session Go 的启用设置、停靠、历史检索与来源定位，以及 Side bar 和标签分组。
+- Windows x64 的 NSIS 与 Linux amd64/arm64 的 AppImage 和 deb 使用同一源码和模型快照，快照 SHA256 为 `9ecee886f7bfe05f737b4f74c7b02d5b7f222e39a6a3d707cf5da9b9d8083788`。五个安装包已解包核对版本，三个目标的包内 CLI 均通过 HTTP 和 SSE 冒烟，ARM64 通过 QEMU 验证。
+- 10 个 GitHub 附件的大小和 SHA256 与本地产物一致，公开下载链接均返回 HTTP 200。安装包未签名。[SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.27-rc/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.27-rc/build.json)
 
 ## OpenCode My 2.3.0-my 0.1.25 正式发行（Windows x64 / Linux amd64、arm64）
 
