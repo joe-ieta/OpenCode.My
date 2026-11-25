@@ -20,3 +20,5 @@
 冒烟仅启动新构建的测试进程，使用隔离配置、数据库、随机凭据和独立端口：V2 info 200/版本一致、无凭据 401、SSE `server.connected`、stderr 空；V1 health 200/版本一致、无凭据 401、14 个工具中包含 question、SSE 连接事件、stderr 空均通过。主目录副本逐一核对 SHA256，不影响当前桌面或后台服务。
 
 官方贡献维护见 [PR 跟踪](upstream-prs.md)。
+
+#65049 本轮补齐的 13 个 App 和 6 个 UI 简繁中文键已同步回 `dev-my`，包括模型速度、任务栏通知、Inbox 草稿和侧栏位置。仅更新字典，未改变 Side bar 行为。
