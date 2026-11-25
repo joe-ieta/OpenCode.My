@@ -1,4 +1,6 @@
+import type { SessionMessageInfo } from "@opencode/client/promise"
 import { expect, test, type Page } from "@playwright/test"
+import { pageMessagesFrom } from "../utils/app"
 import { fileDiff, fileNode, openSession } from "../utils/workspace"
 import { openFileLauncher, openReviewLauncher, storedStrips } from "../utils/side-panel"
 import { expectSessionTitle } from "../utils/waits"
@@ -358,6 +360,889 @@ test("a session open in a shell tab keeps its side tabs when the layout forgets 
   await expectSessionTitle(page, "In the background")
   await expect(panel.getByRole("tab", { name: "notes.md", exact: true })).toHaveAttribute("aria-selected", "true")
   await expect(panel.getByText("contents:notes.md", { exact: true })).toBeVisible()
+})
+
+
+const SESSION_GO_SETTINGS = "opencode.global.dat:plugin.session-go.settings"
+
+const sessionGoEnabled = {
+  enabled: true,
+  keepAnalysis: true,
+  commitments: true,
+  modelAnalysis: false,
+  autoAnalyze: false,
+  historyIndex: false,
+}
+
+const sessionGoDisabled = { ...sessionGoEnabled, enabled: false }
+
+function sessionGoTurnMessages(count = 12): SessionMessageInfo[] {
+  const reply = Array.from({ length: 8 }, (_, index) => "Reply line " + (index + 1) + " keeps the turn tall enough to scroll.").join("\n")
+
+  return Array.from({ length: count }, (_, index) => {
+    const created = sessionGoTime + index * 10
+
+    return [
+      {
+        id: "msg_turn_" + index + "_user",
+        type: "user",
+        text: "Turn " + (index + 1) + " request: inspect the session and continue.",
+        time: { created },
+      },
+      {
+        id: "msg_turn_" + index + "_agent",
+        type: "assistant",
+        agent: "build",
+        model: sessionGoModel,
+        content: [{ type: "text", text: reply }],
+        time: { created: created + 1, completed: created + 2 },
+      },
+    ] satisfies SessionMessageInfo[]
+  }).flat()
+}
+
+test("Session Go is enabled for a fresh profile", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openSession(page, { name: "SessionGoDefault" })
+
+  await expect(page.getByRole("button", { name: "Open Session Go", exact: true })).toBeVisible()
+  await expect(page.locator('[data-component="session-go-fab"]')).toBeVisible()
+})
+
+test("Session Go stays off when disabled and has no command entry", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openSession(page, {
+    name: "SessionGoOff",
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoDisabled } },
+  })
+
+  await expect(page.getByRole("button", { name: "Open Session Go", exact: true })).toHaveCount(0)
+  await expect(page.locator('[data-component="session-go-fab"]')).toHaveCount(0)
+
+  await page.keyboard.press("ControlOrMeta+Shift+P")
+  const palette = page.getByRole("dialog")
+  const input = palette.getByRole("combobox")
+  await expect(input).toBeFocused()
+  await input.fill("Open Session Go")
+  await expect(palette.getByRole("option", { name: /Open Session Go/ })).toHaveCount(0)
+  await page.keyboard.press("Escape")
+})
+
+const sessionGoModel = { id: "test", providerID: "opencode" } as const
+
+const sessionGoTime = 1_750_000_000_000
+
+const sessionGoal = "Keep the message timeline unchanged. Add a Session Go panel."
+
+const sessionConstraint = "Keep the message timeline unchanged."
+
+const sessionProposal = "I suggest one side panel for goals and decisions."
+
+const sessionTestCommand = "bun test src/session-go"
+
+function sessionGoMessages() {
+  return [
+    {
+      id: "msg_user",
+      type: "user",
+      text: sessionGoal,
+      time: { created: sessionGoTime },
+    },
+    {
+      id: "msg_agent",
+      type: "assistant",
+      agent: "build",
+      model: sessionGoModel,
+      content: [{ type: "text", text: sessionProposal }],
+      time: { created: sessionGoTime + 1, completed: sessionGoTime + 2 },
+    },
+    {
+      id: "msg_idle",
+      type: "idle",
+      outcome: "succeeded",
+      time: { created: sessionGoTime + 2 },
+    },
+    {
+      id: "msg_shell",
+      type: "shell",
+      shellID: "sh_session_go",
+      command: sessionTestCommand,
+      status: "exited",
+      exit: 0,
+      time: { created: sessionGoTime + 3, completed: sessionGoTime + 4 },
+    },
+  ] satisfies SessionMessageInfo[]
+}
+
+test("Session Go opens from the header and records confirmed facts", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openSession(page, {
+    name: "SessionGo",
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: () => ({ items: sessionGoMessages() }),
+  })
+
+  const floatingPanel = page.locator('[data-component="session-go-floating"] [data-component="session-go-panel"]')
+  const fab = page.locator('[data-component="session-go-fab"]')
+  const fabButton = fab.getByRole("button")
+  await expect(fabButton).toBeVisible()
+  await expect(fabButton).toHaveAttribute("aria-label", "Open Session Go panel")
+  await expect(fabButton).toHaveAttribute("aria-pressed", "false")
+
+  await fabButton.click()
+  await expect(floatingPanel).toBeVisible()
+  await expect(fabButton).toHaveAttribute("aria-label", "Close Session Go panel")
+  await expect(fabButton).toHaveAttribute("aria-pressed", "true")
+
+  await page.locator('[data-component="composer-editor"]').click()
+  await expect(floatingPanel).toBeHidden()
+  await expect(fabButton).toHaveAttribute("aria-label", "Open Session Go panel")
+  await expect(fabButton).toHaveAttribute("aria-pressed", "false")
+
+  await fabButton.click()
+  await expect(floatingPanel).toBeVisible()
+  await fabButton.click()
+  await expect(floatingPanel).toBeHidden()
+
+  const open = page.getByRole("button", { name: "Open Session Go", exact: true })
+  await expect(open).toBeVisible()
+  await open.click()
+  const panel = page.locator('#review-panel [data-component="session-go-panel"]')
+  await expect(panel).toBeVisible()
+
+  const goal = panel.locator('[data-section="goal"]')
+  await expect(goal.getByRole("heading", { name: "Goal", exact: true })).toBeVisible()
+  await expect(goal.getByText("Ship SessionGo", { exact: true })).toBeVisible()
+  await expect(goal.getByText("Placeholder", { exact: true })).toBeVisible()
+  await expect(goal.getByText(sessionGoal, { exact: true })).toBeVisible()
+
+  const next = panel.locator('[data-section="next"]')
+  await expect(next.getByRole("heading", { name: "Next decision", exact: true })).toBeVisible()
+  await expect(next.getByText(sessionConstraint, { exact: true })).toBeVisible()
+
+  const decisions = panel.locator('[data-section="decisions"]')
+  const constraint = decisions.locator('[data-decision="decision-user-msg_user-0"]')
+  await expect(constraint.getByText(sessionConstraint, { exact: true })).toBeVisible()
+  await expect(constraint.getByText("Proposed", { exact: true })).toBeVisible()
+  await expect(constraint.getByText("Constraint", { exact: true })).toBeVisible()
+
+  await constraint.getByRole("button", { name: "Confirm", exact: true }).click()
+  await expect(constraint.getByText("Active", { exact: true })).toBeVisible()
+  await expect(constraint.getByText("Confirmed", { exact: true })).toBeVisible()
+
+  const proposal = decisions.locator('[data-decision="decision-agent-msg_agent-0"]')
+  await expect(proposal.getByText(sessionProposal, { exact: true })).toBeVisible()
+  await proposal.getByRole("button", { name: "Defer", exact: true }).click()
+  await expect(proposal.getByText("Deferred", { exact: true })).toBeVisible()
+  await expect(next.getByText("Nothing needs a decision right now.", { exact: true })).toBeVisible()
+
+  await proposal.getByRole("button", { name: "Reject", exact: true }).click()
+  await expect(proposal.getByText("Dropped", { exact: true })).toBeVisible()
+
+  const actions = panel.locator('[data-section="actions"]')
+  const shellAction = actions.locator('[data-action="shell-msg_shell"]')
+  await expect(shellAction.getByText(sessionTestCommand, { exact: true }).first()).toBeVisible()
+  const evidence = shellAction.getByRole("button", { name: "Evidence (1)", exact: true })
+  await expect(evidence).toContainText("¶")
+  await expect(evidence).toHaveAttribute("aria-expanded", "false")
+  await expect(shellAction.getByText("Test", { exact: true })).toHaveCount(0)
+
+  await evidence.click()
+  await expect(evidence).toHaveAttribute("aria-expanded", "true")
+  await expect(shellAction.getByText("Test", { exact: true })).toBeVisible()
+  await expect(shellAction.getByText("Fresh", { exact: true })).toBeVisible()
+
+  await shellAction.getByRole("button", { name: "Promote to decision", exact: true }).click()
+  const promoted = decisions.locator('[data-decision="promoted-shell-msg_shell"]')
+  await expect(promoted.getByText(sessionTestCommand, { exact: true })).toBeVisible()
+  await expect(promoted.getByText("Active", { exact: true })).toBeVisible()
+
+  await shellAction.getByRole("button", { name: "Link to goal", exact: true }).click()
+  await expect(shellAction.getByRole("button", { name: "Linked to G1", exact: true })).toBeVisible()
+
+  await shellAction.getByRole("button", { name: "Link to decision", exact: true }).click()
+  await expect(
+    shellAction.getByRole("button", { name: "Linked to promoted-shell-msg_shell", exact: true }),
+  ).toBeVisible()
+
+  await actions.getByRole("button", { name: "Relations", exact: true }).click()
+  const relation = actions.locator('[data-relation="promoted-shell-msg_shell"]')
+  await expect(relation.getByText(sessionTestCommand, { exact: true }).first()).toBeVisible()
+
+  await constraint.getByRole("button", { name: "Supersede", exact: true }).click()
+  await constraint.getByRole("button", { name: sessionTestCommand, exact: true }).click()
+  await expect(constraint.getByText("Superseded", { exact: true })).toBeVisible()
+
+  const side = page.locator("#review-panel")
+  await side
+    .getByRole("tab", { name: "Session Go", exact: true })
+    .locator("..")
+    .getByRole("button", { name: "Close tab", exact: true })
+    .click()
+  await expect(panel).toHaveCount(0)
+
+  await page.keyboard.press("ControlOrMeta+Shift+P")
+  const palette = page.getByRole("dialog")
+  const input = palette.getByRole("combobox")
+  await expect(input).toBeFocused()
+  await input.fill("Open Session Go")
+  await palette.getByRole("option", { name: /Open Session Go/ }).click()
+  await expect(panel).toBeVisible()
+  await expect(fabButton).toHaveAttribute("aria-pressed", "false")
+})
+
+test("Session Go docks the floating window at its current position", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openSession(page, {
+    name: "SessionGoDock",
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: () => ({ items: sessionGoMessages() }),
+  })
+
+  const panel = page.locator('[data-component="session-go-floating"] [data-component="session-go-panel"]')
+  const fab = page.locator('[data-component="session-go-fab"]')
+  const fabButton = fab.getByRole("button")
+  await expect(fabButton).toBeVisible()
+
+  const placement = await page.evaluate(() => {
+    const fab = document.querySelector('[data-component="session-go-fab"] button')?.getBoundingClientRect()
+    const composer = document.querySelector('[data-component="composer"]')?.getBoundingClientRect()
+    const send = document.querySelector('[data-action="composer-submit"]')?.getBoundingClientRect()
+
+    return fab && composer && send
+      ? { fabBottom: fab.bottom, fabRight: fab.right, composerTop: composer.top, sendRight: send.right }
+      : undefined
+  })
+
+  expect(placement?.fabBottom).toBeLessThanOrEqual(placement?.composerTop ?? 0)
+  expect(Math.abs((placement?.fabRight ?? 0) - (placement?.sendRight ?? 0))).toBeLessThanOrEqual(2)
+
+  await fabButton.click()
+  await expect(panel).toBeVisible()
+
+  await panel.getByRole("button", { name: "Dock at this position", exact: true }).click()
+
+  const docked = page.locator('[data-component="session-go-floating"][data-docked]')
+  await expect(docked).toBeVisible()
+  await expect(docked.getByRole("button", { name: "Undock", exact: true })).toBeVisible()
+  await expect(fab).toHaveCount(0)
+
+  await page.locator('[data-slot="session-chat-panel"]').click({ position: { x: 8, y: 8 } })
+  await expect(docked).toBeVisible()
+
+  await docked.getByRole("button", { name: "Undock", exact: true }).click()
+  await expect(docked).toHaveCount(0)
+  await expect(panel).toBeVisible()
+  await expect(fabButton).toHaveAttribute("aria-pressed", "true")
+})
+
+test("Session Go navigates to a turn from the floating timeline rail", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const messages = sessionGoTurnMessages()
+  await openSession(page, {
+    name: "SessionGoRail",
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: () => ({ items: messages }),
+  })
+
+  const fabButton = page.locator('[data-component="session-go-fab"]').getByRole("button")
+  await fabButton.hover()
+  const fabHint = page.getByRole("tooltip")
+  const fabTurns = fabHint.locator('[data-slot="fab-turn"]')
+  await expect(fabHint).toContainText("Recent 3 turns")
+  await expect(fabTurns).toHaveCount(3)
+  await expect(fabTurns.nth(0)).toContainText("Turn 12 request:")
+  await expect(fabTurns.nth(1)).toContainText("Turn 11 request:")
+  await expect(fabTurns.nth(2)).toContainText("Turn 10 request:")
+  await expect(fabHint).toContainText("<1s")
+  await expect(fabTurns.nth(1)).toHaveCSS("border-top-width", "0px")
+  await expect(fabHint.getByRole("separator")).toBeVisible()
+  await expect(fabHint).toContainText("Click to open Session Go")
+  await fabButton.click()
+
+  await page.mouse.move(0, 0)
+  await fabButton.hover()
+  await expect(fabHint).toContainText("Click to close Session Go")
+
+  const rail = page.locator(
+    '[data-component="session-go-floating"] [data-component="session-go-timeline"]',
+  )
+
+  await expect(rail).toBeVisible()
+
+  const track = rail.locator('[data-slot="timeline-slider"]')
+  const segments = rail.locator('[data-slot="timeline-segment"]')
+  const preview = rail.locator('[data-slot="timeline-preview"]')
+  const previous = rail.locator('[data-slot="timeline-prev"]')
+  const next = rail.locator('[data-slot="timeline-next"]')
+  const panel = page.locator('[data-component="session-go-floating"] [data-component="session-go-panel"]')
+  const turnCard = page.locator('[data-component="session-go-floating"] [data-section="turn"]')
+
+  await panel.getByRole("button", { name: "Load full history", exact: true }).click()
+  await expect(panel.getByText(/Full history loaded/)).toBeVisible()
+
+  await expect(track).toHaveAttribute("aria-label", "Session turns")
+  await expect(segments).toHaveCount(12)
+  await expect(segments.nth(11)).toHaveAttribute("aria-current", "true")
+  await expect(segments.nth(11)).toHaveAttribute("aria-label", "Go to turn 12")
+  // One segment per turn replaces the old divider grid and single scrollbar track.
+  await expect(rail.locator('[data-slot="timeline-ticks"], [data-slot="timeline-track"]')).toHaveCount(0)
+
+  const markerDistance = (index: number) =>
+    page.evaluate((index) => {
+      const rail = document.querySelector('[data-component="session-go-timeline"]')
+      const segment = rail?.querySelectorAll('[data-slot="timeline-segment"]')[index]
+      const thumb = rail?.querySelector('[data-slot="timeline-thumb"]')
+
+      if (!segment || !thumb) return Number.POSITIVE_INFINITY
+
+      const segmentBox = segment.getBoundingClientRect()
+      const thumbBox = thumb.getBoundingClientRect()
+
+      return Math.abs(segmentBox.top + segmentBox.height / 2 - (thumbBox.top + thumbBox.height / 2))
+    }, index)
+
+  const lastTurn = messages[22]!
+  await expect(page.locator("#message-" + lastTurn.id)).toBeInViewport()
+  await expect.poll(() => markerDistance(11)).toBeLessThanOrEqual(1)
+
+  await expect(previous).toHaveAttribute("aria-label", "Previous turn")
+  await expect(next).toHaveAttribute("aria-label", "Next turn")
+  await previous.click()
+  await expect(segments.nth(10)).toHaveAttribute("aria-current", "true")
+  await expect(turnCard).toContainText("Turn 11 request:")
+  await expect.poll(() => markerDistance(10)).toBeLessThanOrEqual(1)
+
+  await next.click()
+  await expect(segments.nth(11)).toHaveAttribute("aria-current", "true")
+  await expect(turnCard).toContainText("Turn 12 request:")
+  await expect.poll(() => markerDistance(11)).toBeLessThanOrEqual(1)
+
+  await segments.nth(0).click()
+  await expect(segments.nth(0)).toHaveAttribute("aria-current", "true")
+  await expect(previous).toBeDisabled()
+  await expect(turnCard).toContainText("Turn 1 request:")
+  await expect.poll(() => markerDistance(0)).toBeLessThanOrEqual(1)
+
+  const segment6 = segments.nth(5)
+  const restBackground = await segment6.evaluate((element) => getComputedStyle(element).backgroundColor)
+  await segment6.hover()
+  await expect(preview).toContainText("Turn 6 request:")
+  await expect
+    .poll(() => segment6.evaluate((element) => getComputedStyle(element).backgroundColor))
+    .not.toBe(restBackground)
+  const firstPreviewTop = (await preview.boundingBox())?.y ?? 0
+  await segments.nth(8).hover()
+  await expect(preview).toContainText("Turn 9 request:")
+  await expect.poll(async () => (await preview.boundingBox())?.y ?? 0).toBeGreaterThan(firstPreviewTop + 20)
+  await expect(preview).toContainText("Ran for")
+
+  await segment6.click()
+  await expect(segment6).toHaveAttribute("aria-current", "true")
+  const target = messages[10]!
+  await expect(page.locator("#message-" + target.id)).toBeVisible()
+  await expect(turnCard).toContainText("Turn 6 request:")
+  await expect.poll(() => markerDistance(5)).toBeLessThanOrEqual(1)
+
+  const railBox = await rail.boundingBox()
+  const segmentBox = await segment6.boundingBox()
+  // The hover bed spans the rail's content width, not only the narrow marker column.
+  expect(segmentBox?.width ?? 0).toBeCloseTo((railBox?.width ?? 0) - 1, 0)
+
+  await segment6.focus()
+  await expect(preview).toContainText("Turn 6 request:")
+  await segment6.press("Home")
+  await expect(segments.nth(0)).toHaveAttribute("aria-current", "true")
+  await expect(turnCard).toContainText("Turn 1 request:")
+
+  for (let index = 0; index < 5; index++) await page.keyboard.press("ArrowDown")
+
+  await expect(segments.nth(5)).toHaveAttribute("aria-current", "true")
+  await expect(page.locator("#message-" + target.id)).toBeVisible()
+  await expect(turnCard).toContainText("Turn 6 request:")
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const card = document.querySelector('[data-component="session-go-floating"] [data-section="turn"]')
+        const scroller = card?.closest('[data-scrollable]')
+
+        if (!card || !scroller) return Number.POSITIVE_INFINITY
+
+        return card.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+      }),
+    )
+    .toBeLessThanOrEqual(16)
+
+  await expect
+    .poll(() =>
+      page.evaluate((id) => {
+        const message = document.getElementById("message-" + id)
+        const visible = document.querySelector('[data-slot="session-timeline-visible"]')
+
+        if (!message || !visible) return Number.POSITIVE_INFINITY
+
+        const box = message.getBoundingClientRect()
+        const bounds = visible.getBoundingClientRect()
+
+        return box.top - bounds.top
+      }, target.id),
+    )
+    .toBeLessThanOrEqual(80)
+
+  await page.keyboard.press("Escape")
+  await expect(page.locator('[data-component="session-go-floating"]')).toBeHidden()
+  await page.mouse.move(0, 0)
+  await fabButton.hover()
+  await expect(fabHint).toContainText("Click to open Session Go")
+  await fabButton.click()
+  await expect(segments.nth(11)).toHaveAttribute("aria-current", "true")
+  await expect.poll(() => markerDistance(11)).toBeLessThanOrEqual(1)
+})
+
+test("Session Go builds every turn from full history, not the loaded timeline", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const messages = sessionGoTurnMessages(80)
+  await openSession(page, {
+    name: "SessionGoRailHistory",
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: pageMessagesFrom({ ses_sessiongorailhistory: messages }),
+  })
+
+  await page.locator('[data-component="session-go-fab"]').getByRole("button").click()
+
+  const rail = page.locator(
+    '[data-component="session-go-floating"] [data-component="session-go-timeline"]',
+  )
+
+  await expect(rail).toBeVisible()
+
+  const track = rail.locator('[data-slot="timeline-slider"]')
+  const segments = rail.locator('[data-slot="timeline-segment"]')
+  const preview = rail.locator('[data-slot="timeline-preview"]')
+  const turnCard = page.locator('[data-component="session-go-floating"] [data-section="turn"]')
+
+  await expect(track).toHaveAttribute("aria-label", "Session turns")
+  await expect(segments).toHaveCount(80)
+  await expect(segments.nth(79)).toHaveAttribute("aria-current", "true")
+  await expect(rail.locator('[data-slot="timeline-prev"]')).toBeEnabled()
+  await expect(rail.locator('[data-slot="timeline-next"]')).toBeDisabled()
+
+  const trackBox = await track.boundingBox()
+  const thumbBox = await rail.locator('[data-slot="timeline-thumb"]').boundingBox()
+  expect(thumbBox?.y ?? 0).toBeGreaterThan((trackBox?.y ?? 0) + (trackBox?.height ?? 0) / 2)
+
+  await segments.nth(79).focus()
+  await expect(preview).toContainText("Turn 80 request:")
+
+  await segments.nth(79).press("Home")
+  await expect(segments.nth(0)).toHaveAttribute("aria-current", "true")
+  await expect(turnCard).toContainText("Turn 1 request:")
+  await expect(page.locator("#message-msg_turn_0_user")).toBeInViewport()
+
+  await page.keyboard.press("End")
+  await expect(segments.nth(79)).toHaveAttribute("aria-current", "true")
+  await expect(turnCard).toContainText("Turn 80 request:")
+  await expect(page.locator("#message-msg_turn_79_user")).toBeInViewport()
+})
+
+test("Session Go loads every turn beyond one user-message page", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const messages = sessionGoTurnMessages(220)
+  await openSession(page, {
+    name: "SessionGoRailTurns",
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: pageMessagesFrom({ ses_sessiongorailturns: messages }),
+  })
+
+  await page.locator('[data-component="session-go-fab"]').getByRole("button").click()
+
+  const rail = page.locator(
+    '[data-component="session-go-floating"] [data-component="session-go-timeline"]',
+  )
+
+  await expect(rail).toBeVisible()
+
+  const segments = rail.locator('[data-slot="timeline-segment"]')
+  await expect(segments).toHaveCount(220)
+  await expect(segments.nth(219)).toHaveAttribute("aria-current", "true")
+
+  await segments.nth(219).focus()
+  await expect(rail.locator('[data-slot="timeline-preview"]')).toContainText("Turn 220 request:")
+})
+
+test("Session Go keeps confirmed facts and candidates across a reload", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openSession(page, {
+    name: "SessionGoReload",
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: () => ({ items: sessionGoMessages() }),
+  })
+
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+
+  const panel = page.locator('[data-component="session-go-panel"]')
+  const decisions = panel.locator('[data-section="decisions"]')
+  const constraint = decisions.locator('[data-decision="decision-user-msg_user-0"]')
+
+  await expect(constraint.getByText(sessionConstraint, { exact: true })).toBeVisible()
+  await constraint.getByRole("button", { name: "Confirm", exact: true }).click()
+  await expect(constraint.getByText("Confirmed", { exact: true })).toBeVisible()
+
+  const stored = (name: string) =>
+    page.evaluate((name) => {
+      return Object.keys(localStorage)
+        .filter((key) => key.includes(`plugin.session-go.${name}`))
+        .map((key) => localStorage.getItem(key) ?? "")
+        .join("|")
+    }, name)
+
+  await expect.poll(() => stored("commitments")).toContain("decision.confirmed")
+  await expect.poll(() => stored("candidates")).toContain("sourceSignature")
+
+  await page.reload()
+  await expectSessionTitle(page, "SessionGoReload")
+
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+  await expect(panel).toBeVisible()
+  await expect(constraint.getByText(sessionConstraint, { exact: true })).toBeVisible()
+  await expect(constraint.getByText("Active", { exact: true })).toBeVisible()
+  await expect(constraint.getByText("Confirmed", { exact: true })).toBeVisible()
+})
+
+test("Session Go consolidates with the session model and keeps only sourced candidates", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+
+  const l2Statement = "Use one side panel for the semantic layer"
+  const question = "Should the cached analysis survive a reload?"
+  const calls: { sessionID: string; prompt: string }[] = []
+
+  await openSession(page, {
+    name: "SessionGoL2",
+    sessions: [{ id: "ses_sessiongo_l2", title: "Session Go L2", model: { providerID: "opencode", id: "test" } }],
+    seed: {
+      storage: {
+        [SESSION_GO_SETTINGS]: { ...sessionGoEnabled, modelAnalysis: true },
+      },
+    },
+    pageMessages: () => ({ items: sessionGoMessages() }),
+    generate: (input) => {
+      calls.push(input)
+
+      return {
+        text: JSON.stringify({
+          decisions: [
+            {
+              statement: l2Statement,
+              kind: "approach",
+              rationale: "Keeps the panel narrow.",
+              sourceMessageIDs: ["msg_agent"],
+              mergesDecisionIDs: ["decision-agent-msg_agent-0"],
+              confidence: "high",
+            },
+            { statement: "Invented fact", sourceMessageIDs: ["msg_missing"] },
+          ],
+          openQuestions: [{ statement: question, sourceMessageIDs: ["msg_user"] }],
+          conflicts: [
+            {
+              decisionID: "decision-user-msg_user-0",
+              otherDecisionID: "decision-agent-msg_agent-0",
+              reason: "They disagree about the panel layout.",
+              sourceMessageIDs: ["msg_user"],
+            },
+          ],
+        }),
+        tokens: { input: 420, output: 120, reasoning: 0, cache: { read: 0, write: 0 } },
+        cost: 0.0042,
+      }
+    },
+  })
+
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+
+  const panel = page.locator('[data-component="session-go-panel"]')
+  const analysis = panel.locator('[data-section="analysis"]')
+  const analyze = analysis.getByRole("button", { name: "Analyze loaded session", exact: true })
+
+  await expect(analyze).toBeVisible()
+  expect(calls).toHaveLength(0)
+
+  await analyze.click()
+
+  await expect(analysis.getByText("Last analysis", { exact: true })).toBeVisible()
+  await expect(analysis.getByText("Cost $0.0042", { exact: true })).toBeVisible()
+  await expect(analysis.getByText("420 in / 120 out tokens", { exact: true })).toBeVisible()
+  expect(calls).toHaveLength(1)
+  expect(calls[0]?.sessionID).toBe("ses_sessiongo_l2")
+  expect(calls[0]?.prompt).toContain("ALLOWED MESSAGE IDS")
+
+  const decisions = panel.locator('[data-section="decisions"]')
+  const l2Decision = decisions.locator("[data-decision]").filter({ hasText: l2Statement })
+  await expect(l2Decision.getByText("Proposed", { exact: true })).toBeVisible()
+  await expect(l2Decision.getByText("Inferred", { exact: true })).toBeVisible()
+  await expect(l2Decision.getByText("L2", { exact: true })).toBeVisible()
+  await expect(decisions.getByText(question, { exact: true })).toBeVisible()
+  await expect(panel.getByText("Invented fact", { exact: true })).toHaveCount(0)
+  await expect(
+    analysis.getByText("1 proposals dropped for missing sources.", { exact: true }),
+  ).toBeVisible()
+
+  await l2Decision.getByRole("button", { name: "Confirm", exact: true }).click()
+  await expect(l2Decision.getByText("Active", { exact: true })).toBeVisible()
+  await expect(l2Decision.getByText("Confirmed", { exact: true })).toBeVisible()
+
+  await page.reload()
+  await expectSessionTitle(page, "Session Go L2")
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+
+  const persisted = page
+    .locator('[data-component="session-go-panel"] [data-section="decisions"] [data-decision]')
+    .filter({ hasText: l2Statement })
+
+  await expect(persisted.getByText("Confirmed", { exact: true })).toBeVisible()
+  expect(calls).toHaveLength(1)
+})
+
+test("Session Go analyzes a finished episode automatically once", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+
+  const statement = "Automatically consolidate the finished episode"
+  const calls: { sessionID: string; prompt: string }[] = []
+
+  const messages = () => [
+    {
+      id: "msg_auto_user",
+      type: "user" as const,
+      text: "Consolidate this episode and keep the automatic path.",
+      time: { created: sessionGoTime },
+    },
+    {
+      id: "msg_auto_agent",
+      type: "assistant" as const,
+      agent: "build",
+      model: sessionGoModel,
+      content: [{ type: "text" as const, text: "I suggest the automatic path." }],
+      time: { created: sessionGoTime + 1, completed: sessionGoTime + 2 },
+    },
+    {
+      id: "msg_auto_idle",
+      type: "idle" as const,
+      outcome: "succeeded" as const,
+      time: { created: sessionGoTime + 3 },
+    },
+  ] satisfies SessionMessageInfo[]
+
+  await openSession(page, {
+    name: "SessionGoAuto",
+    sessions: [{ id: "ses_sessiongo_auto", title: "Session Go Auto", model: { providerID: "opencode", id: "test" } }],
+    seed: {
+      storage: {
+        [SESSION_GO_SETTINGS]: { ...sessionGoEnabled, modelAnalysis: true, autoAnalyze: true },
+      },
+    },
+    pageMessages: () => ({ items: messages() }),
+    generate: (input) => {
+      calls.push(input)
+
+      return {
+        text: JSON.stringify({
+          decisions: [{ statement, kind: "approach", sourceMessageIDs: ["msg_auto_agent"] }],
+        }),
+        tokens: { input: 180, output: 40, reasoning: 0, cache: { read: 0, write: 0 } },
+        cost: 0.0011,
+      }
+    },
+  })
+
+  await expect.poll(() => calls.length).toBe(1)
+  expect(calls[0]?.sessionID).toBe("ses_sessiongo_auto")
+  expect(calls[0]?.prompt).toContain("ALLOWED MESSAGE IDS: msg_auto_user, msg_auto_agent, msg_auto_idle")
+
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+
+  const panel = page.locator('[data-component="session-go-panel"]')
+  const analysis = panel.locator('[data-section="analysis"]')
+  const decisions = panel.locator('[data-section="decisions"]')
+  await expect(analysis.getByText("Last analysis", { exact: true })).toBeVisible()
+  await expect(decisions.getByText(statement, { exact: true })).toBeVisible()
+
+  await page.reload()
+  await expectSessionTitle(page, "Session Go Auto")
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+  await expect(
+    page.locator('[data-component="session-go-panel"] [data-section="decisions"]').getByText(statement, {
+      exact: true,
+    }),
+  ).toBeVisible()
+  expect(calls).toHaveLength(1)
+})
+
+test("Session Go loads full history and searches older messages", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+
+  const oldText = `The ancient decision mentions zephyr-archive. ${"Long context keeps the first page tall. ".repeat(12)}`
+  const filler = (label: string) => `${label} ${"Long context keeps the first page tall. ".repeat(12)}`
+
+  const messages = () => {
+    const items: SessionMessageInfo[] = [
+      {
+        id: "msg_old_user",
+        type: "user",
+        text: oldText,
+        time: { created: sessionGoTime },
+      },
+    ]
+
+    for (let index = 0; index < 39; index++) {
+      const created = sessionGoTime + 10 + index * 4
+
+      items.push({
+        id: `msg_old_agent_${index}`,
+        type: "assistant",
+        agent: "build",
+        model: sessionGoModel,
+        content: [{ type: "text", text: filler(`Old answer ${index}`) }],
+        time: { created, completed: created + 1 },
+      })
+      items.push({
+        id: `msg_old_follow_${index}`,
+        type: "user",
+        text: filler(`Old follow-up ${index}`),
+        time: { created: created + 2 },
+      })
+    }
+
+    items.push({
+      id: "msg_new_user",
+      type: "user",
+      text: filler("Keep the current panel behavior."),
+      time: { created: sessionGoTime + 1_000 },
+    })
+    items.push({
+      id: "msg_new_agent",
+      type: "assistant",
+      agent: "build",
+      model: sessionGoModel,
+      content: [{ type: "text", text: filler("I suggest keeping the panel.") }],
+      time: { created: sessionGoTime + 1_001, completed: sessionGoTime + 1_002 },
+    })
+    items.push({
+      id: "msg_new_idle",
+      type: "idle",
+      outcome: "succeeded",
+      time: { created: sessionGoTime + 1_003 },
+    })
+
+    return items
+  }
+
+  await openSession(page, {
+    name: "SessionGoSearch",
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: (_id, limit) => {
+      const all = messages()
+
+      return limit >= 100 ? { items: all } : { items: all.slice(-20) }
+    },
+  })
+
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+
+  const panel = page.locator('[data-component="session-go-panel"]')
+  const search = panel.locator('[data-section="search"]')
+  const input = search.getByRole("searchbox")
+
+  await input.fill("zephyr-archive")
+  await expect(search.getByText("No matches.", { exact: true })).toBeVisible()
+
+  await search.getByRole("button", { name: "Load full history", exact: true }).click()
+  await expect(search.getByText(/Full history loaded/)).toBeVisible()
+
+  await expect(search.getByRole("button", { name: /zephyr-archive/ })).toBeVisible()
+})
+
+test("Session Go reveals a fact's source in the timeline", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+
+  const pairs = Array.from({ length: 15 }, (_, index) => [
+    {
+      id: `msg_u${index}`,
+      type: "user" as const,
+      text: `User message ${index}`,
+      time: { created: sessionGoTime + index * 2 },
+    },
+    {
+      id: `msg_a${index}`,
+      type: "assistant" as const,
+      agent: "build",
+      model: sessionGoModel,
+      content: [{ type: "text" as const, text: `Agent reply ${index}` }],
+      time: { created: sessionGoTime + index * 2 + 1, completed: sessionGoTime + index * 2 + 1 },
+    },
+  ])
+
+  const messages = pairs.flat() satisfies SessionMessageInfo[]
+
+  await openSession(page, {
+    name: "SessionGoReveal",
+    sessions: [{ id: "ses_sessiongo_reveal", title: "Session Go Reveal" }],
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: pageMessagesFrom({ ses_sessiongo_reveal: messages }),
+  })
+
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+
+  const goal = page.locator('[data-component="session-go-panel"] [data-section="goal"]')
+  const source = goal.getByRole("button", { name: /^msg_/ })
+  await expect(source).toBeVisible()
+
+  const messageID = (await source.textContent())?.trim()
+  expect(messageID).toBeTruthy()
+
+  const jump = page.getByRole("button", { name: "Jump to latest", exact: true })
+
+  await source.click()
+
+  await expect(page.locator(`#message-${messageID}`)).toBeInViewport()
+  await expect(jump).toBeVisible()
+})
+
+test("Session Go uses a provided global project goal", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+
+  const projectGoal = {
+    id: "PG1",
+    projectID: "proj_sessiongoproject",
+    statement: "Ship the semantic layer",
+    status: "active",
+    authority: "user",
+  }
+
+  await openSession(page, {
+    name: "SessionGoProject",
+    seed: {
+      storage: {
+        [SESSION_GO_SETTINGS]: sessionGoEnabled,
+        "opencode.global.dat:plugin.session-go.projectGoals": { goals: [projectGoal] },
+      },
+    },
+    pageMessages: () => ({ items: sessionGoMessages() }),
+  })
+
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+
+  const goal = page.locator('[data-component="session-go-panel"] [data-section="goal"]')
+  await expect(goal.getByText("Ship the semantic layer", { exact: true })).toBeVisible()
+  await expect(goal.getByText("Placeholder", { exact: true })).toHaveCount(0)
+  await expect(goal.getByText("Linked to this project goal", { exact: true })).toBeVisible()
+
+  await page.reload()
+  await expectSessionTitle(page, "SessionGoProject")
+  await page.getByRole("button", { name: "Open Session Go", exact: true }).click()
+  await expect(
+    page.locator('[data-component="session-go-panel"] [data-section="goal"]').getByText("Ship the semantic layer", {
+      exact: true,
+    }),
+  ).toBeVisible()
 })
 
 async function expectTreeSentinel(page: Page) {

@@ -75,6 +75,7 @@ test("settings has its own route and returns through app history", async ({ page
     "Projects",
     "Worktrees",
     "Server",
+    "Session Go",
     "Experimental",
     "About",
   ])
@@ -89,6 +90,48 @@ test("settings has its own route and returns through app history", async ({ page
   await home.click()
   await expect(page).toHaveURL("/")
   await expect(settings).toBeHidden()
+})
+
+test("Session Go settings persist the feature gate and analysis preferences", async ({ page }) => {
+  const { settings } = await open(page, {
+    seed: {
+      storage: {
+        "opencode.global.dat:plugin.session-go.settings": {
+          enabled: false,
+          keepAnalysis: true,
+          commitments: true,
+          modelAnalysis: false,
+          autoAnalyze: false,
+          historyIndex: false,
+        },
+      },
+    },
+  })
+
+  await settings.getByRole("tab", { name: "Session Go", exact: true }).click()
+  await expect(settings.getByRole("heading", { name: "Session Go", exact: true })).toBeVisible()
+  await expect(
+    settings.getByText(
+      "Deterministic extraction, a local candidate cache and commitment log, and optional model-assisted consolidation. Automatic analysis is off by default.",
+      { exact: true },
+    ),
+  ).toBeVisible()
+
+  const enabled = settings.getByRole("switch", { name: "Enable Session Go", exact: true })
+  await expect(enabled).not.toBeChecked()
+  await enabled.locator("..").locator('[data-slot="switch-control"]').click()
+  await expect(enabled).toBeChecked()
+
+  const keepAnalysis = settings.getByRole("switch", { name: "Keep analysis cache", exact: true })
+  await expect(keepAnalysis).toBeChecked()
+  await keepAnalysis.locator("..").locator('[data-slot="switch-control"]').click()
+  await expect(keepAnalysis).not.toBeChecked()
+
+  await expect
+    .poll(() =>
+      page.evaluate(() => JSON.parse(localStorage.getItem("opencode.global.dat:plugin.session-go.settings") ?? "{}")),
+    )
+    .toMatchObject({ enabled: true, keepAnalysis: false })
 })
 
 test("Ctrl+, opens settings as soon as the app loads", async ({ page }) => {
@@ -2850,6 +2893,7 @@ for (const viewport of [
       "Models",
       "Extensions",
       "Server",
+      "Session Go",
       "About",
     ]
 

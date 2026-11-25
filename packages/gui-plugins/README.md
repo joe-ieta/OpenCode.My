@@ -858,6 +858,7 @@ export const builtins = compose({
   "microsoft-office": { ...microsoftOffice, windowEntry: eager(microsoftOfficeRenderer) },
   sources: { ...sources, windowEntry: eager(sourcesRenderer) },
   goal: { ...goal, windowEntry: eager(goalRenderer) },
+  "session-go": { ...sessionGo, windowEntry: eager(sessionGoRenderer) },
 })
 ```
 
