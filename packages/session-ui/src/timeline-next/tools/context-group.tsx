@@ -16,7 +16,7 @@ import { AssistantReasoningContent } from "../../message/message-content"
 import {
   CurrentReadToolGroup,
   currentSkillName,
-  displayDirectory,
+  displayFolder,
   scrollParent,
   toolInput,
   toolMetadata,
@@ -129,7 +129,14 @@ export function ContextGroup(props: {
     // Collapsing from the stuck header would leave the viewport far below the group, so keep the header in place.
     // Scroll before collapsing because the shorter content would clamp the scroll position first.
     const trigger = root?.querySelector(':scope > [data-component="collapsible"] > [data-slot="collapsible-trigger"]')
-    const stuck = !open && root && trigger ? trigger.getBoundingClientRect().top - root.getBoundingClientRect().top : 0
+
+    // The header rests its top margin away from the group's top, above it here. Anything past that is how far it is stuck.
+    const stuck =
+      !open && root && trigger
+        ? trigger.getBoundingClientRect().top -
+          root.getBoundingClientRect().top -
+          parseFloat(getComputedStyle(trigger).marginTop)
+        : 0
 
     if (stuck > 0 && root) scrollParent(root)?.scrollBy({ top: -stuck, behavior: "instant" })
     props.onOpenChange(open)
@@ -555,7 +562,7 @@ function workEvents(parts: ActivityGroupPart[]) {
 function searchTrigger(tool: SessionMessageAssistantTool, i18n: UiI18n) {
   const input = toolInput(currentToolInput(tool))
   const metadata = toolMetadata(currentToolMetadata(tool))
-  const subtitle = displayDirectory(input.path ?? "/")
+  const subtitle = displayFolder(input.path)
   const name = toolRule(tool).name
 
   if (name === "list") return { title: i18n.t("ui.tool.list"), subtitle, args: [], count: undefined }

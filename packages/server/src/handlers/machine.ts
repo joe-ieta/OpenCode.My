@@ -131,6 +131,7 @@ export interface Transport {
 export const carrier = (reader: Socket.Reader, transport: Transport): Link.Carrier => {
   const waiting: Array<Uint8Array | string> = []
   return {
+    describe: () => ({ kind: "websocket" }),
     send: (message) =>
       Effect.gen(function* () {
         const taken = Latch.makeUnsafe()
@@ -310,7 +311,8 @@ export const makeMachine = Effect.gen(function* () {
           Effect.fail(new InvalidRequestError({ message: error.message, kind: "invalid_name", field: "name" })),
         ),
       )
-      const reach = Option.isSome(yield* iroh) ? [...payload.reach, { type: "iroh" as const }] : payload.reach
+      // Prefer Iroh first so laptops moving off a home LAN don't wait for a stale LAN URL timeout; URLs remain as fallback.
+      const reach = Option.isSome(yield* iroh) ? [{ type: "iroh" as const }, ...payload.reach] : payload.reach
       const join = yield* machines.invite(id, { reach, replace: payload.replace }).pipe(
         Effect.catchTags({
           "Machines.AlreadyPaired": (error) =>
@@ -322,7 +324,7 @@ export const makeMachine = Effect.gen(function* () {
       )
       const decoded = Option.getOrUndefined(Join.decode(join))
       if (!decoded) return yield* Effect.die(new Error("Server produced an unreadable join string"))
-      return { data: { name: id, join, expires: decoded.expires } }
+      return { data: { name: id, join, expires: decoded.expires, reach: decoded.reach } }
     }),
     remove: Effect.fn("MachineHandler.remove")(function* (name: string) {
       yield* requireEnabled

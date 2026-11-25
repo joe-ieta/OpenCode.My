@@ -87,6 +87,8 @@ export function TabNavItem(
     muted?: boolean
     /** Menu items shown above an open tab's own. */
     menuItems?: () => JSX.Element
+    /** Runs on a middle click for a row without close actions, such as a pinned session. */
+    onMiddleClick?: () => void
     fallbackTitle?: string
     fallbackDirectory?: string
     /** Shows a title at once: the optimistic one, or the one to restore when its save fails. */
@@ -486,8 +488,14 @@ export function TabNavItem(
         event.stopPropagation()
       }}
       onAuxClick={(event) => {
-        if (event.button !== MIDDLE_MOUSE_BUTTON || !actions) return
-        closeTab(event)
+        if (event.button !== MIDDLE_MOUSE_BUTTON) return
+
+        if (actions) return closeTab(event)
+
+        if (!props.onMiddleClick) return
+        event.preventDefault()
+        event.stopPropagation()
+        props.onMiddleClick()
       }}
     >
       <Show when={promptPulse()} keyed>

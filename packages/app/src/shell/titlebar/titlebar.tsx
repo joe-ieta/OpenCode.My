@@ -99,9 +99,6 @@ const macTrafficLightsBaseWidth = 68
 
 const macTrafficLightsTopClearance = 28
 
-// Matches the desktop window's `trafficLightPosition`.
-const macTrafficLightsDefaultPosition = { x: 14, y: 14 }
-
 // iOS blurs page content just below the status bar in Home Screen web apps, so with a top safe area the phone
 // titlebar row stays 16px clear of it, as ChatGPT's phone header does. Without one, 8px matches the content gap below.
 const mobileTopClearance = "max(8px, min(16px, env(safe-area-inset-top, 0px) * 1000))"
@@ -172,13 +169,41 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
   const windowsControlsWidth = () => `${windowsControlsBaseWidth / Math.max(titlebarZoom(), 1)}px`
 
-  // The vertical sidebar header's center line scales with zoom, so the 14pt traffic lights follow it. The horizontal
-  // titlebar stays at the window's default position.
+  let titlebarRow!: HTMLDivElement
+
+  // Native buttons stay 14pt tall while the renderer scales. The tabs center in the row's padded content box.
   createEffect(() => {
     if (!mac()) return
-    void platform.setTrafficLightsPosition?.(
-      macVerticalTabs() ? macVerticalTrafficLights(zoom()) : macTrafficLightsDefaultPosition,
-    )
+
+    const scale = zoom()
+
+    if (macVerticalTabs()) {
+      void platform.setTrafficLightsPosition?.(macVerticalTrafficLights(scale))
+
+      return
+    }
+
+    // The native buttons stay at the window's top edge when a narrow window moves the titlebar row to the bottom.
+    if (bottom()) {
+      void platform.setTrafficLightsPosition?.({ x: 14, y: 14 })
+
+      return
+    }
+
+    const frame = requestAnimationFrame(() => {
+      const bounds = titlebarRow.getBoundingClientRect()
+
+      const style = getComputedStyle(titlebarRow)
+
+      void platform.setTrafficLightsPosition?.({
+        x: 14,
+        y:
+          (bounds.top + (bounds.height + parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)) / 2) * scale -
+          7,
+      })
+    })
+
+    onCleanup(() => cancelAnimationFrame(frame))
   })
 
   const history = createTitlebarHistory()
@@ -186,7 +211,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
   const titlebarItems = useTitlebarItems()
   const hideVerticalTitlebar = createMemo(() => !!props.verticalTabs && !windows())
-  const actionInSidebarHeader = () => !windows() && !macTrafficLights()
+  const actionInSidebarHeader = () => !windows() && !macTrafficLights() && !linux()
 
   command.register(() => [
     {
@@ -946,6 +971,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
                     return (
                       <div
+                        ref={titlebarRow}
                         class="h-full flex-1 overflow-hidden flex flex-row items-center gap-1.5 px-2 md:pe-3"
                         classList={{
                           "pt-[max(0px,calc(8px-env(safe-area-inset-top,0px)))]":
@@ -958,7 +984,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                           "ps-3.5": windows() && !props.verticalTabs,
                         }}
                       >
-                        <Show when={windows() || linux()}>
+                        <Show when={(windows() || linux()) && !hideVerticalTitlebar()}>
                           <WindowsAppMenu command={command} platform={platform} />
                         </Show>
                         <Show when={windows() && props.verticalTabs}>

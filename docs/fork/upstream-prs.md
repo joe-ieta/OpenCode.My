@@ -4,6 +4,14 @@
 
 > 当前仓库关系以顶层 [AGENTS.md](../../AGENTS.md) 为准：`origin` 是本仓库 GitHub，`upstream` 是官方 GitHub；同步及官方贡献使用官方对应分支。
 
+## 官方 PR 维护（2026-11-25）
+
+- 当前三个开放贡献为 [#62851](https://github.com/anomalyco/opencode/pull/62851)（运行中会话组件）、[#64850](https://github.com/anomalyco/opencode/pull/64850)（checkout 会话归属修复）、[#65049](https://github.com/anomalyco/opencode/pull/65049)（简繁中文翻译）。本轮检查时全部审查讨论均已解决，无新增待处理意见。
+- 三条贡献线同步官方 `dev@b5dba31bf20d758d86871af65d206a197d411a0c`，保持各自范围。#62851 的 Inbox 冲突保留上游置顶、最近及草稿行为，同时保留共享分支加载器和耗时显示；另两条线自动合并。未关闭 PR、未发送测试邀请。
+- #62851 的 App 官方 TypeScript 检查、15 项 App 回归、49 项 Client 数据测试及 2 项 Chromium 真实组件测试通过；#65049 的 App 官方 TypeScript 检查及 31 项简繁字典检查通过。完整检查与 #64850 会话归属回归结果见各 PR 当前验证段落。
+- 当前上游 Actions 为 `action_required`，需要官方维护者批准运行；此状态不代表 CI 已通过。提交同步后继续核对冲突、审查和检查状态，不越过上游合并保护。
+- Windows 检查临时展开声明符号链接并规范化灰度检查脚本的路径分隔符；平台处理不进入官方贡献。
+
 ## 中文翻译 PR 审核修正（2026-11-20）
 
 - 官方 [#65049](https://github.com/anomalyco/opencode/pull/65049) 已推送审核修正 `c054c39f75`，来源为 `origin/chinese-translations`，目标仍为官方 `dev`。本轮只修改两份 App 中文词典，整个 PR 仍限于四份中文词典。
