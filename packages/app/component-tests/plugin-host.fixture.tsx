@@ -130,7 +130,7 @@ function fakeApis(storage: (plugin: string) => Storage): HostApiFactories {
     servers: () => servers,
     workspaces: () => workspaces,
     desktop: () => undefined,
-    sessions: () => ({ list: () => [], current: () => undefined }),
+    sessions: () => ({ list: () => [], current: () => undefined, reveal: () => Promise.resolve(false) }),
     screen: () => ({ current: () => undefined }),
     layout: () => layout,
     storage,

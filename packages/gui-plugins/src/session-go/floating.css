@@ -1,0 +1,141 @@
+/* The floating entry sits above the composer's send button and follows it. */
+[data-component="session-go-fab"] {
+  position: fixed;
+  z-index: 31;
+  display: flex;
+}
+
+[data-component="session-go-fab"] .session-go-fab-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  box-shadow: var(--v2-elevation-floating);
+  transition:
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+[data-component="session-go-fab"][data-opened] .session-go-fab-button {
+  color: var(--v2-icon-icon-accent);
+  box-shadow:
+    0 0 0 2px var(--v2-background-bg-accent),
+    var(--v2-elevation-floating);
+}
+
+[data-component="session-go-fab"] .session-go-fab-button [data-slot="icon-svg"] {
+  width: 16px;
+  height: 16px;
+}
+
+/* The turn rail lists one equal segment per turn; the buttons at either end step the selection. */
+[data-component="session-go-timeline"] {
+  background: var(--v2-background-bg-layer-02);
+}
+
+[data-slot="timeline-prev"],
+[data-slot="timeline-next"] {
+  color: var(--v2-icon-icon-faint);
+  transition:
+    background-color 100ms ease,
+    color 100ms ease;
+}
+
+[data-slot="timeline-prev"]:hover,
+[data-slot="timeline-next"]:hover,
+[data-slot="timeline-prev"]:focus-visible,
+[data-slot="timeline-next"]:focus-visible {
+  background: var(--v2-overlay-simple-overlay-pressed);
+  color: var(--v2-icon-icon-base);
+}
+
+[data-slot="timeline-prev"] [data-slot="icon-svg"],
+[data-slot="timeline-next"] [data-slot="icon-svg"] {
+  width: 12px;
+  height: 12px;
+}
+
+[data-slot="timeline-slider"] {
+  user-select: none;
+}
+
+[data-slot="timeline-segment"] {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* A side-bar row inverts against the rail surface: its hover overlay sits on the next layer. */
+[data-slot="timeline-segment"]:hover {
+  background: linear-gradient(var(--v2-overlay-simple-overlay-hover), var(--v2-overlay-simple-overlay-hover)),
+    var(--v2-background-bg-layer-03);
+}
+
+[data-slot="timeline-segment"]:active {
+  background: linear-gradient(var(--v2-overlay-simple-overlay-pressed), var(--v2-overlay-simple-overlay-pressed)),
+    var(--v2-background-bg-layer-03);
+}
+
+[data-slot="timeline-segment"]:focus {
+  outline: none;
+}
+
+[data-slot="timeline-segment"]:focus-visible {
+  outline: 2px solid var(--v2-border-border-focus);
+  outline-offset: -2px;
+}
+
+/* One resting slider marker per turn. The blue thumb covers the selected segment's marker. */
+[data-slot="timeline-segment"]::before {
+  content: "";
+  display: block;
+  width: 3px;
+  height: min(10px, 45%);
+  border-radius: 9999px;
+  background: var(--v2-text-text-faint);
+  opacity: 0.6;
+  transition: opacity 100ms ease;
+}
+
+[data-slot="timeline-segment"]:is(:hover, :focus-visible)::before {
+  opacity: 0.9;
+}
+
+[data-slot="timeline-segment"][data-current]::before {
+  opacity: 0;
+}
+
+[data-slot="timeline-thumb"] {
+  width: 5px;
+  height: min(16px, calc(100% / var(--turn-count) * 0.7));
+  background: var(--v2-icon-icon-accent);
+  transition: top 140ms ease;
+}
+
+[data-slot="timeline-preview"] {
+  inset-inline-end: calc(100% + 8px);
+  background: var(--surface-raised-stronger-non-alpha);
+  box-shadow: var(--v2-elevation-floating);
+}
+
+/* The panel stays mounted while closed, so reopening it never rebuilds the model. */
+[data-component="session-go-floating"] {
+  position: fixed;
+  z-index: 60;
+  overflow: hidden;
+  contain: layout paint;
+  border: 1px solid var(--v2-border-border-muted);
+  border-radius: 12px;
+  background: var(--surface-raised-stronger-non-alpha);
+  box-shadow: var(--v2-elevation-floating);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="session-go-fab"] .session-go-fab-button,
+  [data-slot="timeline-thumb"] {
+    transition: none;
+  }
+}
