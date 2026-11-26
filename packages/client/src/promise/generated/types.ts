@@ -2842,7 +2842,6 @@ export type ConfigEntry =
           console_watches?: boolean
           openai_compatible_discovery?: boolean
           recommended_api?: boolean
-          model_speeds?: boolean
           full_codemode?: boolean
           codemode_agents?: boolean
           machines?: boolean
