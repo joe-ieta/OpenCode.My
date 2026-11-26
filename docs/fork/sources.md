@@ -25,6 +25,7 @@
 ## 首页与界面截图
 
 - 根目录的 [英文 README](../../README.md) 和 [中文 README](../../README.zh.md) 分别展示 OpenCode My 的 Side bar 和自定义模型，并链接官方 OpenCode README。
+- 2026-11-26 重拍 Session Go 中英文截图：`dev-my/session-go-fab-{zh,en}.png` 展示悬浮按钮和最近三轮提示，`dev-my/session-go-{zh,en}.png` 展示悬浮窗口、轮次轨道与标记预览。来源为 `dev-my@39c176e3e5bcf21376a1836bc9a7d2d1b761cc52`（应用代码与已验收候选版 `e2941c8ef0` 相同），使用正式构建的真实生产组件和隔离示例会话，通过真实悬停、点击与跳转操作截图，没有拼接或修改界面。Session Go 标签保留程序实际的英文回退。
 - `dev-my/sidetab-overview-light.png` 与 `dev-my/sidetab-overview-dark.png` 取自 [PR #60446](https://github.com/anomalyco/opencode/pull/60446) 的 after 截图，原始文件位于贡献分支提交 `58b91857b0849d2aea7d8ecbeda066f435fd85b6`。画面使用合成项目与会话，三个标签打开、两个任务运行；该布局现在由本地 Side bar 承载，展示 Running sessions 与按项目分组，项目 `+` 快捷入口在后续提交中补充，不作为当前用户数据或逐像素基线。
 - 截图放在 fork 目录内并由本站 Markdown 引用，不依赖外部图片地址；更新界面后按同样方式替换，并在本节记录新来源提交。
 

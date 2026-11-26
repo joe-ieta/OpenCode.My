@@ -65,9 +65,13 @@ OpenCode My 是 OpenCode 生态中的桌面项目，聚焦高负荷开发中的�
 
   <img src="docs/fork/dev-my/side-bar-zh.png" alt="完整窗口中的侧栏项目分组、跨服务器运行中的会话、当前对话和输入区">
 
-- **Session Go（长会话回顾）** · 在右侧面板查看目标、候选决策和行动，同时保留原对话。
+- **Session Go：悬浮按钮与提示** · 悬停在发送按钮上方的圆形按钮，可预览最近三轮用户消息及运行时长；点击打开悬浮窗口。
 
-  <img src="docs/fork/dev-my/session-go-zh.png" alt="完整窗口中的侧栏、会话时间线、输入区和 Session Go 回顾面板">
+  <img src="docs/fork/dev-my/session-go-fab-zh.png" alt="输入区上方的 Session Go 悬浮按钮，以及展示最近三轮消息和运行时长的悬停提示">
+
+- **Session Go：悬浮窗口与轮次轨道** · 点击右侧轨道中的轮次标记，跳转至原对话；悬停在其他标记上，可预览该轮消息与运行时长，保留当前选择。
+
+  <img src="docs/fork/dev-my/session-go-zh.png" alt="Session Go 悬浮窗口、当前轮次、纵向轮次轨道、高亮标记和另一轮的悬停预览">
 
 - **自定义模型（Custom models）** · 在模型选择器中打开 **自定义 Provider**，可获取或手动添加模型，并在同一表单中查看已保存模型的文本测试结果。
 

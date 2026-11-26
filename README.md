@@ -65,9 +65,13 @@ These full-window screenshots use sample data from the desktop interface build.
 
   <img src="docs/fork/dev-my/side-bar-en.png" alt="Full window with the Side bar project groups, cross-server running sessions, and the current conversation and composer">
 
-- **Session Go** · Review goals, decision candidates, and actions in the right-hand panel alongside the original conversation.
+- **Session Go: floating button and hint** · Hover over the button above Send to preview the three most recent user turns and their run times. Click it to open the floating window.
 
-  <img src="docs/fork/dev-my/session-go-en.png" alt="Full window with the Side bar, session timeline, composer, and Session Go review panel">
+  <img src="docs/fork/dev-my/session-go-fab-en.png" alt="Session Go floating button above the composer and its hover hint with the three most recent turns">
+
+- **Session Go: floating window and turn rail** · Select a turn from the rail on the right to jump to its source. Hover over a marker to preview another turn and its run time while keeping the current selection.
+
+  <img src="docs/fork/dev-my/session-go-en.png" alt="Session Go floating window with the selected turn, vertical turn rail, highlighted marker, and another turn's hover preview">
 
 - **Custom models** · Open **Custom providers** from the model picker to fetch models or add them manually. Test a saved model and see the result alongside its configuration.
 
