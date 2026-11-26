@@ -22,7 +22,7 @@ We evaluate agent coding features in real workflows when they make tasks easier 
 
 ## Download
 
-The [current release candidate, `v2.4.1-my-0.1.27-rc`](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.27-rc), includes Session Go. The [latest stable release](https://github.com/joe-ieta/OpenCode.My/releases/latest) includes Side bar and custom models. Both provide a Windows x64 installer and Linux AppImage and deb packages for amd64 and arm64.
+The [latest stable release, `v2.4.1-my-0.1.28`](https://github.com/joe-ieta/OpenCode.My/releases/latest), includes Side bar, Session Go and custom models. It provides a Windows x64 installer and Linux AppImage and deb packages for amd64 and arm64. See the [release notes](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.28) for validation details.
 
 ## Desktop features
 

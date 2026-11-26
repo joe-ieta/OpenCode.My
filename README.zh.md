@@ -22,7 +22,7 @@ OpenCode My 是 OpenCode 生态中的桌面项目，聚焦高负荷开发中的�
 
 ## 下载
 
-[当前候选版 `v2.4.1-my-0.1.27-rc`](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.27-rc) 已包含 Session Go。[最新正式版](https://github.com/joe-ieta/OpenCode.My/releases/latest) 提供侧栏和自定义模型。两个版本均提供 Windows x64 安装包，以及 Linux amd64 和 arm64 的 AppImage 和 deb 包。
+[最新正式版 `v2.4.1-my-0.1.28`](https://github.com/joe-ieta/OpenCode.My/releases/latest) 包含侧栏、Session Go 和自定义模型，提供 Windows x64 安装包，以及 Linux amd64 和 arm64 的 AppImage 和 deb 包。验证范围见[发行说明](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.28)。
 
 ## 桌面功能
 

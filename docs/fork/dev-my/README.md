@@ -8,9 +8,9 @@
 
 - 2026-11-14，源码基线已同步至 V2 2.3.0 的 `dev@f0089856c0`，合入 227 个上游提交，保留共享项目历史、独立 Side bar、Running、升级迁移及桌面发行补丁。`dev-my` 是桌面维护主线，远端 `sidebar-mode` 保留为 PR 来源引用。二进制与源码同步记录见 [releases.md](releases.md)。
 - 2026-11-14，`dev-my-models` 已合入 `dev-my`，自定义 Provider 与模型管理成为桌面主线的一部分；后续功能不再在临时分支开发。与官方 `dev` 的产品、设计和实现差异汇总见 [dev-my 与官方 dev 的差异](differences.md)。
-- 当前候选版 `v2.4.1-my-0.1.27-rc` 基于官方 V2 2.4.1，合入 Session Go，并修复关闭分组标签时可能切入折叠远端分组的问题。[候选版下载](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.27-rc) · [PR #18](https://github.com/joe-ieta/OpenCode.My/pull/18)
-- 最新正式发行 `v2.3.0-my.0.1.25` 提供 Side bar 和自定义模型。[正式版下载](https://github.com/joe-ieta/OpenCode.My/releases/latest)
-- Windows x64、Linux amd64 和 Linux arm64 均已通过手工安装验收。Linux 的 AppImage 和 deb 使用与 Windows 相同的模型快照，通过模型目录比对、CLI 冒烟和解包核验。[发行记录](releases.md)
+- 当前正式版 `v2.4.1-my-0.1.28` 基于官方 V2 2.4.1，保留 Side bar、Session Go、自定义模型和 clone 会话隔离修复，提供 Windows x64 与 Linux amd64/arm64 安装包。[正式版下载](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [发行记录](releases.md)
+- 2026-11-26，Windows `v2.4.1-my-0.1.28-rc` 人工审核通过；正式版按无 `-rc` 的版本号重建，应用代码与候选版一致。候选发行及附件保留。[已验收候选版](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.28-rc)
+- 本版 Windows 与 Linux 完整检查各通过 36/36。Linux AppImage/deb 复用 Windows 模型快照，并通过解包、模型目录、历史迁移及 HTTP/SSE 冒烟；ARM64 CLI 使用 QEMU，原生 ARM64 GUI 未验收。历史版本的人工验收记录见 [releases.md](releases.md)。
 - macOS 暂无本 fork 发行验证；`release-my.ts` 支持 Windows x64 与 Linux x64/arm64。Linux arm64 可在 Ubuntu 24.04 x64 上通过 `qemu-user-static`、`libc6-dev-arm64-cross` 和 binfmt 交叉构建及 CLI 冒烟，正式 ARM64 GUI 验收仍需原生 arm64。完整环境准备、构建和排障见 [发布环境与多架构构建](../KB/release-environment.md)。
 - 历史正式版验证（`v2.2.3-dev-my.3`）：Windows 与 WSL Ubuntu 根检查均 35/35；Windows NSIS、ASAR/CLI 版本、7-Zip 完整性、`latest.yml` SHA512 通过；Linux x64/arm64 模型目录冒烟各 7,646 个模型，desktop CLI 冒烟均通过；两架构 ASAR/CLI、AppImage/deb 架构、deb 元数据、更新清单与 10 个资产的服务端 SHA256 均已核对。完整应用单元测试、browser 条件测试和 GUI 回归未在本轮重复运行；ARM64 GUI 尚未原生验收。详细结果见 [releases.md](releases.md)。
 
