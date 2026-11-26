@@ -8,7 +8,8 @@
 
 - 2026-11-14，源码基线已同步至 V2 2.3.0 的 `dev@f0089856c0`，合入 227 个上游提交，保留共享项目历史、独立 Side bar、Running、升级迁移及桌面发行补丁。`dev-my` 是桌面维护主线，远端 `sidebar-mode` 保留为 PR 来源引用。二进制与源码同步记录见 [releases.md](releases.md)。
 - 2026-11-14，`dev-my-models` 已合入 `dev-my`，自定义 Provider 与模型管理成为桌面主线的一部分；后续功能不再在临时分支开发。与官方 `dev` 的产品、设计和实现差异汇总见 [dev-my 与官方 dev 的差异](differences.md)。
-- 最新正式发行来自 `0f1bf0b279`，同步了上游的子代理状态、Claude Agent 上下文限额、时间线布局和侧栏预览修复。Side bar 和自定义模型功能继续提供。[v2.3.0-my.13](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.13)
+- 当前候选版 `v2.4.1-my-0.1.27-rc` 基于官方 V2 2.4.1，合入 Session Go，并修复关闭分组标签时可能切入折叠远端分组的问题。[候选版下载](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.27-rc) · [PR #18](https://github.com/joe-ieta/OpenCode.My/pull/18)
+- 最新正式发行 `v2.3.0-my.0.1.25` 提供 Side bar 和自定义模型。[正式版下载](https://github.com/joe-ieta/OpenCode.My/releases/latest)
 - Windows x64、Linux amd64 和 Linux arm64 均已通过手工安装验收。Linux 的 AppImage 和 deb 使用与 Windows 相同的模型快照，通过模型目录比对、CLI 冒烟和解包核验。[发行记录](releases.md)
 - macOS 暂无本 fork 发行验证；`release-my.ts` 支持 Windows x64 与 Linux x64/arm64。Linux arm64 可在 Ubuntu 24.04 x64 上通过 `qemu-user-static`、`libc6-dev-arm64-cross` 和 binfmt 交叉构建及 CLI 冒烟，正式 ARM64 GUI 验收仍需原生 arm64。完整环境准备、构建和排障见 [发布环境与多架构构建](../KB/release-environment.md)。
 - 历史正式版验证（`v2.2.3-dev-my.3`）：Windows 与 WSL Ubuntu 根检查均 35/35；Windows NSIS、ASAR/CLI 版本、7-Zip 完整性、`latest.yml` SHA512 通过；Linux x64/arm64 模型目录冒烟各 7,646 个模型，desktop CLI 冒烟均通过；两架构 ASAR/CLI、AppImage/deb 架构、deb 元数据、更新清单与 10 个资产的服务端 SHA256 均已核对。完整应用单元测试、browser 条件测试和 GUI 回归未在本轮重复运行；ARM64 GUI 尚未原生验收。详细结果见 [releases.md](releases.md)。
@@ -26,12 +27,9 @@
 独立模式首次 Windows 发行验证：根目录 `bun run check` 35/35；应用单元测试 945 项、browser 条件测试 303 项；最新生产构建的完整 Home/标签回归 63/63，设置与标签预览专项 4/4。四种模式切换、刷新后恢复偏好、官方 Home 的使用历史过滤、Side bar 分组/隐藏/排序以及 Running sessions 均已覆盖。后续 `.5` 核对语言测试 21/21、生产 Home/标签回归 65/65，29 个相关词条在非英语界面中仍采用英文回退。各平台构建与资产核验记录见 [发行记录](releases.md)。
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="sidetab-overview-dark.png">
-    <img src="sidetab-overview-light.png" alt="Side bar 运行界面" width="300">
-  </picture>
+  <img src="side-bar-zh.png" alt="完整窗口中的侧栏项目分组、跨服务器运行中的会话、当前对话和输入区">
 </p>
-<p align="center"><sub>Running sessions、按项目分组的最近会话、分支与运行时长。截图为合成数据。</sub></p>
+<p align="center"><sub>按项目分组的会话和跨服务器运行中的会话。截图使用示例数据。</sub></p>
 
 Running sessions 独立展示运行任务，包含项目、所在工作目录的当前分支和紧凑运行时长。Recent sessions 与首页共享项目/会话历史，默认按最近操作排序；显式设置的排序继续生效。
 
@@ -42,6 +40,10 @@ Recent sessions 默认使用 By project 分组，已有偏好优先。按项目�
 多任务并行沿用官方 worktree 机制：同一工作目录里的会话共享代码和当前分支；独立 worktree 才隔离文件。新建 worktree 的分支选择是起点，内置 Git 策略默认 detached HEAD，不自动创建命名任务分支。Side bar 展示这些任务，不改变其 Git 归属。
 
 `v2.2.2-dev-my.2` 的后续优化：线程 hint 按需读取所在工作目录的当前分支，并展示所属工作树路径；项目分组计数后可直接新建预选该项目的会话。Recent sessions 只列主会话，恢复的子智能体标签也不再作为独立历史行，子智能体仍从父会话进入，Running sessions 保留运行任务观察能力。Home 与侧栏均显示服务器项目历史，避免官方客户端与本 fork 的 GUI 本地状态独立导致 Home 缺项目；显式隐藏项目会被单独记忆，重新使用该项目后恢复显示。
+
+### Session Go（长会话回顾）
+
+通过会话顶部的入口打开右侧面板，或用悬浮按钮打开带轮次导航的面板。Session Go 按本地规则提取目标、决策与行动，支持全文历史检索、跳回来源，以及在本机保留已确认事实。可在设置中控制模型辅助分析与本地保留行为。使用入口和完整截图见 [中文 README](../../../README.zh.md#session-go长会话回顾)，早期设计见 [Session Overview](session-overview.md)。
 
 ### V1 升级与可靠性
 
@@ -89,6 +91,5 @@ Settings → General → Language 默认提供 `Follow system`。首次安装保
 - dev-my 继续作为 Side bar 本地维护主线；sidebar-mode 仅同步 #60867 的上游贡献，保持官方 Side tabs 行为。按评审和人工测试反馈继续完善。
 - 跟踪 #56929、#60084 和其他未被官方等价实现的可靠性补丁。
 - 自定义模型配置界面已按 [Proposal](https://github.com/anomalyco/opencode/issues/33704#issuecomment-6515528622) 的方向实现并合入 `dev-my`：模型选择器内新增/编辑/删除全局 OpenAI Compatible provider，Key 进凭据存储，模型发现由用户主动触发；实现基于 V2 2.3.0 重验，Windows 测试版已发布，安装后人工验收待完成。设计与[源码评审记录](custom-provider-review.md)见 [Custom Provider 设计](custom-provider.md)，与官方差异见 [差异总览](differences.md)。
-- 长会话全貌显示已形成设计草案：[Session Overview](session-overview.md)。建议先以低风险的时间线预设和只读侧栏插件验证，不改主时间线投影与默认体验。
 
 构建命令、提交与发布步骤见 [维护方法](../maintenance.md)，上游状态见 [PR 跟踪](../upstream-prs.md)。

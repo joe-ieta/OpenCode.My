@@ -20,35 +20,31 @@ OpenCode My 是 OpenCode 生态中的桌面项目，聚焦高负荷开发中的�
 
 选择有助于控制任务、理解进展或简化操作的 Agent 编程能力，在实际工作流程中验证后再决定是否纳入桌面版。
 
-## 路线图
+## 下载
 
-### 已发布特性
+[当前候选版 `v2.4.1-my-0.1.27-rc`](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.27-rc) 已包含 Session Go。[最新正式版](https://github.com/joe-ieta/OpenCode.My/releases/latest) 提供侧栏和自定义模型。两个版本均提供 Windows x64 安装包，以及 Linux amd64 和 arm64 的 AppImage 和 deb 包。
 
-#### 侧栏（Side bar）
-
-按项目或最近活动浏览会话，集中查看已连接服务器上正在运行或等待处理的任务。
-
-#### 自定义模型（Custom models）
-
-从模型选择器连接 OpenAI 兼容 Provider，导入或手动添加模型，测试已保存的模型并管理其可见性。
-
-### 规划中特性
-
-- **长会话回顾（Session Overview）** · 帮助快速回顾多轮或长时间运行的会话。一期规划只读导航和证据定位。[设计草案](docs/fork/dev-my/session-overview.md)
-
-欢迎通过 [GitHub Issues](https://github.com/joe-ieta/OpenCode.My/issues) 提交使用反馈和建议。
-
-## OpenCode My 新特性详解
+## 桌面功能
 
 ### 侧栏（Side bar）
 
+- **切换布局**。打开 **设置 → 偏好设置 → 界面布局**，选择 **侧栏**。通过侧栏顶部可打开首页或设置、添加项目和搜索会话。
 - **按项目与列表视图**。默认「按项目」将会话按项目分组。「列表」将跨项目会话按最近活动从新到旧排列。
 - **项目操作**。可置顶项目，通过文件夹图标展开或收起项目，并查看可用的分支、工作树与远端信息。
 - **项目与会话菜单**。首页与侧栏共用导入会话、编辑项目、复制路径、清除通知和关闭项目等操作。侧栏项目菜单可用右键或 **Shift+F10** 打开。关闭项目会保留历史会话与未发送草稿，会话菜单支持导出。
 - **统一计数**。两种视图都显示所有可见项目的「活跃会话数 / 会话总数 / 项目总数」。例如 `2/20/5` 表示 5 个项目共有 20 个会话，其中 2 个活跃。
-- **首页与新建会话**。首页与侧栏共享项目历史，首页项目行显示运行状态。「首页」下方的「新建会话」使用首页选中的项目，项目行也能直接在对应项目中新建会话。
+- **首页与新建会话**。首页与侧栏共享项目历史。首页项目行显示运行状态并提供新建会话入口。点击侧栏中项目旁的 **+**，可直接在该项目中新建会话。
 - **运行中的会话**。跨已连接服务器集中显示运行中、等待输入和等待批准的任务，包含后台 Shell 与子智能体，也能看到工作区中未打开的会话。
 - **会话悬停详情**。显示分支、工作树、上次运行结束时间、已加载历史中的用户消息轮次、最近有效上下文用量和会话费用。近期运行以相对时间显示。
+
+### Session Go（长会话回顾）
+
+从会话顶部打开 Session Go，可在保留原对话时间线的同时回顾长会话。也可以通过悬浮按钮打开面板，沿轮次导航跳转到各条用户消息。在 **设置 → Session Go** 中可管理此功能。
+
+- **目标、决策与行动**。按本地规则从会话历史提取候选条目，集中查看目标、待处理决策，以及 Shell 命令和测试运行等已记录的行动。
+- **搜索与来源定位**。在已加载的历史中搜索消息和事实。需要更早的消息时，点击 **Load full history**，再用 **Reveal** 跳回原对话中的来源。
+- **确认事实**。可确认、推迟或拒绝候选决策，并在本地保留已确认的事实及其证据。原始消息保持完整。
+- **模型辅助分析**。点击 **Analyze loaded session** 可让当前会话配置的模型整理候选条目，产生的模型用量计入该会话。每段执行结束后自动分析默认关闭。
 
 ### 自定义模型（Custom models）
 
@@ -63,14 +59,18 @@ OpenCode My 是 OpenCode 生态中的桌面项目，聚焦高负荷开发中的�
 
 ## 桌面界面截图
 
-- **侧栏（Side bar）** · 在 **偏好设置 → 界面布局** 中选择 **侧栏**。可直接添加项目或搜索会话，置顶项目和运行中的会话各有独立区域。
+以下为桌面界面构建的完整窗口截图，使用示例数据。Session Go 面板当前使用英文标签。
 
-  <img src="docs/fork/dev-my/side-bar-zh.png" alt="桌面偏好设置中已选择侧栏，同时显示项目分组、置顶项目和运行中的会话">
+- **侧栏（Side bar）** · 当前对话与项目分组并列，侧栏集中显示多个已连接服务器上正在运行的会话。
+
+  <img src="docs/fork/dev-my/side-bar-zh.png" alt="完整窗口中的侧栏项目分组、跨服务器运行中的会话、当前对话和输入区">
+
+- **Session Go（长会话回顾）** · 在右侧面板查看目标、候选决策和行动，同时保留原对话。
+
+  <img src="docs/fork/dev-my/session-go-zh.png" alt="完整窗口中的侧栏、会话时间线、输入区和 Session Go 回顾面板">
 
 - **自定义模型（Custom models）** · 在模型选择器中打开 **自定义 Provider**，可获取或手动添加模型，并在同一表单中查看已保存模型的文本测试结果。
 
-  <img src="docs/fork/dev-my/custom-models-zh.png" alt="自定义 Provider 编辑器中的模型发现、模型设置和文本测试成功提示">
+  <img src="docs/fork/dev-my/custom-models-zh.png" alt="完整窗口中的自定义 Provider 编辑器、模型发现和示例文本测试成功提示">
 
-_自定义模型截图使用示例数据。_
-
-[下载 OpenCode My](https://github.com/joe-ieta/OpenCode.My/releases/latest) · [桌面维护说明](docs/fork/dev-my/README.md) · [官方 OpenCode README](https://github.com/anomalyco/opencode#readme)
+[提交使用反馈](https://github.com/joe-ieta/OpenCode.My/issues) · [桌面维护说明](docs/fork/dev-my/README.md) · [官方 OpenCode README](https://github.com/anomalyco/opencode#readme)
