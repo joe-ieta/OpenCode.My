@@ -23,10 +23,19 @@
 
 | 通道 | 版本 | 平台 | 下载 |
 | --- | --- | --- | --- |
-| 候选版（RC） | `2.4.1-my 0.1.27-rc` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.27-rc) |
+| 人工审核候选版（RC） | `2.4.1-my 0.1.28-rc` | Windows x64 | [NSIS 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.28-rc) |
+| 上一候选版（RC） | `2.4.1-my 0.1.27-rc` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.27-rc) |
 | 正式发行（Latest） | `2.3.0-my 0.1.25` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.3.0-my.0.1.25) |
 
 早于 `v2.3.0-my.24` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
+
+## OpenCode My 2.4.1-my 0.1.28-rc Windows x64 人工审核版
+
+- 2026-11-26（Asia/Shanghai）基于最新 `dev-my@e2941c8ef0a494496f985aa3e7af6ae05340b5c6` 构建，包含官方 `upstream/dev@5e000543a6b25da9e239bbfc39a74ababab58b50`。保留 Side bar、Session Go 及 clone 会话隔离修复，接入上游 Environment、Windows 安装器进度和 GUI 主题改进。[人工审核版](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.28-rc)
+- 仅发布 Windows x64 未签名 NSIS 安装包，`draft=false`、`prerelease=true`、`latest=false`。正式 Latest 保持 `v2.3.0-my.0.1.25`；安装与界面人工验收待完成。
+- 源码 `bun run check` 36/36、同源正式构建的 Side bar / Home / Inbox Chromium 冒烟 26/26、桌面安装器与打包契约测试 32/32 通过。实际安装包已解包核对应用及 CLI 版本、x64 架构、Side bar 资源、更新源和更新清单大小/SHA512；包内 CLI 通过 9,346 个模型的目录检查，以及服务发现、共享 V1 数据库、升级确认和历史迁移冒烟。
+- 构建使用 Bun 1.4.4；模型快照 `.cache/desktop-my/2.4.1-my-0.1.28-rc/models-catalog.json` 包含 328 个提供者、9,346 个模型，SHA256 为 `c6114a55628fec58ee66677ba0fe5c5b24ffe9cb3df1f075268e75ae2b03b67d`，保留供同版本其他平台构建复用。
+- 安装包大小为 290,856,376 字节，SHA256 为 `68f1c7deab5bd47728055fa7afeed0248a6b2dbe89fe8f071e5d5396aee46d9d`。四个 GitHub 附件的大小及服务端 SHA256 与本地一致，四份附件均已通过公开链接完整下载并核对哈希。[Windows 安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.28-rc/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.28-rc/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.28-rc/build.json)
 
 ## OpenCode My 2.4.1-my 0.1.27-rc 候选版
 
