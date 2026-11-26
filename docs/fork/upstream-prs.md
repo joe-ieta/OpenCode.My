@@ -4,6 +4,12 @@
 
 > 当前仓库关系以顶层 [AGENTS.md](../../AGENTS.md) 为准：`origin` 是本仓库 GitHub，`upstream` 是官方 GitHub；同步及官方贡献使用官方对应分支。
 
+## #64850 Environment 合并冲突处理（2026-11-26）
+
+- 官方 [#64850](https://github.com/anomalyco/opencode/pull/64850) 合并 `dev@5e000543a6`，本轮提交 `89572c11a3`。Project 同时保留 CrossSpawnSpawner 与 KV 依赖，采用上游本机/远程边界，保留 clone 隔离、根提交校验和原有恢复策略；测试提供 KV 与 SessionInbox。贡献仍限于四个 Core 源码及测试文件。
+- 根检查 36/36，Core 官方 TypeScript 检查在 Windows 与 Linux 通过；相同 Git tree 的 Linux 回归为 258 通过、1 跳过、0 失败。Windows 为 247 通过、11 跳过，唯一失败是上游基线同样出现的 PowerShell 初始化错误 `8009001d`。完整验证及本机 headless 产物见 [本轮维护记录](maintenance-20261126.md)。
+- 分支普通快进推送到 `origin/origin-session-fix`，PR 说明同步验证结果，保留现有 Issue 关联。官方审核和 CI 状态以 PR 当前检查页为准。
+
 ## 官方 PR 维护（2026-11-25）
 
 - 当前三个开放贡献为 [#62851](https://github.com/anomalyco/opencode/pull/62851)（运行中会话组件）、[#64850](https://github.com/anomalyco/opencode/pull/64850)（checkout 会话归属修复）、[#65049](https://github.com/anomalyco/opencode/pull/65049)（简繁中文翻译）。本轮检查时全部审查讨论均已解决，无新增待处理意见。

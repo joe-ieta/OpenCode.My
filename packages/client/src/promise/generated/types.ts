@@ -2844,6 +2844,7 @@ export type ConfigEntry =
           recommended_api?: boolean
           model_speeds?: boolean
           full_codemode?: boolean
+          codemode_agents?: boolean
           machines?: boolean
           home_memory?: boolean
           project_overlay?: boolean
@@ -2851,6 +2852,7 @@ export type ConfigEntry =
           mcp_skills?: boolean
           compaction_jobs?: boolean
           sqlite_fts?: boolean
+          browser_stream_tunnel?: boolean
           video_generate?: boolean | { model?: string | { providerID: string; model: string; variant?: string } }
           part_rows?: boolean
           image_generate?: boolean | { model?: string | { providerID: string; model: string; variant?: string } }
@@ -4969,6 +4971,8 @@ export type ExperimentalBlobGetInput = { readonly id: string }
 
 export type ExperimentalBlobGetOutput = globalThis.Uint8Array
 
+export type ExperimentalBrowserTunnelOutput = boolean
+
 export type ExperimentalAutomationCreateInput = {
   readonly sessionID?: string | undefined
   readonly directory?: string | undefined
@@ -5307,6 +5311,10 @@ export type ExperimentalUsageLimitsInput = {
 }
 
 export type ExperimentalUsageLimitsOutput = { location: LocationPublicRef; data: UsageLimitsInfo | null }
+
+export type ExperimentalFlagGetInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
+
+export type ExperimentalFlagGetOutput = { location: LocationPublicRef; data: { [x: string]: boolean } }
 
 export type ConfigGetInput = { readonly location?: { readonly directory?: string | undefined } | undefined }
 

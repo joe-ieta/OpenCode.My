@@ -54,6 +54,7 @@ const it = testEffect(
       Bus.node,
       SessionProjector.node,
       SessionStore.node,
+      SessionInbox.node,
       Session.node,
       SessionTransfer.node,
       InstructionEntry.node,
@@ -74,6 +75,7 @@ const durableIt = testEffect(
       Bus.node,
       SessionProjector.node,
       SessionStore.node,
+      SessionInbox.node,
       Session.node,
       SessionTransfer.node,
       InstructionEntry.node,
@@ -91,7 +93,15 @@ const durableIt = testEffect(
 )
 const liveIt = testEffect(
   AppNodeBuilder.build(
-    LayerNode.group([Database.node, Bus.node, Project.node, SessionProjector.node, SessionStore.node, Session.node]),
+    LayerNode.group([
+      Database.node,
+      Bus.node,
+      Project.node,
+      SessionProjector.node,
+      SessionStore.node,
+      SessionInbox.node,
+      Session.node,
+    ]),
     [
       Bus.node.replace(Bus.configured({ persist: true })),
       SessionExecution.node.replace(SessionExecution.noopLayer),
@@ -108,6 +118,7 @@ const projectIt = testEffect(
       Project.node,
       SessionProjector.node,
       SessionStore.node,
+      SessionInbox.node,
       Session.node,
     ]),
     [
