@@ -24,7 +24,7 @@
 | 通道 | 版本 | 平台 | 下载 |
 | --- | --- | --- | --- |
 | 正式发行（Latest） | `2.4.1-my 0.1.29` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.29) |
-| 候选版（RC） | `2.4.1-my 0.1.30-rc` | Windows x64 | [NSIS 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.30-rc) |
+| 已验收候选版（RC） | `2.4.1-my 0.1.30-rc` | Windows x64 | [NSIS 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.30-rc) |
 | 已验收候选版（RC） | `2.4.1-my 0.1.29-rc` | Windows x64 | [NSIS 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.29-rc) |
 
 早于 `v2.3.0-my.24` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
@@ -33,6 +33,7 @@
 
 - 2026-11-27（Asia/Shanghai）从 `dev-my@1cb2302de3f2ad518356f7173dde72d5648f74de` 构建，包含 `sidebar-improvements@fa14d09c7a`。应用代码沿用 `v2.4.1-my-0.1.29`，内置模型目录更新为 329 个提供者和 9,363 个模型，快照 SHA256 为 `dcea44b0b28ad093e644eb6939a16f3c6af2d2470b1193340f95f5bb2580254d`。
 - 全仓检查 36/36、侧栏 Chromium 生产构建回归 3/3、桌面定向测试 30/30 通过。包内 CLI 的模型目录和 V1 历史迁移通过冒烟测试。NSIS 内嵌归档、桌面和 CLI 的 x64 架构、版本及更新清单均已核对。快速鼠标拖放、重启后的排序持久化及项目内会话顺序已在 Windows x64 `sidebar.2` 测试版实测。
+- 2026-11-27（Asia/Shanghai），从发布的 NSIS 安装包安装的 `v2.4.1-my-0.1.30-rc` 通过 Windows x64 桌面实测。快速鼠标拖放后，普通区 `ieta-znz-deploy` 排到 `默认项目` 前面，置顶区 `Charlie sort` 排到 `Alpha project` 前面。退出并重新启动桌面应用后，两区的新排序均保留。隔离测试配置中 4 条会话与 2 份草稿的项目归属和组内顺序在拖放前后及重启后均一致。`Alpha project` 依次显示 `QA Alpha worktree`、`QA Alpha second` 和 `QA Alpha first`。
 - 此版公开为 Windows x64 预发行。正式 Latest 为 `v2.4.1-my-0.1.29`。未签名 NSIS 安装包为 289,927,964 字节，SHA256 为 `72bbf4f2e7ba7f187d744bdfb3c0ba47b42304396c58e38c6ad399b296a17c7b`。四个 GitHub 附件的大小与服务端 SHA256 均与本地一致。[安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.30-rc/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.30-rc/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.30-rc/build.json)
 
 ## OpenCode My 2.4.1-my 0.1.29 正式发行（Windows x64 / Linux amd64、arm64）
