@@ -11,7 +11,7 @@ Returns: nothing
 
 ## GET /api/vcs
 
-Get current and default branch information for the requested location.
+Get current and default branch information for the requested location. Configured remotes are returned under experimental.remotes (
 
 Returns: `{ location: Location.PublicRef; data: Vcs.Info }`
 
@@ -57,4 +57,4 @@ Returns: `{ location: Location.PublicRef; data: FileDiff.Info[] }`
 - `Vcs.Branch`: `{ current?: string; default?: string }`
 - `Vcs.BranchList`: `string[]`
 - `Vcs.FileStatus`: `{ file: string; additions: number; deletions: number; status: "added" | "deleted" | "modified" }`
-- `Vcs.Info`: `{ provider?: string; branch: Vcs.Branch }`
+- `Vcs.Info`: `{ provider?: string; branch: Vcs.Branch; experimental?: { remotes } }`

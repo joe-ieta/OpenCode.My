@@ -11,12 +11,16 @@ import { Persistence } from "@/runtime/persistence/schema"
 import type { HomeController } from "../model"
 import { createProjectActions } from "@/shell/projects/actions"
 import { pathKey } from "@/workspaces/path-key"
+import type { HomeAutomationsEntry } from "./view"
+
+export type HomeProjectsUtility = { settings: () => void; help: () => void; automations?: HomeAutomationsEntry }
 
 export const HomeServersSchema = Schema.Struct({
   collapsed: Persistence.record(Persistence.fallback(Schema.Boolean, () => false)),
 })
 
-export function createHomeProjectsController(home: HomeController) {
+// Automations come from the shell's AutomationSource; surfaces mounted without it (stories) leave the entry out.
+export function createHomeProjectsController(home: HomeController, options?: { automations?: HomeAutomationsEntry }) {
   const platform = usePlatform()
 
   const language = useLanguage()
@@ -56,6 +60,13 @@ export function createHomeProjectsController(home: HomeController) {
     (promise) => promise.then(() => _state),
     { initialValue: _state },
   )
+
+  const utility: HomeProjectsUtility = {
+    settings: openSettings,
+    help: () => platform.openExternal("https://opencode.ai/desktop-feedback"),
+  }
+
+  if (options?.automations) utility.automations = options.automations
 
   return {
     copy: {
@@ -106,10 +117,7 @@ export function createHomeProjectsController(home: HomeController) {
       canReveal: actions.canReveal,
       reveal: actions.reveal,
     },
-    utility: {
-      settings: openSettings,
-      help: () => platform.openExternal("https://opencode.ai/desktop-feedback"),
-    },
+    utility,
   }
 }
 

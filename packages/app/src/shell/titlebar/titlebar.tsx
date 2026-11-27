@@ -41,6 +41,7 @@ import { SidebarProjects } from "@/shell/sidebar/projects"
 import { RunningSessions } from "@/shell/sidebar/running"
 import { RecentSessions } from "@/shell/titlebar/recent-sessions"
 import { createNavigationSwitch } from "@/shell/tabs/navigation-switch"
+import { useAutomationSource } from "@/automations/source"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createMediaQuery } from "@solid-primitives/media"
 import { readSessionTabsRemovedDetail, SESSION_TABS_REMOVED_EVENT } from "@/shell/titlebar/session-events"
@@ -111,6 +112,7 @@ function SidebarAction(props: {
   keybind: string[]
   /** Sits beside other controls in one row instead of owning the row, so its hint belongs to a tooltip. */
   compact?: boolean
+  count?: number
   pressed?: boolean
   current?: boolean
   onClick: () => void
@@ -130,6 +132,9 @@ function SidebarAction(props: {
     >
       <Icon name={props.icon} class="shrink-0" />
       <span class="min-w-0 truncate">{props.label}</span>
+      <Show when={props.count}>
+        <span class="ms-auto text-[12px] tabular-nums">{props.count}</span>
+      </Show>
       <Show when={!props.compact}>
         <div class="ms-auto hidden shrink-0 group-hover:block group-focus-visible:block" aria-hidden="true">
           <Keybind keys={props.keybind} variant="neutral" dir="ltr" />
@@ -370,6 +375,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   return true
                 }
 
+                case "automations":
                 case "settings":
                 case "connect":
                 case "components":
@@ -437,6 +443,11 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
             const homeLabel = () =>
               language.t(settings.appearance.navigationPrototype() ? "sidebar.sessions" : "home.title")
+
+            const automations = useAutomationSource()
+
+            const toggleAutomations = () =>
+              tabs.toggleAutomations({ automations: layout.route().type === "automations", current: currentTab() })
 
             const homeButton = (vertical = false, compact = false) => {
               const action = (isCompact: boolean) => (
@@ -723,6 +734,39 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
               </Show>
             )
 
+            const automationsButton = (vertical = false) => (
+              <Show when={automations.available()}>
+                <Show
+                  when={vertical}
+                  fallback={
+                    <Tooltip placement="bottom" value={language.t("automations.title")} class="shrink-0">
+                      <IconButton
+                        type="button"
+                        variant="ghost-muted"
+                        size="large"
+                        class="!w-9 shrink-0"
+                        icon={<Icon name="clock" />}
+                        state={layout.route().type === "automations" ? "pressed" : undefined}
+                        onClick={toggleAutomations}
+                        aria-label={language.t("automations.title")}
+                        aria-pressed={layout.route().type === "automations"}
+                      />
+                    </Tooltip>
+                  }
+                >
+                  <SidebarAction
+                    action="vertical-tabs-automations"
+                    icon="clock"
+                    label={language.t("automations.title")}
+                    keybind={command.keybindParts("automations.open")}
+                    count={automations.active()}
+                    pressed={layout.route().type === "automations"}
+                    onClick={toggleAutomations}
+                  />
+                </Show>
+              </Show>
+            )
+
             command.register("titlebar-home", () => [
               {
                 id: "home.toggle",
@@ -737,6 +781,16 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   toggleHome()
                 },
               },
+              ...(automations.available()
+                ? [
+                    {
+                      id: "automations.open",
+                      title: language.t("automations.title"),
+                      category: language.t("command.category.view"),
+                      onSelect: toggleAutomations,
+                    },
+                  ]
+                : []),
               {
                 id: "sessions.search",
                 title: language.t("command.session.search"),
@@ -996,6 +1050,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                           <div class="-me-0.5 flex shrink-0 items-center gap-0.5">
                             {homeButton()}
                             <Show when={!settings.appearance.navigationPrototype()}>{searchButton()}</Show>
+                            {automationsButton()}
                           </div>
                         </Show>
 
@@ -1231,6 +1286,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                             fallback={
                                               <>
                                                 {searchButton(true)}
+                                                {automationsButton(true)}
                                                 <Show when={projectNavigation()} fallback={newSessionButton()}>
                                                   {settingsButton()}
                                                 </Show>
@@ -1238,12 +1294,14 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                             }
                                           >
                                             {homeButton(true)}
+                                            {automationsButton(true)}
                                             {settingsButton()}
                                           </Show>
                                         }
                                       >
                                         {sidebarAddProjectRow()}
                                         {searchButton(true)}
+                                        {automationsButton(true)}
                                       </Show>
                                     </div>
                                     <Show

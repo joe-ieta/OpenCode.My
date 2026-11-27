@@ -10,6 +10,13 @@ Body:
 
 Returns: `GenerateTextResponse`
 
+## POST /api/experimental/generate/test-text (experimental)
+
+Body:
+- `model: { providerID: string; id: string }`
+
+Returns: nothing
+
 ## POST /api/experimental/generate/image (experimental)
 
 Generate or edit images with an image model using the server's base configuration and return them as base64. Stateless: nothing is stored.
