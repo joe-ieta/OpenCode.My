@@ -24,9 +24,17 @@
 | 通道 | 版本 | 平台 | 下载 |
 | --- | --- | --- | --- |
 | 正式发行（Latest） | `2.4.1-my 0.1.28` | Windows x64、Linux amd64/arm64 | [NSIS、AppImage、deb 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.28) |
+| 待人工审核（RC） | `2.4.1-my 0.1.29-rc` | Windows x64 | [NSIS 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.29-rc) |
 | 已验收候选版（RC） | `2.4.1-my 0.1.28-rc` | Windows x64 | [NSIS 与校验文件](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.28-rc) |
 
 早于 `v2.3.0-my.24` 的桌面发行保留发行页、说明和源码标签，其历史附件已清理。下方记录中的旧附件链接仅供追溯。两条 headless 发行线单独管理。
+
+## OpenCode My 2.4.1-my 0.1.29-rc Windows x64 人工审核版
+
+- 2026-11-27（Asia/Shanghai）从 `dev-my@fa14d09c7accff49e3e4abcd8ea3ebcaf8877f59` 构建，包含上游 `449c128a5b225efcf986201d57519697d8bb7fe1` 和本轮 `sidebar-improvements@d42a44d12e`。保留 Side bar、Session Go 和自定义模型，增加项目组拖拽与键盘排序、失效工作目录处理，以及所选工作目录操作和本地终端入口。[人工审核版](https://github.com/joe-ieta/OpenCode.My/releases/tag/v2.4.1-my-0.1.29-rc)
+- 发布 Windows x64 未签名 NSIS 安装包，标为预发布。正式 Latest 为 `v2.4.1-my-0.1.28`。全仓检查 36/36、同源码生产构建 Chromium 冒烟 54/54、安装器与桌面测试 37/37 均通过。安装包已解包核对实际版本、x64 架构、界面资源和更新清单，包内 CLI 通过模型目录、共享 V1 数据库迁移、HTTP 版本与 SSE 验证。
+- 构建使用 Bun 1.4.4。模型快照 `.cache/desktop-my/2.4.1-my-0.1.29-rc/models-catalog.json` 包含 332 个提供者、10,667 个模型，SHA256 为 `1a4503d6338ffdebd892596dce111ee1b7d1f6221a4ad99c5af65d215be37777`。
+- 安装包大小为 289,934,372 字节，SHA256 为 `daf48ae71ccc53808387a97e7397a24849c4e2d133e0aa7c8e7b01b21eaa489d`。四个 GitHub 附件的大小及服务端 SHA256 与本地一致，安装包公开链接通过分段读取，三份元数据完整下载后通过校验。[Windows 安装包](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.29-rc/opencode-desktop-win-x64.exe) · [SHA256SUMS](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.29-rc/SHA256SUMS) · [构建信息](https://github.com/joe-ieta/OpenCode.My/releases/download/v2.4.1-my-0.1.29-rc/build.json)
 
 ## OpenCode My 2.4.1-my 0.1.28 正式发行（Windows x64 / Linux amd64、arm64）
 
