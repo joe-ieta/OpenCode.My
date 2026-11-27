@@ -10,6 +10,7 @@ import {
   type LocationDialogTransition,
   type LocationEntry,
 } from "./machine"
+import { locationSelectionNotice, transitionLocationSelection, type LocationChoice } from "./selection-machine"
 
 const apollo = { key: "http://apollo.test:4096", name: "apollo", kind: "remote" } as const
 
@@ -20,6 +21,34 @@ const sst: PromptProject = { id: "proj_sst", worktree: "/home/dax/sst", vcs: "gi
 const add: LocationEntry = { id: "add", type: "add" }
 
 const other: LocationEntry = { id: "other", type: "other" }
+
+test("only the current location choice can finish after selecting another project or leaving the picker", () => {
+  const first: LocationChoice = { type: "project", id: projectEntryID(opencode), project: opencode }
+  const second: LocationChoice = { type: "project", id: projectEntryID(sst), project: sst }
+  const firstAttempt = Symbol()
+  const secondAttempt = Symbol()
+  const checking = transitionLocationSelection(
+    { type: "idle" },
+    { type: "choose", choice: first, attempt: firstAttempt },
+  )
+  const next = transitionLocationSelection(checking.state, { type: "choose", choice: second, attempt: secondAttempt })
+  expect(
+    transitionLocationSelection(next.state, { type: "resolved", attempt: firstAttempt, outcome: "available" }).state,
+  ).toBe(next.state)
+
+  const unavailable = transitionLocationSelection(next.state, {
+    type: "resolved",
+    attempt: secondAttempt,
+    outcome: "failed",
+  })
+  expect(locationSelectionNotice(unavailable.state)).toMatchObject({ directory: sst.worktree, removable: false })
+  const retry = Symbol()
+  const retried = transitionLocationSelection(unavailable.state, { type: "choose", choice: second, attempt: retry })
+  const closed = transitionLocationSelection(retried.state, { type: "cancel" })
+  expect(transitionLocationSelection(closed.state, { type: "resolved", attempt: retry, outcome: "available" })).toEqual(
+    closed,
+  )
+})
 
 const query = (value: string): LocationDialogEvent => ({ type: "query.changed", query: value })
 

@@ -1422,6 +1422,43 @@ test("sidebar grouping keeps servers separate and reorders only the chosen proje
   await expect(picker).toBeHidden()
   await expect(sidebar.getByRole("heading", { level: 3 })).toHaveText(["Tabs", "Tabs"])
   await expect(titles).toHaveText([c.title, a.title, b.title])
+
+  const remoteTitle = remote.getByRole("button", { name: "Collapse project Tabs", exact: true })
+  const localTitle = local.getByRole("button", { name: "Collapse project Tabs", exact: true })
+  const from = await remoteTitle.boundingBox()
+  const to = await localTitle.boundingBox()
+  if (!from || !to) throw new Error("project title has no bounding box")
+
+  await page.mouse.move(from.x + 35, from.y + from.height / 2)
+  await page.mouse.down()
+  // A single move can activate the drag at the destination just before pointer-up.
+  await page.mouse.move(to.x + 35, to.y + to.height / 2)
+  await expect(remote.locator("xpath=..")).toHaveAttribute("data-dragging", "true")
+  await page.mouse.up()
+  await expect(titles).toHaveText([b.title, c.title, a.title])
+
+  await page.reload()
+  await expect(titles).toHaveText([b.title, c.title, a.title])
+  await remoteTitle.press("Control+Shift+ArrowDown")
+  await expect(titles).toHaveText([c.title, a.title, b.title])
+
+  await local.hover()
+  await local.getByRole("button", { name: "Pin project Tabs", exact: true }).click()
+  await remote.hover()
+  await remote.getByRole("button", { name: "Pin project Tabs", exact: true }).click()
+  const pinned = sidebar.getByRole("region", { name: "Pinned projects", exact: true })
+  await expect(pinned.locator("[data-titlebar-tab-title]")).toHaveText([c.title, a.title, b.title])
+  const pinnedFrom = await remoteTitle.boundingBox()
+  const pinnedTo = await localTitle.boundingBox()
+  if (!pinnedFrom || !pinnedTo) throw new Error("pinned project title has no bounding box")
+  await page.mouse.move(pinnedFrom.x + 35, pinnedFrom.y + pinnedFrom.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(pinnedTo.x + 35, pinnedTo.y + pinnedTo.height / 2)
+  await expect(remote.locator("xpath=..")).toHaveAttribute("data-dragging", "true")
+  await page.mouse.up()
+  await expect(pinned.locator("[data-titlebar-tab-title]")).toHaveText([b.title, c.title, a.title])
+  await page.reload()
+  await expect(pinned.locator("[data-titlebar-tab-title]")).toHaveText([b.title, c.title, a.title])
 })
 
 test("Side bar switches between project navigation and a most-recent list with global counts", async ({ page }) => {

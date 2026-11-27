@@ -12,7 +12,7 @@
   scrollbar-gutter: stable;
 }
 
-[data-slot="sidebar-pinned-scroll"] [data-titlebar-tab-list] > .sidebar-project-header:first-child {
+[data-slot="sidebar-pinned-scroll"] [data-titlebar-tab-list] > [data-slot="sidebar-project-group"]:first-child > .sidebar-project-header {
   margin-block-start: 0;
 }
 

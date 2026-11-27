@@ -34,6 +34,25 @@ function fileApi(events: string[]): Parameters<typeof createDesktopFiles>[0] {
 }
 
 describe("desktop attachment files", () => {
+  test("opens a Windows project folder in resolved PowerShell and reports a missing PowerShell", async () => {
+    const path = "C:\\Projects\\Shared checkout"
+    const opened: { path: string; app?: string }[] = []
+    const native = {
+      ...fileApi([]),
+      openPath: async (path: string, app?: string) => {
+        opened.push({ path, app })
+        return undefined
+      },
+    }
+    const pwsh = "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+    const available = createDesktopFiles({ ...native, resolveAppPath: async () => pwsh }, "windows")
+    const missing = createDesktopFiles(native, "windows")
+
+    await available.openPath(path, "powershell")
+    await expect(missing.openPath(path, "powershell")).rejects.toThrow("PowerShell is unavailable")
+    expect(opened).toEqual([{ path, app: pwsh }])
+  })
+
   test("returns the native browser launch result and forwards clipboard text", async () => {
     const events: string[] = []
     const files = createDesktopFiles({ ...fileApi(events), openBrowser: async () => false }, "macos")

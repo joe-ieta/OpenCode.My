@@ -1,4 +1,5 @@
 import { Badge } from "@opencode/ui/badge"
+import { Button } from "@opencode/ui/button"
 import { Dialog, DialogBody } from "@opencode/ui/dialog"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { Icon } from "@opencode/ui/icon"
@@ -15,8 +16,20 @@ import { TextInput } from "@opencode/ui/text-input"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { createTypeahead } from "@opencode/ui/typeahead"
 import { createEventListener } from "@solid-primitives/event-listener"
+import { isFileNotFoundError, isLocationNotFoundError } from "@opencode/client/promise"
 import { getFilename, sameDirectory } from "@opencode/util/path"
-import { createEffect, createMemo, createResource, createSignal, For, Match, onCleanup, Show, Switch } from "solid-js"
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  Match,
+  on,
+  onCleanup,
+  Show,
+  Switch,
+} from "solid-js"
 import type { PromptProject, PromptProjectController, PromptServer } from "@/new-session/project/selector"
 import type { NewSessionWorkspaceController } from "@/new-session/workspace/controller"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -36,6 +49,7 @@ import {
   type LocationDialogEvent,
   type LocationEntry,
 } from "./machine"
+import { locationSelectionNotice, transitionLocationSelection, type LocationSelection } from "./selection-machine"
 
 /**
  * Opens the new-session location dialog: added projects across ready servers, a separate list of other server projects,
@@ -103,6 +117,8 @@ function NewSessionLocationDialog(props: {
   const serverSDK = useServerSDK()
 
   const [step, setStep] = createSignal(createLocationDialogState(props.drilled, !props.project))
+  const [selection, setSelection] = createSignal<LocationSelection>({ type: "idle" })
+  const notice = createMemo(() => locationSelectionNotice(selection()))
   const view = createMemo(() => locationDialogView(step()))
   const drilled = createMemo(() => view().drilled)
 
@@ -126,6 +142,36 @@ function NewSessionLocationDialog(props: {
 
     return target ? global.serverCtx(ServerConnection.key(target)) : undefined
   }
+
+  createEffect(
+    on(selection, (attempt) => {
+      if (attempt.type !== "checking") return
+      const api = context(attempt.choice.project)?.sdk.api
+      const directory = attempt.choice.type === "workspace" ? attempt.choice.directory : attempt.choice.project.worktree
+      const controller = new AbortController()
+      onCleanup(() => controller.abort())
+
+      const finish = (outcome: "available" | "missing" | "failed") => {
+        const result = transitionLocationSelection(selection(), { type: "resolved", attempt: attempt.attempt, outcome })
+        setSelection(result.state)
+        if (result.select) selectEntry(result.select)
+      }
+
+      if (!api) return finish("failed")
+      // A Location may still be cached after its directory is removed. Listing checks the filesystem again.
+      void api.file
+        .list(
+          { location: { directory } },
+          { signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)]) },
+        )
+        .then(
+          () => finish("available"),
+          (error: unknown) =>
+            finish(isLocationNotFoundError(error) || isFileNotFoundError(error) ? "missing" : "failed"),
+        )
+    }),
+  )
+  onCleanup(cancelSelection)
 
   const [listed, listedActions] = createResource(drilled, async (project) => ({
     projectID: project.id,
@@ -302,7 +348,9 @@ function NewSessionLocationDialog(props: {
   }
 
   function dispatch(event: LocationDialogEvent) {
-    const next = transitionLocationDialog(step(), event)
+    const previous = step()
+    const next = transitionLocationDialog(previous, event)
+    if (next.state.type !== previous.type) cancelSelection()
     setStep(next.state)
     next.effects.forEach((effect) => {
       if (effect.type === "focus") {
@@ -338,7 +386,20 @@ function NewSessionLocationDialog(props: {
 
   function choose(entry: LocationEntry | undefined) {
     if (!entry) return
+    if (props.project && (entry.type === "project" || entry.type === "workspace")) {
+      setSelection(transitionLocationSelection(selection(), { type: "choose", choice: entry, attempt: Symbol() }).state)
+      return
+    }
+    cancelSelection()
+    selectEntry(entry)
+  }
+
+  function selectEntry(entry: LocationEntry) {
     dispatch({ type: "chosen", entry, active: activeEntry()?.id, choosesServer: choosesServer() })
+  }
+
+  function cancelSelection() {
+    setSelection(transitionLocationSelection(selection(), { type: "cancel" }).state)
   }
 
   const drill = (project: PromptProject) => dispatch({ type: "drilled", project })
@@ -370,6 +431,41 @@ function NewSessionLocationDialog(props: {
   return (
     <Dialog class="command-palette new-session-location" size="large" fit>
       <DialogBody class="command-palette-body">
+        <Show when={notice()} keyed>
+          {(status) => (
+            <div class="flex flex-col gap-1 border-b border-v2-border-border-muted px-3 py-2 text-[13px]">
+              <div role={status.checking ? "status" : "alert"}>
+                <div class="text-v2-text-text-base">{language.t(status.title)}</div>
+                <span class="break-all text-v2-text-text-muted" dir="auto">
+                  {status.directory}
+                </span>
+              </div>
+              <Show when={!status.checking}>
+                <div class="flex gap-2">
+                  <Button size="small" variant="neutral" onClick={() => choose(status.choice)}>
+                    {language.t("common.retry")}
+                  </Button>
+                  <Show when={status.removable}>
+                    <Button
+                      size="small"
+                      variant="neutral"
+                      onClick={() => {
+                        const ctx = context(status.choice.project)
+                        if (!ctx) return
+                        ctx.projects.hide(status.choice.project)
+                        cancelSelection()
+                        if (step().type === "worktrees") back()
+                        inputRef?.focus()
+                      }}
+                    >
+                      {language.t("session.new.location.removeMissingProject")}
+                    </Button>
+                  </Show>
+                </div>
+              </Show>
+            </div>
+          )}
+        </Show>
         <div class="palette-menu-search">
           <TextInput
             ref={inputRef}

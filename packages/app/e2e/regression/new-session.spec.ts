@@ -2,7 +2,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test"
 import type { OpenCodeEvent, SessionMessageInfo, WorktreeDirectory } from "@opencode/client/promise"
 import { timelinePresets } from "@opencode/session-ui/timeline/detail"
 import { draftHref, expectPath, holdRoute, NO_PROVIDER, project, provider, seed, sessionHref, T0 } from "../utils/app"
-import { mockOpenCodeServer } from "../utils/mock-server"
+import { mockMissingLocation, mockOpenCodeServer } from "../utils/mock-server"
 import {
   newSessionBaseBranch,
   newSessionLocation,
@@ -32,6 +32,49 @@ const headers = { "access-control-allow-origin": "*" }
 const editor = (page: Page) => page.locator('[data-component="composer-editor"]')
 
 const submit = (page: Page) => page.locator('[data-action="composer-submit"]')
+
+test("the project picker keeps the draft when a checkout is missing and lets the user remove or retry it", async ({
+  page,
+}) => {
+  const current = project({ id: "proj_current", name: "Current checkout", directory: "C:/OpenCode/Current" })
+  const stale = project({ id: "proj_stale", name: "Removed checkout", directory: "C:/OpenCode/Deleted" })
+  const recovered = project({ id: "proj_recovered", name: "Restored checkout", directory: "C:/OpenCode/Restored" })
+  let available = false
+  const view = await openDraft(page, {
+    name: "Current checkout",
+    directory: current.canonical,
+    project: { id: current.id, name: current.name },
+    projects: [current, stale, recovered],
+    seed: { usedProjects: { local: [current.id, stale.id, recovered.id] } },
+    beforeOpen: async () => {
+      await mockMissingLocation(page, stale.canonical)
+      await mockMissingLocation(page, recovered.canonical, () => !available)
+    },
+  })
+  await view.editor.fill("Keep this draft")
+
+  await newSessionLocation(page).click()
+  const dialog = page.getByRole("dialog")
+  const removed = dialog.getByRole("option", { name: /Removed checkout/ })
+  const restored = dialog.getByRole("option", { name: /Restored checkout/ })
+  const alert = dialog.getByRole("alert")
+  await removed.click()
+  await expect(alert).toContainText("Project folder not found")
+  await expect(alert).toContainText(stale.canonical)
+  await dialog.getByRole("button", { name: "Remove from list", exact: true }).click()
+  await expect(removed).toHaveCount(0)
+
+  await restored.click()
+  await expect(alert).toContainText("Project folder not found")
+  available = true
+  await dialog.getByRole("button", { name: "Try again", exact: true }).click()
+  await expect(dialog).toBeHidden()
+  await expect(newSessionLocation(page)).toContainText("Restored checkout")
+  await expect(view.editor).toHaveText("Keep this draft")
+  await newSessionLocation(page).click()
+  await expect(restored).toBeVisible()
+  await expect(removed).toHaveCount(0)
+})
 
 test("new-session project picker and provider tip show keyboard focus", async ({ page }) => {
   await openDraft(page, { name: "DraftFocus", provider: NO_PROVIDER })

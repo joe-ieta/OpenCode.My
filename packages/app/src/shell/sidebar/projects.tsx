@@ -5,7 +5,7 @@ import { createComputed, createEffect, createMemo, For, type JSX, on, onCleanup,
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { createStore } from "solid-js/store"
 import { DragDropProvider, PointerSensor } from "@dnd-kit/solid"
-import { isSortable } from "@dnd-kit/solid/sortable"
+import { isSortable, useSortable } from "@dnd-kit/solid/sortable"
 import { Accessibility, AutoScroller, Feedback, PointerActivationConstraints } from "@dnd-kit/dom"
 import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
 import { RestrictToElement } from "@dnd-kit/dom/modifiers"
@@ -39,6 +39,7 @@ import { Schema } from "effect"
 import { previousSessionCommand, nextSessionCommand } from "@/shell/titlebar/tab-strip"
 
 const PROJECT_SESSION_LIMIT = 5
+const PROJECT_SORT_ID = "sidebar-project:"
 
 // Keep local history navigation separate from the upstream open-tab strip.
 export function SidebarProjects(props: {
@@ -96,6 +97,8 @@ export function SidebarProjects(props: {
   )
 
   const sidebarOrder = persisted(Persist.window("sidebar.order"), Schema.Array(Schema.String), [])
+  const projectOrder = persisted(Persist.window("sidebar.projectOrder"), Schema.Array(Schema.String), [])
+  const projectRanks = createMemo(() => new Map(projectOrder[0].map((key, index) => [key, index])))
   const collapsed = persisted(Persist.window("sidebar.collapsedProjects"), Schema.Array(Schema.String), [])
   const pinned = persisted(Persist.window("sidebar.pinnedProjects"), Schema.Array(Schema.String), [])
   const view = persisted(
@@ -290,6 +293,8 @@ export function SidebarProjects(props: {
       .toSorted(
         (a, b) =>
           Number(pins.has(b.key)) - Number(pins.has(a.key)) ||
+          (projectRanks().get(a.key) ?? projectOrder[0].length) -
+            (projectRanks().get(b.key) ?? projectOrder[0].length) ||
           collator().compare(a.name, b.name) ||
           servers.visible.findIndex((conn) => ServerConnection.key(conn) === a.connection) -
             servers.visible.findIndex((conn) => ServerConnection.key(conn) === b.connection) ||
@@ -310,6 +315,22 @@ export function SidebarProjects(props: {
       .filter((group) => !pinned[0].includes(group.key))
       .map((group) => group.key),
   )
+
+  const projectSortGroup = (key: string) => (pinned[0].includes(key) ? "sidebar-project-pins" : "sidebar-projects")
+  const sortableProjects = (key: string) =>
+    (pinned[0].includes(key) ? pinnedGroups() : unpinnedGroups()).filter((item) => groupsByKey().get(item)?.directory)
+
+  const moveProject = (key: string, offset: number) => {
+    if (!projectOrder[3]()) return
+    const current = sortableProjects(key)
+    const from = current.indexOf(key)
+    const to = from + offset
+    if (from < 0 || to < 0 || to >= current.length || from === to) return
+
+    const all = [...new Set([...projectOrder[0], ...groups().map((group) => group.key)])]
+    const next = mergeVisibleTabOrder(all, current, arrayMove(current, from, to))
+    projectOrder[1](() => next)
+  }
 
   const currentKey = createMemo(() => props.currentTab && tabKey(props.currentTab))
 
@@ -624,7 +645,41 @@ export function SidebarProjects(props: {
     void ctx.data.location.vcs.sync(location).catch(() => undefined)
   }
 
-  const renderGroup = (key: string) => (
+  const renderGroup = (key: string) => {
+    const index = createMemo(() => sortableProjects(key).indexOf(key))
+    const sortable = useSortable({
+      id: `${PROJECT_SORT_ID}${key}`,
+      get index() {
+        return index()
+      },
+      get disabled() {
+        return !projectOrder[3]() || index() < 0
+      },
+      get group() {
+        return projectSortGroup(key)
+      },
+      get type() {
+        return projectSortGroup(key)
+      },
+      get accept() {
+        return [projectSortGroup(key)]
+      },
+    })
+
+    return (
+      <div
+        ref={sortable.ref}
+        data-slot="sidebar-project-group"
+        data-sidebar-project-id={sortable.sortable.id}
+        data-dragging={sortable.isDragSource() || undefined}
+        class="flex min-w-0 flex-col data-[dragging=true]:opacity-60"
+      >
+        {renderGroupContent(key, index, sortable.handleRef)}
+      </div>
+    )
+  }
+
+  const renderGroupContent = (key: string, index: () => number, handleRef: (element: Element) => void) => (
     <>
       <Show when={groupsByKey().get(key)}>
         {(group) => (
@@ -650,6 +705,7 @@ export function SidebarProjects(props: {
               group().directory,
               group().server,
               ...projectRemoteHint(groupRemotes(group())),
+              index() >= 0 ? language.t("sidebar.project.reorder") : undefined,
               language.plural("sidebar.recent.count", group().total, {
                 recent: group().recent,
                 shown:
@@ -667,13 +723,22 @@ export function SidebarProjects(props: {
                 class="min-w-0 flex-1 text-[13px] leading-4 font-medium text-v2-text-text-base"
               >
                 <button
+                  ref={handleRef}
                   type="button"
                   class="flex w-full min-w-0 items-center gap-1 rounded-sm text-start outline-none focus-visible:ring-1 focus-visible:ring-v2-border-border-focus"
+                  classList={{ "cursor-grab touch-none": index() >= 0 }}
+                  aria-keyshortcuts={index() >= 0 ? "Control+Shift+ArrowUp Control+Shift+ArrowDown" : undefined}
                   aria-label={language.t(
                     collapsed[0].includes(key) ? "sidebar.project.expand" : "sidebar.project.collapse",
                     { project: group().name },
                   )}
                   aria-expanded={!collapsed[0].includes(key)}
+                  onKeyDown={(event) => {
+                    if (!event.ctrlKey || !event.shiftKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return
+                    event.preventDefault()
+                    event.stopPropagation()
+                    moveProject(key, event.key === "ArrowUp" ? -1 : 1)
+                  }}
                   onClick={() => {
                     if (!collapsed[3]()) return
                     collapsed[1]((keys) => (keys.includes(key) ? keys.filter((item) => item !== key) : [...keys, key]))
@@ -900,11 +965,32 @@ export function SidebarProjects(props: {
           AutoScroller.configure({ acceleration: 8, threshold: { x: 0, y: 0.05 } }),
           Feedback.configure({ dropAnimation: null }),
         ]}
-        onDragEnd={(event) => {
+        onDragEnd={(event, manager) => {
           const source = event.operation.source
 
           if (listMode() || event.canceled || !isSortable(source)) return
-          const group = tabGroups().get(source.id.toString())
+
+          const id = source.id.toString()
+          if (id.startsWith(PROJECT_SORT_ID)) {
+            const release = event.nativeEvent
+            // Pointer-up can stop the sensor before its queued move reaches the sortables.
+            const releaseID =
+              release instanceof PointerEvent &&
+              release.type === "pointerup" &&
+              (source.index === source.initialIndex || release.clientY !== event.operation.position.current.y)
+                ? boundsRef.ownerDocument
+                    .elementFromPoint(release.clientX, release.clientY)
+                    ?.closest<HTMLElement>("[data-sidebar-project-id]")?.dataset.sidebarProjectId
+                : undefined
+            const target = releaseID ? manager.registry.droppables.get(releaseID) : undefined
+            const index =
+              target && !target.disabled && target.type === source.type && isSortable(target) ? target.index : source.index
+            moveProject(id.slice(PROJECT_SORT_ID.length), index - source.initialIndex)
+
+            return
+          }
+
+          const group = tabGroups().get(id)
           const promoted = group && projectTabs().get(group.key)?.promoted
           const visible = visibleTabIds()
 
@@ -912,7 +998,7 @@ export function SidebarProjects(props: {
             ? visible.filter((key) => tabGroups().get(key) === group && !promoted?.has(key))
             : visible
 
-          const from = group ? current.indexOf(source.id.toString()) : source.initialIndex
+          const from = group ? current.indexOf(id) : source.initialIndex
           const to = group ? current.indexOf(visible[source.index]) : source.index
 
           if (from !== -1 && to !== -1 && from !== to) {
@@ -932,7 +1018,11 @@ export function SidebarProjects(props: {
             >
               {language.t("sidebar.projectSessions.title")}
             </h2>
-            <div role="group" aria-label={language.t("sidebar.grouping.label")} class="flex shrink-0 items-center gap-0.5">
+            <div
+              role="group"
+              aria-label={language.t("sidebar.grouping.label")}
+              class="flex shrink-0 items-center gap-0.5"
+            >
               <For each={["project", "none"] as const}>
                 {(mode) => {
                   const label = () => language.t(`sidebar.grouping.${mode}`)

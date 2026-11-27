@@ -79,7 +79,7 @@ export type HomeProjectsViewProps = {
   importingSession?: boolean
   onImportSession: (server: ServerConnection.Any, project: LocalProject) => void
   onEditProject: (server: ServerConnection.Any, project: LocalProject) => void
-  onRevealProject: (server: ServerConnection.Any, project: LocalProject) => void
+  onRevealProject: (server: ServerConnection.Any, project: LocalProject, directory?: string) => void
   onClearNotifications: (server: ServerConnection.Any, project: LocalProject) => void
   onHideProject: (server: ServerConnection.Any, project: LocalProject) => void
   onOpenSettings: () => void

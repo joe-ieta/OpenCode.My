@@ -154,14 +154,17 @@ function make(
 
         // Windows Terminal splits its command line on `;` even inside quotes, so the folder goes only to `cwd`,
         // never onto its command line, and it opens a window of its own rather than a tab in one the user has open.
+        return yield* Effect.tryPromise(() => launchTerminal(application, windowsTerminalArgs, cwd))
+      }
+
+      if (process.platform === "linux" && application === "terminal") {
+        const info = yield* fs.stat(target)
+        const cwd = info.type === "Directory" ? target : path.dirname(target)
         return yield* Effect.tryPromise(() =>
-          new Promise<void>((resolve, reject) => {
-            const child = spawn(application, windowsTerminalArgs, { cwd, stdio: "ignore", detached: true })
-            child.once("error", reject)
-            child.once("spawn", () => {
-              child.unref()
-              resolve()
-            })
+          launchTerminal("xdg-terminal-exec", [], cwd).catch((error: unknown) => {
+            if (error instanceof Error && "code" in error && error.code === "ENOENT")
+              return launchTerminal("x-terminal-emulator", [], cwd)
+            throw error
           }),
         )
       }
@@ -253,6 +256,17 @@ const clipboardImageTypes = ["image/png", "image/jpeg"]
 
 // A new Windows Terminal window whose first tab starts in the launch's working directory.
 const windowsTerminalArgs = ["-w", "new", "-d", "."]
+
+function launchTerminal(command: string, args: string[], cwd: string) {
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(command, args, { cwd, stdio: "ignore", detached: true })
+    child.once("error", reject)
+    child.once("spawn", () => {
+      child.unref()
+      resolve()
+    })
+  })
+}
 
 export const openExternalURL = Effect.fn("DesktopFiles.openExternalURL")(function* (value: string) {
   const url = resolveExternalURL(value)

@@ -16,10 +16,10 @@ export function useRevealProject() {
 
   return {
     available,
-    reveal(conn: ServerConnection.Any, project: LocalProject) {
+    reveal(conn: ServerConnection.Any, project: LocalProject, directory = project.worktree) {
       if (!platform.revealPath || !available(conn)) return
       void platform
-        .revealPath(project.worktree)
+        .revealPath(directory)
         .then((revealed) => {
           if (revealed) return
           showToast({

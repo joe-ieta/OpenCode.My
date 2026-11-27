@@ -28,7 +28,7 @@ export function createComposerProjectControls(props: { draftId: string; worktree
     return [
       ...used.map((project) => ({ ...project, used: true, server })),
       ...ctx.projects
-        .unique()
+        .visible()
         .filter((project) => !ids.has(project.id))
         .map((project) => ({ ...project, used: false, server })),
     ]

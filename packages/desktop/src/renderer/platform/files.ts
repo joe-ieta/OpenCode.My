@@ -85,6 +85,7 @@ export function createDesktopFiles(api: DesktopFileAPI, os: DesktopOS) {
       }
 
       const resolvedApp = app ? await api.resolveAppPath(app).catch(() => null) : null
+      if (app === "powershell" && !resolvedApp) throw new Error("PowerShell is unavailable")
       await api.openPath(path, resolvedApp ?? undefined)
     },
     async revealPath(path: string) {
