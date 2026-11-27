@@ -158,6 +158,33 @@ export interface BuiltinSlotMap extends SlotMap {
     /** The location icon: monitor for the local repository, worktree for a worktree. */
     readonly icon: IconName
   }
+  /**
+   * Across the top of the side panel's New tab view, full width, above its launchers. A tab that opens in the view's
+   * pane from here replaces the New tab, as a launcher's does.
+   */
+  readonly "session.panel.new": NewTabSlotInput
+  /** In the side panel's New tab view, under its launchers and above the recently closed tabs. */
+  readonly "session.panel.new.list": NewTabSlotInput
+}
+
+/** What the slots of the side panel's New tab view pass to `render`. */
+export type NewTabSlotInput = SlotMap["session.panel.end"] & {
+  /**
+   * Makes the plugin's next tab open in this New tab's pane. Call it just before opening the tab.
+   *
+   * @param plugin - The plugin's id, `ctx.id`.
+   */
+  target(plugin: string): void
+  /**
+   * Hands the view the control that takes the keyboard when the person opens this New tab, such as an address field.
+   * Call it once the control is in the document; the returned function takes it back, as when the control goes.
+   *
+   * @param control - Focuses the control.
+   */
+  autofocus(control: {
+    /** Gives the control the keyboard. */
+    focus(): void
+  }): () => void
 }
 
 /** A `Slot` that may also fill the slots only built-ins use. */
@@ -312,6 +339,18 @@ export interface BuiltinDesktop extends Desktop {
    * @param enabled - Turns it on or off.
    */
   forceFocus(enabled: boolean): Promise<void>
+  /**
+   * Hands a file row's drag to the system, so the file drops into other apps (a file manager, a browser, a chat app)
+   * as the file itself. Call it from `dragstart` after setting the drag's data: a drop back into the app reads as
+   * that data, as the row's own drag would. The host cancels the event's drag when it hands it over; when the file is
+   * gone by then, nothing is dragged. When the system drag ends, the event's target gets the `dragend` its cancelled drag
+   * never fired. Windows desktop only: returns false elsewhere, and the event's own drag goes on.
+   *
+   * @param event - The row's `dragstart`.
+   * @param path - The file's absolute path on this computer.
+   * @returns Whether the system drag started in place of the event's.
+   */
+  dragOut(event: DragEvent, path: string): boolean
 }
 
 /** `OpenOptions` with the placement only built-ins use. */
