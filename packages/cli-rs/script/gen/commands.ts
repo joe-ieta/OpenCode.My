@@ -1,4 +1,5 @@
 // Records the CLI command tree, including metadata not visible in help output.
+import { fileURLToPath } from "node:url"
 import { Effect, Exit, Option } from "effect"
 import { GlobalFlag } from "effect/cli"
 import { Commands, PrintLogs } from "../../../cli/src/commands/commands"
@@ -113,6 +114,6 @@ const root = node(Commands as unknown as Node, [])
 const builtins = [...GlobalFlag.BuiltIns, PrintLogs].map((global) => flag(global.flag as unknown as Param))
 const tree = { builtins, root }
 
-const output = new URL("../../crates/cli/tests/fixtures/commands.json", import.meta.url).pathname
+const output = fileURLToPath(new URL("../../crates/cli/tests/fixtures/commands.json", import.meta.url))
 await Bun.write(output, records(tree, ["builtins[]", "**.commands[]"]))
 console.log(`commands: wrote ${output}`)

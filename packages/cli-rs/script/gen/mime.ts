@@ -1,7 +1,8 @@
 // Generates the extension-to-MIME table used for `run -f` attachments.
+import { fileURLToPath } from "node:url"
 import { createRequire } from "node:module"
 
-const require = createRequire(new URL("../../../util/package.json", import.meta.url).pathname)
+const require = createRequire(fileURLToPath(new URL("../../../util/package.json", import.meta.url)))
 const types: Record<string, string> = require("mime-types").types
 const entries = Object.entries(types).toSorted(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
 const lines = [
@@ -14,6 +15,6 @@ const lines = [
   "",
 ]
 
-const file = new URL("../../crates/util/src/mime/types.rs", import.meta.url).pathname
+const file = fileURLToPath(new URL("../../crates/util/src/mime/types.rs", import.meta.url))
 await Bun.write(file, lines.join("\n"))
 console.log(`mime: ${entries.length} extensions`)

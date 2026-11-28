@@ -84,23 +84,11 @@ mod tests {
 
     #[test]
     fn a_relative_base_is_made_absolute() {
-        // Next to the test binary, not in the temporary directory: on Windows that can be on another drive than the
-        // working directory, and no relative path leads there.
-        let base = TempDir::new_in(std::env::current_exe().unwrap().parent().unwrap()).unwrap();
-        let relative = pathdiff(base.path());
-        assert!(relative.is_relative());
-        let dir = TempDir::new_in(&relative).unwrap();
+        // The temporary directory and the Cargo target may both be on other drives.
+        let base = TempDir::new_in(&std::env::current_dir().unwrap()).unwrap();
+        let dir = TempDir::new_in(Path::new(base.path().file_name().unwrap())).unwrap();
         assert!(dir.path().is_absolute());
         let canonical = |path: &Path| path.canonicalize().unwrap();
         assert_eq!(canonical(dir.path()).parent(), Some(canonical(base.path()).as_path()));
-    }
-
-    /// `target` relative to the working directory: `..` up to their common ancestor, then down.
-    fn pathdiff(target: &Path) -> PathBuf {
-        let cwd = std::env::current_dir().unwrap();
-        let common = cwd.components().zip(target.components()).take_while(|(a, b)| a == b).count();
-        assert!(common > 0, "{} and {} share no root", cwd.display(), target.display());
-        let ups = std::iter::repeat_n(Path::new(".."), cwd.components().count() - common);
-        ups.chain(target.components().skip(common).map(|part| Path::new(part.as_os_str()))).collect()
     }
 }

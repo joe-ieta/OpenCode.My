@@ -1,7 +1,8 @@
 // Bundles the JS plugin compatibility layer and the client-side Solid runtime it serves.
+import { fileURLToPath } from "node:url"
 import path from "node:path"
 
-const root = new URL("../..", import.meta.url).pathname
+const root = fileURLToPath(new URL("../..", import.meta.url))
 const compat = path.join(root, "crates/plugin/src/pipe/compat")
 await Bun.write(path.join(compat, "opentui.gen.ts"), await opentui())
 await Bun.write(path.join(compat, "events.gen.ts"), await events())

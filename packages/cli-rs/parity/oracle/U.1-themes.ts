@@ -5,12 +5,13 @@
 //
 // Colors are packed as 8 hex digits (rrggbbaa) in the order of `paths` (tokens) and `hues` (one 9-step scale per
 // named hue), so the fixture stays small. The Rust test unpacks them and reports mismatches by path.
+import { fileURLToPath } from "node:url"
 import { resolveThemeDocument, themeModes, type ResolvedTheme } from "../../../theme/src/tui/index.ts"
 import { allThemes, parseTheme, type ThemeDocumentSource } from "../../../tui/src/theme/index.ts"
 import { generateSystem, terminalMode } from "../../../tui/src/theme/system.ts"
 import { records } from "../lib/records"
 
-const output = new URL("../fixtures/U.1/tokens.json", import.meta.url).pathname
+const output = fileURLToPath(new URL("../fixtures/U.1/tokens.json", import.meta.url))
 const sections = ["text", "background", "border", "scrollbar", "diff", "syntax", "markdown"] as const
 
 type Color = { toInts(): [number, number, number, number] }

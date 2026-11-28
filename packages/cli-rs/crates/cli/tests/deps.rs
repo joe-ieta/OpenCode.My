@@ -44,7 +44,9 @@ fn allow_list_matches_the_graph() {
     let workspace_graph = graph(&["--workspace", "-e", "normal,build,dev"]);
     let all = graph(&["--workspace", "-e", "normal,build,dev", "--all-features"]);
 
-    let text = std::fs::read_to_string(workspace.join("deps-allow.txt")).expect("deps-allow.txt is readable");
+    let text = std::fs::read_to_string(workspace.join("deps-allow.txt"))
+        .expect("deps-allow.txt is readable")
+        .replace("\r\n", "\n");
     let (shipped_text, rest) = text.split_once(&format!("\n{}\n", SECTIONS[0])).expect("deps-allow.txt has [tests]");
     let (tests_text, optional_text) =
         rest.split_once(&format!("\n{}\n", SECTIONS[1])).expect("deps-allow.txt has [optional] after [tests]");

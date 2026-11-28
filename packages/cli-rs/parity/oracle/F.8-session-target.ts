@@ -3,6 +3,7 @@
 // scripted server. Each case records the requests the client sent, what `prepare` saw, and the result or error.
 // Writes parity/fixtures/F.8/session-target.json; crates/store/tests/all/target_oracle.rs serves the same routes to the
 // Rust port and compares.
+import { fileURLToPath } from "node:url"
 import { OpenCode } from "@opencode/client/promise"
 import { records } from "../lib/records"
 import {
@@ -252,6 +253,9 @@ const worktrees: WorktreeCase[] = [
 
 const models = ["openai/gpt-5", "openai/gpt-5#high", "", "gpt-5", "/gpt-5", "openai/", "openai/gpt-5#", "a#b/c", "a/b#c#d", "a/b/c"]
 
+// The fake server uses POSIX directories on every host.
+const fixtureDirectory = (directory: string) => directory.replaceAll("\\", "/")
+
 function serve(routes: Route[], recorded: Recorded[]) {
   const used = new Map<Route, number>()
   return OpenCode.make({
@@ -259,6 +263,8 @@ function serve(routes: Route[], recorded: Recorded[]) {
     fetch: async (input, init) => {
       const request = input instanceof Request ? input : new Request(input, init)
       const url = new URL(request.url)
+      const directory = url.searchParams.get("location[directory]")
+      if (directory !== null) url.searchParams.set("location[directory]", fixtureDirectory(directory))
       const text = await request.text()
       recorded.push({
         method: request.method,
@@ -336,7 +342,7 @@ for (const item of worktrees) {
     location: item.input.directory === undefined ? undefined : { directory: item.input.directory },
     name: item.input.name,
   }).then(
-    (result) => ({ ok: result }),
+    (result) => ({ ok: { root: fixtureDirectory(result.root), directory: fixtureDirectory(result.directory) } }),
     (error) => ({ error: failure(error) }),
   )
   worktreeResults.push({ ...item, expected: { requests, outcome } })
@@ -350,7 +356,7 @@ const modelResults = models.map((value) => {
   }
 })
 
-const file = new URL("../fixtures/F.8/session-target.json", import.meta.url).pathname
+const file = fileURLToPath(new URL("../fixtures/F.8/session-target.json", import.meta.url))
 await Bun.write(
   file,
   records({ targets: targetResults, worktrees: worktreeResults, models: modelResults }, [

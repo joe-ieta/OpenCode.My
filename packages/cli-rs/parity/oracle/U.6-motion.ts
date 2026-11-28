@@ -5,6 +5,7 @@
 //   seed's intro and the paced slowdown between 30 s and 60 s.
 // - `octantGlyph` for every mask.
 // - `createFrames` for the default (diamond) scanner and the prompt's block scanner.
+import { fileURLToPath } from "node:url"
 import { octantGlyph } from "../../../tui/src/ui/subcell.ts"
 import {
   oneCellFrame,
@@ -15,7 +16,7 @@ import {
 } from "../../../tui/src/ui/one-cell-motion.ts"
 import { createFrames } from "../../../tui/src/ui/spinner.ts"
 
-const output = new URL("../fixtures/U.6/functions.json", import.meta.url).pathname
+const output = fileURLToPath(new URL("../fixtures/U.6/functions.json", import.meta.url))
 const instants = [
   ...Array.from({ length: 400 }, (_, index) => index * 13),
   ...Array.from({ length: 140 }, (_, index) => 28_000 + index * 250),

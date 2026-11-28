@@ -2312,7 +2312,9 @@ fn a_dialog_answers_its_task_and_an_escape_gives_nil() {
 
 #[test]
 fn the_guides_luau_wait_runs_as_written() {
-    let guide = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/plugins.md")).unwrap();
+    let guide = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../../docs/plugins.md"))
+        .unwrap()
+        .replace("\r\n", "\n");
     let body = guide
         .split("```lua\n")
         .find(|block| block.starts_with("setup:command({ name = \"x.clear\""))
@@ -2441,9 +2443,18 @@ fn every_operation_is_one_request_in_luau_rust_and_the_generated_client() {
             (sdk, luau) => panic!("{name}: Rust {sdk:?}, Luau {luau:?}"),
         }
     }
-    // 190 operations; the plugin paths refuse the two streams of events, the byte upload and the three that take a
-    // ticket header.
-    assert_eq!((samples.len(), refused.len()), (190, 6), "refused: {refused:?}");
+    refused.sort_unstable();
+    assert_eq!(
+        refused,
+        [
+            "event.subscribe",
+            "experimental.file.write",
+            "experimental.mcp.client.token",
+            "experimental.persistentPty.connectToken",
+            "experimental.session.log",
+            "pty.connect.token",
+        ]
+    );
 }
 
 #[test]

@@ -22,6 +22,8 @@ const lines = [
   "",
 ]
 
-const file = new URL("../../crates/ui/src/fuzzy/accents.rs", import.meta.url).pathname
+import { fileURLToPath } from "node:url"
+
+const file = fileURLToPath(new URL("../../crates/ui/src/fuzzy/accents.rs", import.meta.url))
 await Bun.write(file, lines.join("\n"))
 console.log(`accents: ${entries.length} characters`)

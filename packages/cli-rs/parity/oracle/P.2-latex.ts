@@ -2,6 +2,7 @@
 // plugin calls it, over every source in packages/latex/src/*.test.ts, common textbook formulas, and the rows the Rust
 // tests once asserted by hand; a few rows run with `strict: false`. Writes parity/fixtures/P.2/layouts.json;
 // crates/latex/src/tests.rs expects the same text, geometry, cell styles, and parse failures.
+import { fileURLToPath } from "node:url"
 import { renderLatex } from "../../../latex/src/render"
 import { LatexParseError, type RenderLatexOptions } from "../../../latex/src/types"
 import { records } from "../lib/records"
@@ -559,6 +560,6 @@ const layouts = cases.map((item) => {
   }
 })
 
-const path = new URL("../fixtures/P.2/layouts.json", import.meta.url).pathname
+const path = fileURLToPath(new URL("../fixtures/P.2/layouts.json", import.meta.url))
 await Bun.write(path, records(layouts, ["[]"]))
 console.log(`P.2: ${layouts.length} layouts`)

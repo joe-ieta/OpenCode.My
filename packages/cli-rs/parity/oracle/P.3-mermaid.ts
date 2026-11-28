@@ -7,6 +7,7 @@
 // first meaningful line names a diagram kind; literals with `${` interpolations are skipped. A case renders as
 // `null` when TS keeps the fence as code. Lines are strings; `runs` holds per line [code points, style index]
 // pairs into `styles`, each "fg bg attributes" with colors as rrggbbaa or "-" when unset.
+import { fileURLToPath } from "node:url"
 import { createTestRenderer } from "@opentui/core/testing"
 import type { TextRenderable } from "@opentui/core"
 import { resolveThemeDocument } from "../../../theme/src/tui/index.ts"
@@ -16,16 +17,18 @@ import { resolveOpenCodeDiagramPalette } from "../../../merman/src/palette.ts"
 import { detectMermaidDiagram } from "../../../merman/src/detect.ts"
 
 const WIDTHS = [120, 60]
-const root = new URL("../../../merman/src/", import.meta.url).pathname
-const output = new URL("../fixtures/P.3/corpus.json", import.meta.url).pathname
+const root = fileURLToPath(new URL("../../../merman/src/", import.meta.url))
+const output = fileURLToPath(new URL("../fixtures/P.3/corpus.json", import.meta.url))
 
 const files = [
   ...Array.from(new Bun.Glob("**/*.test.ts").scanSync({ cwd: root })),
   "test/layout-audit/fixtures.ts",
-].sort()
+]
+  .map((file) => file.replaceAll("\\", "/"))
+  .sort()
 const sources = new Set<string>()
 for (const file of files) {
-  const text = await Bun.file(`${root}${file}`).text()
+  const text = (await Bun.file(`${root}${file}`).text()).replaceAll("\r\n", "\n")
   for (const match of text.matchAll(/`((?:[^`\\]|\\.)*)`/g)) {
     const body = match[1]!
     if (body.includes("${")) continue

@@ -652,15 +652,17 @@ fn frecency_file_is_shared_with_typescript() {
     let rust = setup.wait_file("frecency.jsonl", "\"frequency\":2");
     assert_eq!(rust.lines().count(), 2, "{rust}");
     let state = setup.home.path().join("state");
+    let main = Flavor::NATIVE.resolve(&[DIRECTORY, "src/main.rs"]);
+    let readme = Flavor::NATIVE.resolve(&[DIRECTORY, "README.md"]);
 
     // The last frequency line for a path wins.
     let frequencies = support::solid_oracle(
         "E.3-frecency.ts",
         &root,
-        &[&state, Path::new("/project")],
+        &[&state, Path::new(DIRECTORY)],
         &json!(["src/main.rs", "README.md"]),
     );
-    assert_eq!(frequencies, json!({ "/project/src/main.rs": 3, "/project/README.md": 1 }));
+    assert_eq!(frequencies, json!({ (main.clone()): 3, (readme): 1 }));
     let typescript = std::fs::read_to_string(state.join("frecency.jsonl")).unwrap();
     assert_eq!(typescript.lines().next(), rust.lines().nth(1));
     assert_eq!(typescript.lines().count(), 3, "{typescript}");
@@ -672,6 +674,6 @@ fn frecency_file_is_shared_with_typescript() {
     mention_main(&again);
     let written = again.wait_file("frecency.jsonl", "\"frequency\":4");
     let last: Value = serde_json::from_str(written.lines().last().unwrap()).unwrap();
-    assert_eq!((last["path"].clone(), last["frequency"].clone()), (json!("/project/src/main.rs"), json!(4)));
+    assert_eq!((last["path"].clone(), last["frequency"].clone()), (json!(main), json!(4)));
     assert_eq!(written.lines().count(), 3, "{written}");
 }

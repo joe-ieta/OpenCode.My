@@ -1,5 +1,6 @@
 //! Checks locks, registrations and service configs across both clients.
 
+use crate::support::ts_root;
 use std::ffi::OsString;
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
@@ -13,12 +14,6 @@ use opencode_local::paths::Paths;
 use opencode_local::registration::Registration;
 use opencode_local::service_config::{Edit, ServiceConfig};
 use serde_json::Value;
-
-fn ts_root() -> PathBuf {
-    std::env::var_os("OPENCODE_TS_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../..").canonicalize().unwrap())
-}
 
 fn script() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../../parity/oracle/F.4-local.ts")

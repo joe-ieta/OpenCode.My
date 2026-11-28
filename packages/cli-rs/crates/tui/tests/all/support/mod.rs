@@ -443,7 +443,7 @@ pub fn panel_diff(
 
 /// Run one reference configuration operation in `home`, or return `None` without the TypeScript test dependencies.
 pub fn ts_config(home: &Path, op: Value) -> Option<Value> {
-    let root = ts_root()?.canonicalize().unwrap();
+    let root = opencode_util::path::realpath(&ts_root()?).unwrap();
     let mut results = bun_json(
         std::process::Command::new("bun")
             .arg("--cwd")

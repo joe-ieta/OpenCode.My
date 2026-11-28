@@ -9,6 +9,7 @@
 //
 // The TUI uses Solid's browser build, whose effects and stores react; the script runs itself again under
 // `bun --conditions=browser` when started without it.
+import { fileURLToPath } from "node:url"
 import type { CreateDataInput } from "@opencode/client/solid"
 import type { OpenCodeEvent, SessionMessageInfo } from "@opencode/client/promise"
 import { records } from "../lib/records"
@@ -450,7 +451,7 @@ for (const item of cases)
   for (const state of ["empty", "loaded"] as const)
     results.push({ name: item.name, state, event: item.event, expected: await run(item.event, state === "loaded") })
 
-const file = new URL("../fixtures/F.7/folds.json", import.meta.url).pathname
+const file = fileURLToPath(new URL("../fixtures/F.7/folds.json", import.meta.url))
 await Bun.write(
   file,
   records({ variants: variants.map((variant) => variant.type), routes, allow, cases: results }, [

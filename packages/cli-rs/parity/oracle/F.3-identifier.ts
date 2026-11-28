@@ -1,6 +1,7 @@
 // P-ORACLE for crates/api/src/id.rs: the time prefix TypeScript's Identifier.create mints for a fixed call
 // sequence, counter restarts and overflow past 0xfff included. Each case calls create `repeat` times and
 // records the last prefix. Writes parity/fixtures/F.3/identifier.json.
+import { fileURLToPath } from "node:url"
 import { Identifier } from "../../../schema/src/identifier"
 
 const sequence = [
@@ -22,6 +23,6 @@ const cases = sequence.map((item) => {
   return { ...item, prefix: ids.at(-1)!.slice(0, 12) }
 })
 
-const file = new URL("../fixtures/F.3/identifier.json", import.meta.url).pathname
+const file = fileURLToPath(new URL("../fixtures/F.3/identifier.json", import.meta.url))
 await Bun.write(file, JSON.stringify(cases, null, 2) + "\n")
 console.log(`identifier: ${cases.length} cases`)

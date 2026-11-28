@@ -1,5 +1,6 @@
 // Writes crates/local/src/generated/config.rs: the keybind names `cli.json` accepts, in definition order (the
 // order Effect Schema decodes them in), and the V1 names and command map the V1 migration reads.
+import { fileURLToPath } from "node:url"
 import { Definitions } from "../../../tui/src/config/keybind"
 import { TuiKeybind } from "../../../tui/src/config/v1/keybind"
 
@@ -27,7 +28,7 @@ const lines = [
   "",
 ]
 
-const file = new URL("../../crates/local/src/generated/config.rs", import.meta.url).pathname
+const file = fileURLToPath(new URL("../../crates/local/src/generated/config.rs", import.meta.url))
 await Bun.write(file, lines.join("\n"))
 console.log(
   `config: ${Object.keys(Definitions).length} keybinds, ${Object.keys(TuiKeybind.Definitions).length} V1 keybinds, ${commands.length} V1 commands`,

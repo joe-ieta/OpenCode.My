@@ -14,7 +14,7 @@ fn load(name: &str) -> (Fixture, String) {
 fn typescript_fixtures_reformat_byte_for_byte() {
     for name in ["H.1/box", "H.1/alert"] {
         let (fixture, text) = load(name);
-        assert_eq!(fixture.to_json(), text, "{name}");
+        assert_eq!(fixture.to_json(), text.replace("\r\n", "\n"), "{name}");
         assert!(compare(&fixture, &Fixture::parse(&text).unwrap()).is_equal());
     }
 }

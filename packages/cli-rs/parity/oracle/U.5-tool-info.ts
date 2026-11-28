@@ -1,6 +1,7 @@
 // P-ORACLE for U.5: runs a corpus of tool parts, built with the TUI's own `canonicalToolPart` fixture, through
 // `toolInlineInfo`, and the tool display helpers over a few inputs each. Writes parity/fixtures/U.5/tool-info.json;
 // crates/ui/tests/all/tool_info_oracle.rs feeds the same parts to the Rust port and compares.
+import { fileURLToPath } from "node:url"
 import { readDisplayText, toolInlineInfo, toolOutputText } from "../../../tui/src/mini/tool.ts"
 import { formatPath } from "../../../tui/src/util/path-format.ts"
 import {
@@ -14,7 +15,7 @@ import { records } from "../lib/records"
 
 type State = Parameters<typeof canonicalToolPart>[1]
 
-const output = new URL("../fixtures/U.5/tool-info.json", import.meta.url).pathname
+const output = fileURLToPath(new URL("../fixtures/U.5/tool-info.json", import.meta.url))
 const directory = "/work/project"
 const text = (value: string) => [{ type: "text" as const, text: value }]
 const completed = (input: Record<string, unknown>, metadata: Record<string, unknown> = {}, content = text("")) => ({

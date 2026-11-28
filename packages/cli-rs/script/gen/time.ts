@@ -20,7 +20,9 @@ if (process.argv[2] === "--zone") {
   process.exit(0)
 }
 
-const file = new URL("../../crates/util/fixtures/time.tsv", import.meta.url).pathname
+import { fileURLToPath } from "node:url"
+
+const file = fileURLToPath(new URL("../../crates/util/fixtures/time.tsv", import.meta.url))
 const sections = zones.map((zone) => {
   const proc = Bun.spawnSync(["bun", "run", import.meta.path, "--zone", zone], {
     env: { ...process.env, TZ: zone },
