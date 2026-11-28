@@ -13,7 +13,7 @@ use tokio_util::sync::CancellationToken;
 use super::{Data, Remote, Task, Tasks};
 use crate::core::{
     CatalogRead, Completion, Effect, Forms, Head, Info, Jobs, List, LocationRead, MessageRead, Projects, Restore,
-    Shells,
+    Shells, Ticket,
 };
 use crate::forms::{Form, GLOBAL, form_read};
 use crate::inbox::Admission;
@@ -37,6 +37,12 @@ impl Data {
                 Effect::Message(session, message) => self.fetch_message(session, message),
                 Effect::Renamed(session, title) => self.renamed(session, title),
                 Effect::Active(token) => self.rehydrate(token),
+                Effect::SessionActivity => {
+                    // Older servers and unavailable activity must not interrupt the execution index or report a toast.
+                    if self.live() {
+                        drop(self.sync(Read::SessionActivity, |_, ticket| ActivityRead(ticket)));
+                    }
+                }
                 Effect::Rehydrate => {
                     self.rehydrate_location();
                     let default = self.read(|state| state.default_location().clone());
@@ -248,6 +254,18 @@ impl Fetch for Projects {
     async fn fetch(self, remote: &Remote) -> Completion {
         let result = remote.client().project_list(&ProjectListInput::default()).await.map_err(Error::new);
         Completion::Projects(self, result)
+    }
+}
+
+struct ActivityRead(Ticket);
+
+impl Fetch for ActivityRead {
+    async fn fetch(self, remote: &Remote) -> Completion {
+        let result = match remote.client().experimental_session_activity().await {
+            Err(opencode_api::error::Error::UnexpectedStatus { status: 404 }) => Ok(Vec::new()),
+            result => result.map_err(Error::new),
+        };
+        Completion::SessionActivity(self.0, result)
     }
 }
 

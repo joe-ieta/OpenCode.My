@@ -382,6 +382,7 @@ fn session_json(s: usize) -> Value {
 fn immediate(req: &Req, deleted: &[bool], unexpected: &mut Vec<String>) -> Reply {
     match req.path.as_str() {
         "/api/session/active" => return ok(json!({ "data": {} })),
+        "/api/experimental/session/activity" => return ok(json!({ "data": [] })),
         // What a reconnect reads besides the model's reads (`connection.rs` rehydrate, `location_sync_info`).
         "/api/location" => {
             return ok(json!({

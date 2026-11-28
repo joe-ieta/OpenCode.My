@@ -83,6 +83,8 @@ pub struct Dirty {
     sessions: bool,
     /// Projects or saved permissions changed.
     projects: bool,
+    /// The server's session activity snapshot changed.
+    session_activity: bool,
     /// The forms of [`GLOBAL`] changed.
     global_forms: bool,
     /// Each touched session once. Its record holds its place here while the store owns this.
@@ -105,6 +107,7 @@ impl Dirty {
             all,
             sessions: false,
             projects: false,
+            session_activity: false,
             global_forms: false,
             touched: Vec::new(),
             messages: Vec::new(),
@@ -117,6 +120,7 @@ impl Dirty {
         !self.all
             && !self.sessions
             && !self.projects
+            && !self.session_activity
             && !self.global_forms
             && self.touched.is_empty()
             && self.selected.is_empty()
@@ -126,6 +130,7 @@ impl Dirty {
     /// Empties it, keeping the buffers.
     fn clear(&mut self) {
         (self.all, self.sessions, self.projects, self.global_forms) = (false, false, false, false);
+        self.session_activity = false;
         self.touched.clear();
         self.messages.clear();
         self.selected.clear();
@@ -204,6 +209,11 @@ impl Log {
         self.dirty.projects = true;
     }
 
+    pub(crate) fn session_activity(&mut self) {
+        self.unflushed = true;
+        self.dirty.session_activity = true;
+    }
+
     /// Everything may have changed (a reconnect): every view looks again.
     pub(crate) fn everything(&mut self) {
         self.unflushed = true;
@@ -265,6 +275,10 @@ impl<'a> Changes<'a> {
 
     pub fn projects(&self) -> bool {
         self.dirty.all || self.dirty.projects
+    }
+
+    pub fn session_activity(&self) -> bool {
+        self.dirty.all || self.dirty.session_activity
     }
 
     /// Some location changed: [`Changes::location`] says which.

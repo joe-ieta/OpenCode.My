@@ -451,6 +451,7 @@ async fn a_first_connection_reads_the_catalogs_read_before_it_again() {
                 let location = public("/project");
                 match req.path.as_str() {
                     "/api/session/active" => ok(json!({})),
+                    "/api/experimental/session/activity" => ok(json!({ "data": [] })),
                     "/api/project" => ok(json!([])),
                     "/api/location" => ok(location),
                     "/api/vcs" => ok(json!({ "location": location, "data": { "branch": {} } })),
@@ -540,6 +541,7 @@ async fn preserves_sibling_catalogs_through_location_preload_branch_shell_and_we
                 let location = public("/project");
                 match req.path.as_str() {
                     "/api/session/active" => ok(json!({})),
+                    "/api/experimental/session/activity" => ok(json!({ "data": [] })),
                     "/api/project" => ok(json!([])),
                     "/api/location" => ok(location),
                     "/api/vcs" => ok(json!({
@@ -616,6 +618,7 @@ async fn preserves_sibling_catalogs_through_location_preload_branch_shell_and_we
     emit(&data, json!({ "id": "evt_connected", "created": 1, "type": "server.connected", "data": {} }));
     wait(|| data.read(|state| state.location(None).unwrap().info.is_some())).await;
     wait(|| requests.get().iter().any(|path| path == "/api/project")).await;
+    wait(|| requests.get().iter().any(|path| path == "/api/experimental/session/activity")).await;
     assert_eq!(references(), loaded);
     assert_eq!(data.read(|state| state.shell(&first).cloned()), Some(created));
     assert_eq!(current().as_deref(), Some("feature"));
@@ -624,6 +627,7 @@ async fn preserves_sibling_catalogs_through_location_preload_branch_shell_and_we
     assert_eq!(
         paths,
         [
+            "/api/experimental/session/activity",
             "/api/location",
             "/api/project",
             "/api/reference",

@@ -16,6 +16,65 @@ const SESSIONS: [&str; 2] = ["ses_a", "ses_b"];
 const DIRECTORY: &str = "/project";
 
 #[tokio::test(flavor = "local")]
+async fn session_activity_refresh_coalesces_and_publishes_only_the_current_snapshot() {
+    let reads = Log::<Slot<Reply>>::default();
+    let requests = reads.clone();
+    let fixture: Value = serde_json::from_str(FIXTURE).unwrap();
+    let routes = fixture["routes"].clone();
+    let data = data(
+        handler(move |request| {
+            let slot = (request.path == "/api/experimental/session/activity").then(|| {
+                let slot = Slot::default();
+                requests.push(slot.clone());
+                slot
+            });
+            let route = routes.get(&request.path).cloned();
+            async move {
+                if let Some(slot) = slot {
+                    return slot.wait().await;
+                }
+                match route {
+                    Some(route) => Reply::Json(route["status"].as_u64().unwrap() as u16, route["body"].clone()),
+                    None => Reply::Text(404, "not found".into()),
+                }
+            }
+        }),
+        Options::default(),
+    );
+    let changed =
+        || json!({ "id": "evt_activity", "created": 1, "type": "experimental.session.activity.changed", "data": {} });
+    let activity = |id: &str| {
+        ok(json!({ "data": [{ "id": id, "sessionID": "ses_a", "kind": "shell", "startedAt": 2, "ancestors": [] }] }))
+    };
+    emit(&data, changed());
+    settle().await;
+    assert_eq!(reads.len(), 0);
+
+    emit(&data, json!({ "id": "evt_connected", "type": "server.connected", "data": {} }));
+    wait(|| reads.len() == 1).await;
+    emit(&data, changed());
+    emit(&data, changed());
+    settle().await;
+    assert_eq!(reads.len(), 1);
+    reads.get()[0].resolve(activity("stale"));
+    wait(|| reads.len() == 2).await;
+    assert!(data.state().session_activity().is_empty());
+
+    let mut taken = Taken::default();
+    taken.take(&data);
+    reads.get()[1].resolve(activity("current"));
+    wait(|| data.state().session_activity().first().is_some_and(|item| item.id == "current")).await;
+    assert!(taken.take(&data).1.session_activity());
+    wait(|| data.state().session("ses_a").is_some()).await;
+    assert_eq!(reads.len(), 2);
+
+    emit(&data, changed());
+    wait(|| reads.len() == 3).await;
+    reads.get()[2].resolve(Reply::Text(404, "not found".into()));
+    wait(|| data.state().session_activity().is_empty()).await;
+}
+
+#[tokio::test(flavor = "local")]
 async fn every_event_folds_as_in_typescript() {
     let fixture: Value = serde_json::from_str(FIXTURE).unwrap();
     let allowed: BTreeMap<(String, String), String> = fixture["allow"]

@@ -5,7 +5,7 @@ use std::hash::Hash;
 use std::sync::Arc;
 
 use indexmap::{IndexMap, IndexSet};
-use opencode_api::generated::{JobInfo, Project, ProjectID, SessionID, SessionMessageID};
+use opencode_api::generated::{JobInfo, Project, ProjectID, SessionActivityInfo, SessionID, SessionMessageID};
 
 use crate::changes::{Log, Touched};
 use crate::forms::Form;
@@ -80,10 +80,19 @@ pub struct State {
     pub(crate) form_reads: HashMap<crate::forms::FormRead, Overlay<Form>>,
     /// Running background jobs by ID, of the trees synced and of job events since (`store.job`).
     pub(crate) jobs: IndexMap<String, JobInfo>,
+    /// The server's last session activity snapshot, independent of execution ownership.
+    pub(crate) session_activity: Vec<SessionActivityInfo>,
     /// The session and position of the message an event edited last.
     pub(crate) last_edited: Option<(SessionKey, usize)>,
     /// The `durable.seq` of the event being applied, for the rows it creates.
     pub(crate) event_seq: Option<i64>,
+}
+
+impl State {
+    /// Background activity reported by the server.
+    pub fn session_activity(&self) -> &[SessionActivityInfo] {
+        &self.session_activity
+    }
 }
 
 /// Maximum changes retained by one in-flight list read.

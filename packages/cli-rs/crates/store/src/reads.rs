@@ -123,6 +123,7 @@ pub(crate) enum ReadKey {
     /// The forms of [`crate::forms::GLOBAL`] at a location.
     GlobalForms(LocationKey),
     Projects,
+    SessionActivity,
 }
 
 /// A keyed read named by what it reads, for a caller without its key.
@@ -133,6 +134,7 @@ pub(crate) enum Read<'a> {
     Catalog(Catalog, &'a Location),
     GlobalForms(&'a Location),
     Projects,
+    SessionActivity,
 }
 
 impl State {
@@ -144,6 +146,7 @@ impl State {
             Read::Catalog(catalog, at) => ReadKey::Catalog(catalog, self.intern(at)),
             Read::GlobalForms(at) => ReadKey::GlobalForms(self.intern(at)),
             Read::Projects => ReadKey::Projects,
+            Read::SessionActivity => ReadKey::SessionActivity,
         }
     }
 
@@ -178,6 +181,7 @@ impl State {
             Read::Catalog(catalog, at) => ReadKey::Catalog(catalog, location(at)?),
             Read::GlobalForms(at) => ReadKey::GlobalForms(location(at)?),
             Read::Projects => ReadKey::Projects,
+            Read::SessionActivity => ReadKey::SessionActivity,
         })
     }
 

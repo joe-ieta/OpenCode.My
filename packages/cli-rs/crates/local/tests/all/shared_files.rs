@@ -191,13 +191,16 @@ fn frecency_at_the_limit_under_contention() {
         return;
     }
     let state = opencode_util::temp::tempdir().unwrap();
-    let dir = state.path().to_owned();
+    let dir = opencode_util::path::realpath(state.path()).unwrap();
     let file = dir.join("frecency.jsonl");
     let full: String = (0..jsonl::MAX_FRECENCY_ENTRIES)
-        .map(|n| format!("{{\"path\":\"/w/old-{n}\",\"frequency\":1,\"lastOpen\":{n}}}\n"))
+        .map(|n| {
+            let entry = json!({ "path": dir.join(format!("old-{n}")), "frequency": 1, "lastOpen": n });
+            format!("{entry}\n")
+        })
         .collect();
     std::fs::write(&file, full).unwrap();
-    let mut frecency = jsonl::Frecency::load(&dir, Path::new("/w"));
+    let mut frecency = jsonl::Frecency::load(&dir, &dir);
     let stop = Arc::new(AtomicBool::new(false));
     let reader = watch(file.clone(), stop.clone(), whole_lines);
     let mut ts = typescript(&["frecency", dir.to_str().unwrap(), "ts", &WRITES.to_string()]);
@@ -215,13 +218,13 @@ fn frecency_at_the_limit_under_contention() {
     let typescript_read = read(&dir)["frecency"].clone();
     for side in ["ts", "rs"] {
         for i in 0..WRITES {
-            let path = format!("/w/{side}-{i}");
-            assert!(typescript_read.get(&path).is_some(), "{path} was lost");
+            let path = dir.join(format!("{side}-{i}"));
+            assert!(typescript_read.get(path.to_str().unwrap()).is_some(), "{} was lost", path.display());
         }
     }
-    assert_eq!(typescript_read["/w/ts-0"], 2);
+    assert_eq!(typescript_read[dir.join("ts-0").to_str().unwrap()], 2);
     let lines = std::fs::read_to_string(&file).unwrap().lines().count();
-    let loaded = jsonl::Frecency::load(&dir, Path::new("/w"));
+    let loaded = jsonl::Frecency::load(&dir, &dir);
     assert_eq!(loaded.data().len(), jsonl::MAX_FRECENCY_ENTRIES);
     let rust_read: serde_json::Map<String, Value> =
         loaded.data().iter().map(|(path, visit)| (path.clone(), json!(visit.frequency as i64))).collect();

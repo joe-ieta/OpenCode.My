@@ -35,7 +35,6 @@ struct Life {
     loader: Rc<Loader>,
     /// The plugin's `init.luau`, which a reload rewrites with the next build.
     init: PathBuf,
-    target: String,
     builds: Cell<u8>,
     _root: opencode_util::temp::TempDir,
 }
@@ -71,8 +70,7 @@ impl Life {
         };
         let loader = Rc::new(Loader::new(config, root.path().to_path_buf(), configured).with_luau(|| {}));
         harness.tui.plugins.set_loader(loader.clone());
-        let target = dir.to_string_lossy().into_owned();
-        let life = Self { harness, loader, init: dir.join("init.luau"), target, builds: Cell::new(1), _root: root };
+        let life = Self { harness, loader, init: dir.join("init.luau"), builds: Cell::new(1), _root: root };
         life.reconcile();
         life.settle();
         life
@@ -103,12 +101,6 @@ impl Life {
         app.advance(Duration::from_millis(1));
     }
 
-    /// The plugin's status in the manager's list.
-    fn status(&self) -> Option<Status> {
-        let entries = self.harness.tui.plugins.entries();
-        entries.into_iter().find(|entry| entry.target.as_deref() == Some(&*self.target)).map(|entry| entry.status)
-    }
-
     fn act(&self, action: &str) {
         match action {
             "toggle" => {
@@ -131,14 +123,18 @@ impl Life {
                     self.harness.app.press("right");
                 }
                 self.harness.app.press("enter");
-                // The answer is applied when an approval stops holding the build back, or a decline lists the row;
-                // the approved files are staged and compiled after that, which `reconcile` waits for.
-                let answered = self.harness.app.wait_until(support::WAIT, || match action {
-                    "approve" => self.loader.held(&self.target).is_none(),
-                    _ => self.status() != Some(Status::Pending),
+                let expected = if action == "approve" { Status::Active } else { Status::Declined };
+                // The fixture disables the loader's wake callback. Pump it until staging and compilation
+                // have registered the approved plugin, or the decline is visible.
+                let tui = &self.harness.tui;
+                self.harness.wait(&format!("the project plugin reaches {expected:?} after {action}"), || {
+                    self.loader.reconcile(&host(tui), &tui.plugins);
+                    // The manager identifies an active plugin by its ID and can list a declined plugin by its path.
+                    tui.plugins
+                        .entries()
+                        .iter()
+                        .any(|entry| entry.status == expected && Path::new(&entry.id).ends_with("parity.life"))
                 });
-                assert!(answered, "the answer to the question was not recorded");
-                self.reconcile();
                 self.settle();
                 self.harness.app.press("escape");
             }

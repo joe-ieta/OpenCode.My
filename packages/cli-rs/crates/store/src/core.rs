@@ -8,7 +8,7 @@ use opencode_api::generated::*;
 use crate::forms::{Form, FormRead};
 use crate::location::{Catalog, Loaded, Location};
 use crate::messages::{HeadPages, Page};
-use crate::reads::ReadKey;
+use crate::reads::{Phase, Read, ReadKey, ReadState};
 use crate::sessions::{Outcome, SessionKey};
 use crate::state::{Error, State};
 
@@ -39,6 +39,7 @@ pub(crate) enum Completion {
     },
     /// The `session.active` snapshot of connection `token`.
     Active(u64, Result<SessionActiveOutput, Error>),
+    SessionActivity(Ticket, Result<ExperimentalSessionActivityOutput, Error>),
     /// A follow-up read found the session missing.
     Missing(SessionID),
     Messages(Head, Result<HeadPages, Error>),
@@ -211,6 +212,8 @@ pub(crate) enum Effect {
     Renamed(SessionID, String),
     /// The `session.active` snapshot of connection `token`.
     Active(u64),
+    /// The optional background activity snapshot.
+    SessionActivity,
     /// The default location's info, its VCS, and the projects, after `server.connected`.
     Rehydrate,
     /// Catalogs of a location, read together (already invalidated).
@@ -290,6 +293,7 @@ impl Completion {
             Self::Shells(read, _) => read.ticket,
             Self::Location(read, _) => return read.ticket,
             Self::Projects(read, _) => read.ticket,
+            Self::SessionActivity(ticket, _) => *ticket,
             _ => return None,
         })
     }
@@ -300,6 +304,7 @@ impl Completion {
             Self::Session(_, result, _) => result.as_ref().err(),
             Self::Created { result, .. } => result.as_ref().err(),
             Self::Active(_, result) => result.as_ref().err(),
+            Self::SessionActivity(_, result) => result.as_ref().err(),
             Self::Messages(_, result) => result.as_ref().err(),
             Self::Message { result, .. } | Self::Restored { result, .. } => result.as_ref().err(),
             Self::Pending(_, result) => result.as_ref().err(),
@@ -333,6 +338,24 @@ impl State {
             Completion::Created { id, token, fresh, result } => self.complete_creation(&id, token, fresh, result),
             Completion::Renamed { session, title } => self.rename(&session, title),
             Completion::Active(token, result) => self.complete_active(token, result, effects),
+            Completion::SessionActivity(ticket, Ok(items))
+                if matches!(
+                    self.read_state(Read::SessionActivity),
+                    Some(ReadState::Loading { token, phase: Phase::Running }) if *token == ticket.token
+                ) =>
+            {
+                let missing: indexmap::IndexSet<_> = items
+                    .iter()
+                    .flat_map(|item| std::iter::once(&item.session_id).chain(&item.ancestors))
+                    .filter(|id| self.session(*id).is_none() && !self.is_missing(*id))
+                    .cloned()
+                    .collect();
+                effects.extend(missing.into_iter().map(Effect::Session));
+                if self.session_activity != items {
+                    self.session_activity = items;
+                    self.log.session_activity();
+                }
+            }
             Completion::Missing(id) => self.mark_deleted(&id),
             Completion::Messages(read, result) => self.complete_messages(read, result, effects),
             Completion::Message { session, incarnation, result: Ok(item) } => {
@@ -371,6 +394,7 @@ impl State {
             | Completion::Shells(..)
             | Completion::Location(..)
             | Completion::Websearch(_)
+            | Completion::SessionActivity(..)
             | Completion::Projects(..) => {}
         }
         if let Some((ticket, ok)) = settles {
@@ -387,6 +411,20 @@ impl State {
         }
         self.event_seq = event.durable_seq();
         self.record_edit(event);
+        if matches!(event, V2Event::ServerConnected(_))
+            || (self.connected
+                && matches!(
+                    event,
+                    V2Event::ExperimentalSessionActivityChanged(_)
+                        | V2Event::SessionDeleted(_)
+                        | V2Event::ShellCreated(_)
+                        | V2Event::ShellExited(_)
+                        | V2Event::ShellDeleted(_)
+                ))
+        {
+            self.invalidate(Read::SessionActivity);
+            effects.push(Effect::SessionActivity);
+        }
         match event {
             V2Event::ServerConnected(_) => {
                 // Every connection after the first is a reconnect, also one the status watch

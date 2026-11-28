@@ -558,6 +558,8 @@ fn routes(recording: &Recording) -> Vec<MemoryRoute> {
     scenario
         .chain(exchanges().map(|entry| recorded(entry).with_query(entry.query.clone())))
         .chain(exchanges().map(recorded))
+        // Older recordings model a server without the optional activity endpoint.
+        .chain(std::iter::once(MemoryRoute::body("GET", "/api/experimental/session/activity", 404, None, "")))
         .collect()
 }
 

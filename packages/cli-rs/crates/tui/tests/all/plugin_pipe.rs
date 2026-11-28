@@ -590,7 +590,9 @@ fn a_plugin_that_throws_fails_alone_with_no_effects() {
     // The error shows the message; the log has the stack, down to the plugin's line (dx-fresh).
     let stderr = pipe.scripts().stderr();
     assert!(
-        stderr.iter().any(|line| line.trim_start().starts_with("at ") && line.contains("probe/tui.ts:")),
+        stderr
+            .iter()
+            .any(|line| line.trim_start().starts_with("at ") && line.replace('\\', "/").contains("probe/tui.ts:")),
         "{stderr:?}"
     );
     pipe.harness.tui.keymap.dispatch("twin.bump", Some("1"));
