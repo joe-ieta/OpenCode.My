@@ -9,7 +9,7 @@ on:
       - packages/cli-rs/**
       - .github/workflows/check-cli-rs.yml
   push:
-    branches: [dev]
+    branches: [dev, dev-my, oc-headless]
     paths:
       - packages/cli-rs/**
       - packages/cli/src/**
