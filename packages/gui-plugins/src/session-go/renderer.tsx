@@ -176,11 +176,15 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
         if (panel?.contains(target) || chatWindow?.contains(target) || fab?.contains(target)) return
 
+        if (target instanceof Element && target.closest("[data-kb-top-layer]")) return
+
         setOpened(false)
       }
 
       const escape = (event: KeyboardEvent) => {
         if (event.key !== "Escape" || !opened() || docked()) return
+
+        if (event.target instanceof Element && event.target.closest("[data-kb-top-layer]")) return
 
         if (chatOpened()) {
           setChatOpened(false)

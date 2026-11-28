@@ -15,6 +15,8 @@ export default {
   "chat.input": "Ask Go",
   "chat.placeholder": "Ask a question or follow up on this side conversation…",
   "chat.model": "Current session model",
+  "chat.modelSelect": "Go model",
+  "chat.follow": "Follow main session",
   "chat.send": "Send",
   "chat.cancel": "Cancel",
   "chat.retry": "Retry",
@@ -212,8 +214,7 @@ export default {
   "analysis.local": "Runs on the configured model",
   "analysis.note":
     "Uses the loaded session range, not full history. Runs on the session model, adds usage to this session, and writes candidates only.",
-  "analysis.auto":
-    "Automatic analysis runs after each finished episode while this session is on screen.",
+  "analysis.auto": "Automatic analysis runs after each finished episode while this session is on screen.",
   "analysis.run": "Analyze loaded session",
   "analysis.running": "Analyzing…",
   "analysis.cancel": "Cancel",

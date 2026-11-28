@@ -1,4 +1,5 @@
 import { CustomProvider } from "@opencode/schema/custom-provider"
+import { Model } from "@opencode/schema/model"
 import { Predicate, Schema, SchemaGetter } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/http-api"
 import { Generate } from "@opencode/schema/generate"
@@ -535,7 +536,10 @@ const Group = HttpApiGroup.make("mock")
   .add(
     HttpApiEndpoint.post("sessionGenerate", "/api/session/:sessionID/generate", {
       params: SessionParams,
-      payload: Schema.Struct({ prompt: Schema.String }),
+        payload: Schema.Struct({
+          prompt: Schema.String,
+          experimental: Schema.Struct({ model: Schema.optional(Model.Ref) }).pipe(Schema.optional),
+        }),
       success: Json,
     }),
   )

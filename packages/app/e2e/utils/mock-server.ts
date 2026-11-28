@@ -178,7 +178,11 @@ export interface MockServerConfig {
   // POST /api/session/:id/fork creates `<id>_fork` in the same directory. The hook may hold the request, or return an
   // answer to replace the response.
   onFork?: (input: { sessionID: string; body: Schema.JsonObject }) => void | MockAnswer | Promise<void | MockAnswer>
-  generate?: (input: { sessionID: string; prompt: string }) => { text: string } | Promise<{ text: string }>
+  generate?: (input: {
+    sessionID: string
+    prompt: string
+    experimental?: { model?: Model.Ref }
+  }) => { text: string } | Promise<{ text: string }>
   onInboxChange?: (input: { sessionID: string; inboxID: string; action: "cancel" | "steer" | "queue" }) => void
   onBackground?: (input: { sessionID: string }) => void
   // Serves `/api/experimental/automation*`; defaults to an empty list.
@@ -475,8 +479,8 @@ export function mockMissingLocation(page: Page, directory: string, missing = () 
         : route.fulfill({
             status: 404,
             // SAFETY: the server's wire body for a missing Location, which the client decodes into its own error.
-            // oxlint-disable-next-line anti-slop-effect/no-manual-tagged-construction -- see SAFETY above
             json: {
+              // oxlint-disable-next-line anti-slop-effect/no-manual-tagged-construction -- see SAFETY above
               _tag: "LocationNotFoundError",
               location: { directory },
               message: `Location not found: ${directory}`,
@@ -960,7 +964,7 @@ function mockHandlers(
 
             return {
               location: location(config, directory),
-              data: Predicate.isFunction(config.commands) ? config.commands(directory) : config.commands ?? [],
+              data: Predicate.isFunction(config.commands) ? config.commands(directory) : (config.commands ?? []),
             }
           }),
         skill: () => Effect.sync(() => ({ location: location(config), data: resolve(config.skills ?? []) })),
@@ -1040,8 +1044,15 @@ function mockHandlers(
             const list = config.automations ?? []
             const index = list.findIndex((item) => item.id === ctx.params.automationID)
 
-            if (index === -1) return Effect.fail(new MockNotFound({ message: `Automation not found: ${ctx.params.automationID}` }))
-            const updated: AutomationInfo = { ...list[index]!, status: "paused", time: { ...list[index]!.time, updated: Date.now() } }
+            if (index === -1)
+              return Effect.fail(new MockNotFound({ message: `Automation not found: ${ctx.params.automationID}` }))
+
+            const updated: AutomationInfo = {
+              ...list[index]!,
+              status: "paused",
+              time: { ...list[index]!.time, updated: Date.now() },
+            }
+
             list[index] = updated
 
             return Effect.succeed({ data: updated })
@@ -1051,8 +1062,15 @@ function mockHandlers(
             const list = config.automations ?? []
             const index = list.findIndex((item) => item.id === ctx.params.automationID)
 
-            if (index === -1) return Effect.fail(new MockNotFound({ message: `Automation not found: ${ctx.params.automationID}` }))
-            const updated: AutomationInfo = { ...list[index]!, status: "active", time: { ...list[index]!.time, updated: Date.now() } }
+            if (index === -1)
+              return Effect.fail(new MockNotFound({ message: `Automation not found: ${ctx.params.automationID}` }))
+
+            const updated: AutomationInfo = {
+              ...list[index]!,
+              status: "active",
+              time: { ...list[index]!.time, updated: Date.now() },
+            }
+
             list[index] = updated
 
             return Effect.succeed({ data: updated })
@@ -1062,7 +1080,8 @@ function mockHandlers(
             const list = config.automations ?? []
             const index = list.findIndex((item) => item.id === ctx.params.automationID)
 
-            if (index === -1) return Effect.fail(new MockNotFound({ message: `Automation not found: ${ctx.params.automationID}` }))
+            if (index === -1)
+              return Effect.fail(new MockNotFound({ message: `Automation not found: ${ctx.params.automationID}` }))
             list.splice(index, 1)
 
             return noContent
@@ -1462,7 +1481,7 @@ function mockHandlers(
           }),
         sessionGenerate: (ctx) =>
           Effect.promise(async () => ({
-            data: (await config.generate?.({ sessionID: ctx.params.sessionID, prompt: ctx.payload.prompt })) ?? {
+            data: (await config.generate?.({ sessionID: ctx.params.sessionID, ...ctx.payload })) ?? {
               text: "Side-question answer",
             },
           })),

@@ -323,7 +323,11 @@ export type SessionInboxUpdateOperation<E = never> = (
   input: SessionInboxUpdateInput,
 ) => Effect.Effect<SessionInboxUpdateOutput, E>
 
-export type SessionGenerateInput = { readonly sessionID: Session.ID; readonly prompt: string }
+export type SessionGenerateInput = {
+  readonly sessionID: Session.ID
+  readonly prompt: string
+  readonly experimental?: { readonly model?: Model.Ref | undefined } | undefined
+}
 export type SessionGenerateOutput = {
   readonly text: string
   readonly tokens: {

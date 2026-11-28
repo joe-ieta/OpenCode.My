@@ -7,6 +7,7 @@ import { Loader } from "@opencode/ui/loader"
 import { TextShimmer } from "@opencode/ui/text-shimmer"
 import { Markdown } from "@opencode/session-ui/markdown"
 import { showToast } from "@opencode/ui/toast"
+import { Select } from "@opencode/ui/select"
 import type SessionGo from "./index"
 import type { GoChatModel } from "./chat-model"
 
@@ -36,6 +37,30 @@ export default function GoChatPanel(props: { model: GoChatModel; visible: boolea
     if (!props.model.canSend()) return
     props.model.send()
   }
+
+  const choices = createMemo(() => [
+    { key: "session", label: ctx.t("chat.follow"), model: undefined },
+    ...props.model.models().map((model) => ({
+      // Kobalte uses these keys in attribute selectors; encode the composite ID before handing it over.
+      key: encodeURIComponent(JSON.stringify([model.ref.providerID, model.ref.id])),
+      label: `${model.name} · ${model.provider}`,
+      model: model.ref,
+    })),
+  ])
+
+  const selected = createMemo(() => {
+    const model = props.model.selectedModel()
+
+    if (!model) return choices()[0]
+
+    return (
+      choices().find((choice) => choice.model?.id === model.id && choice.model.providerID === model.providerID) ?? {
+        key: encodeURIComponent(JSON.stringify([model.providerID, model.id])),
+        label: `${model.providerID}/${model.id}`,
+        model,
+      }
+    )
+  })
 
   return (
     <div class="flex h-full min-h-0 flex-col bg-background-base" data-component="session-go-chat">
@@ -168,7 +193,23 @@ export default function GoChatPanel(props: { model: GoChatModel; visible: boolea
             }}
           />
           <div class="flex flex-wrap items-center justify-between gap-2 px-2 pb-2 ps-3">
-            <span class="text-11-regular text-text-faint">{ctx.t("chat.model")}</span>
+            <Select
+              aria-label={ctx.t("chat.modelSelect")}
+              modal={false}
+              options={choices()}
+              current={selected()}
+              value={(choice) => choice.key}
+              label={(choice) => choice.label}
+              onSelect={(choice) => {
+                if (choice) props.model.setModel(choice.model)
+              }}
+              disabled={!props.model.ready() || props.model.busy()}
+              appearance="small"
+              surface="invisible"
+              class="min-w-0 max-w-full flex-1 text-11-regular"
+              valueClass="truncate"
+              contentClass="max-w-[min(28rem,calc(100vw-2rem))]"
+            />
             <Show
               when={props.model.busy()}
               fallback={

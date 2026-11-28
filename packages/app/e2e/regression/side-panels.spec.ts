@@ -1,6 +1,6 @@
 import type { SessionMessageInfo } from "@opencode/client/promise"
 import { expect, test, type Page } from "@playwright/test"
-import { pageMessagesFrom } from "../utils/app"
+import { pageMessagesFrom, provider } from "../utils/app"
 import { fileDiff, fileNode, openSession } from "../utils/workspace"
 import { openFileLauncher, openReviewLauncher, storedStrips } from "../utils/side-panel"
 import { expectSessionTitle } from "../utils/waits"
@@ -330,7 +330,13 @@ test("a session open in a shell tab keeps its side tabs when the layout forgets 
       { id: "ses_background", title: "In the background" },
     ],
     fileList: () => [fileNode(directory, "long.txt")],
-    fileContent: (path) => ({ type: "text", content: path === "long.txt" ? Array.from({ length: 400 }, (_, index) => `line ${index + 1}`).join("\n") : `contents:${path}` }),
+    fileContent: (path) => ({
+      type: "text",
+      content:
+        path === "long.txt"
+          ? Array.from({ length: 400 }, (_, index) => `line ${index + 1}`).join("\n")
+          : `contents:${path}`,
+    }),
     seed: {
       panes: { ses_background: { review: true } },
       storage: {
@@ -363,7 +369,6 @@ test("a session open in a shell tab keeps its side tabs when the layout forgets 
   await expect(panel.getByText("contents:notes.md", { exact: true })).toBeVisible()
 })
 
-
 const SESSION_GO_SETTINGS = "opencode.global.dat:plugin.session-go.settings"
 
 const sessionGoEnabled = {
@@ -378,7 +383,10 @@ const sessionGoEnabled = {
 const sessionGoDisabled = { ...sessionGoEnabled, enabled: false }
 
 function sessionGoTurnMessages(count = 12): SessionMessageInfo[] {
-  const reply = Array.from({ length: 8 }, (_, index) => "Reply line " + (index + 1) + " keeps the turn tall enough to scroll.").join("\n")
+  const reply = Array.from(
+    { length: 8 },
+    (_, index) => "Reply line " + (index + 1) + " keeps the turn tall enough to scroll.",
+  ).join("\n")
 
   return Array.from({ length: count }, (_, index) => {
     const created = sessionGoTime + index * 10
@@ -415,11 +423,20 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
 }, testInfo) => {
   await page.setViewportSize({ width: 1440, height: 1000 })
   const prompts: unknown[] = []
-  const generations: { sessionID: string; prompt: string }[] = []
+
+  const generations: {
+    sessionID: string
+    prompt: string
+    experimental?: { model?: { providerID: string; id: string } }
+  }[] = []
 
   const workspace = await openSession(page, {
     name: "SessionGoChat",
-    sessions: [{ id: "ses_go_main", title: "Go main" }, { id: "ses_go_other", title: "Go other" }],
+    sessions: [
+      { id: "ses_go_main", title: "Go main" },
+      { id: "ses_go_other", title: "Go other" },
+    ],
+    provider: provider({ id: "test", name: "Main model" }, { id: "side", name: "Side model" }),
     seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
     pageMessages: () => ({ items: sessionGoMessages() }),
     onPrompt: (input) => prompts.push(input),
@@ -440,6 +457,10 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   const input = chat.getByRole("textbox", { name: "Ask Go", exact: true })
   await expect(input).toBeEditable()
   await expect(overview).toBeVisible()
+  const model = chat.getByRole("group", { name: "Go model", exact: true }).getByRole("button")
+  await expect(model).toContainText("Follow main session")
+  const mainModel = page.locator('[data-action="composer-model"]')
+  await expect(mainModel).toContainText("Main model")
 
   const bounds = await page.evaluate(() => {
     const main = document.querySelector('[data-component="session-go-floating"]')?.getBoundingClientRect()
@@ -455,11 +476,24 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   await input.fill("What is the goal?")
   await input.press("Enter")
   await expect(chat.getByText("Build the Go side conversation.", { exact: true })).toBeVisible()
+  expect(generations[0]?.experimental).toBeUndefined()
+  await model.click()
+  await expect(chat).toBeVisible()
+  await expect(overview).toBeVisible()
+  await page.getByRole("option", { name: "Side model · OpenCode", exact: true }).press("Escape")
+  await expect(chat).toBeVisible()
+  await expect(overview).toBeVisible()
+  await expect(page.getByRole("option", { name: "Side model · OpenCode", exact: true })).toHaveCount(0)
+  await model.click()
+  await page.getByRole("option", { name: "Side model · OpenCode", exact: true }).click()
+  await expect(model).toContainText("Side model")
   await input.fill("What remains?")
   await chat.getByRole("button", { name: "Send", exact: true }).click()
   await expect(chat.getByText("Confirm the panel layout.", { exact: true })).toBeVisible()
   expect(generations).toHaveLength(2)
   expect(generations[1]?.sessionID).toBe(workspace.session.id)
+  expect(generations[1]?.experimental?.model).toEqual({ providerID: "opencode", id: "side" })
+  await expect(mainModel).toContainText("Main model")
   expect(generations[1]?.prompt).toContain("What is the goal?")
   expect(generations[1]?.prompt).toContain("Build the Go side conversation.")
   expect(generations[1]?.prompt).toContain("What remains?")
@@ -470,6 +504,7 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   await expect(overview).toBeVisible()
   await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
   await expect(input).toHaveValue("An unsent follow-up")
+  await expect(model).toContainText("Side model")
   await expect(chat.getByText("Build the Go side conversation.", { exact: true })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath("go-chat-pair.png") })
   await page.reload()
@@ -477,6 +512,7 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   await fab.click()
   await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
   await expect(input).toHaveValue("An unsent follow-up")
+  await expect(model).toContainText("Side model")
   await expect(chat.getByText("Confirm the panel layout.", { exact: true })).toBeVisible()
   expect(generations).toHaveLength(2)
   expect(prompts).toEqual([])
@@ -485,6 +521,7 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   await fab.click()
   await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
   await expect(input).toHaveValue("")
+  await expect(model).toContainText("Follow main session")
   await expect(chat.getByText("Build the Go side conversation.", { exact: true })).toHaveCount(0)
   await input.fill("Other session question")
   await input.press("Enter")
@@ -492,15 +529,33 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   expect(generations[2]?.sessionID).toBe("ses_go_other")
   expect(generations[2]?.prompt).not.toContain("What is the goal?")
   expect(prompts).toEqual([])
+  await page.locator("[data-titlebar-tab-slot]", { hasText: "Go main" }).click()
+  await expectSessionTitle(page, "Go main")
+  await fab.click()
+  await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
+  await expect(model).toContainText("Side model")
+  await expect(input).toHaveValue("An unsent follow-up")
+  await expect(mainModel).toContainText("Main model")
+  await model.click()
+  await page.getByRole("option", { name: "Follow main session", exact: true }).click()
+  await input.press("Enter")
+  await expect(input).toHaveValue("")
+  await expect(chat.getByRole("button", { name: "Send", exact: true })).toBeDisabled()
+  expect(generations[3]?.experimental).toBeUndefined()
+  expect(generations[3]?.prompt).toContain("What is the goal?")
+  expect(generations[3]?.prompt).not.toContain("Other session question")
+  expect(prompts).toEqual([])
   await page.setViewportSize({ width: 820, height: 900 })
   await expect(overview).toBeVisible()
   await expect(chat).toBeVisible()
-  await expect.poll(async () => {
-    const main = await overview.boundingBox()
-    const side = await chat.boundingBox()
+  await expect
+    .poll(async () => {
+      const main = await overview.boundingBox()
+      const side = await chat.boundingBox()
 
-    return !!main && !!side && side.x >= main.x + main.width && side.x + side.width <= 820
-  }).toBe(true)
+      return !!main && !!side && side.x >= main.x + main.width && side.x + side.width <= 820
+    })
+    .toBe(true)
   await expect(input).toBeEditable()
   await page.screenshot({ path: testInfo.outputPath("go-chat-narrow.png") })
 })
@@ -818,9 +873,7 @@ test("Session Go navigates to a turn from the floating timeline rail", async ({ 
   await fabButton.hover()
   await expect(fabHint).toContainText("Click to close Session Go")
 
-  const rail = page.locator(
-    '[data-component="session-go-floating"] [data-component="session-go-timeline"]',
-  )
+  const rail = page.locator('[data-component="session-go-floating"] [data-component="session-go-timeline"]')
 
   await expect(rail).toBeVisible()
 
@@ -918,7 +971,7 @@ test("Session Go navigates to a turn from the floating timeline rail", async ({ 
     .poll(() =>
       page.evaluate(() => {
         const card = document.querySelector('[data-component="session-go-floating"] [data-section="turn"]')
-        const scroller = card?.closest('[data-scrollable]')
+        const scroller = card?.closest("[data-scrollable]")
 
         if (!card || !scroller) return Number.POSITIVE_INFINITY
 
@@ -964,9 +1017,7 @@ test("Session Go builds every turn from full history, not the loaded timeline", 
 
   await page.locator('[data-component="session-go-fab"]').getByRole("button").click()
 
-  const rail = page.locator(
-    '[data-component="session-go-floating"] [data-component="session-go-timeline"]',
-  )
+  const rail = page.locator('[data-component="session-go-floating"] [data-component="session-go-timeline"]')
 
   await expect(rail).toBeVisible()
 
@@ -1010,9 +1061,7 @@ test("Session Go loads every turn beyond one user-message page", async ({ page }
 
   await page.locator('[data-component="session-go-fab"]').getByRole("button").click()
 
-  const rail = page.locator(
-    '[data-component="session-go-floating"] [data-component="session-go-timeline"]',
-  )
+  const rail = page.locator('[data-component="session-go-floating"] [data-component="session-go-timeline"]')
 
   await expect(rail).toBeVisible()
 
@@ -1136,9 +1185,7 @@ test("Session Go consolidates with the session model and keeps only sourced cand
   await expect(l2Decision.getByText("L2", { exact: true })).toBeVisible()
   await expect(decisions.getByText(question, { exact: true })).toBeVisible()
   await expect(panel.getByText("Invented fact", { exact: true })).toHaveCount(0)
-  await expect(
-    analysis.getByText("1 proposals dropped for missing sources.", { exact: true }),
-  ).toBeVisible()
+  await expect(analysis.getByText("1 proposals dropped for missing sources.", { exact: true })).toBeVisible()
 
   await l2Decision.getByRole("button", { name: "Confirm", exact: true }).click()
   await expect(l2Decision.getByText("Active", { exact: true })).toBeVisible()
@@ -1162,28 +1209,29 @@ test("Session Go analyzes a finished episode automatically once", async ({ page 
   const statement = "Automatically consolidate the finished episode"
   const calls: { sessionID: string; prompt: string }[] = []
 
-  const messages = () => [
-    {
-      id: "msg_auto_user",
-      type: "user" as const,
-      text: "Consolidate this episode and keep the automatic path.",
-      time: { created: sessionGoTime },
-    },
-    {
-      id: "msg_auto_agent",
-      type: "assistant" as const,
-      agent: "build",
-      model: sessionGoModel,
-      content: [{ type: "text" as const, text: "I suggest the automatic path." }],
-      time: { created: sessionGoTime + 1, completed: sessionGoTime + 2 },
-    },
-    {
-      id: "msg_auto_idle",
-      type: "idle" as const,
-      outcome: "succeeded" as const,
-      time: { created: sessionGoTime + 3 },
-    },
-  ] satisfies SessionMessageInfo[]
+  const messages = () =>
+    [
+      {
+        id: "msg_auto_user",
+        type: "user" as const,
+        text: "Consolidate this episode and keep the automatic path.",
+        time: { created: sessionGoTime },
+      },
+      {
+        id: "msg_auto_agent",
+        type: "assistant" as const,
+        agent: "build",
+        model: sessionGoModel,
+        content: [{ type: "text" as const, text: "I suggest the automatic path." }],
+        time: { created: sessionGoTime + 1, completed: sessionGoTime + 2 },
+      },
+      {
+        id: "msg_auto_idle",
+        type: "idle" as const,
+        outcome: "succeeded" as const,
+        time: { created: sessionGoTime + 3 },
+      },
+    ] satisfies SessionMessageInfo[]
 
   await openSession(page, {
     name: "SessionGoAuto",

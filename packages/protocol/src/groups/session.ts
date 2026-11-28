@@ -721,7 +721,15 @@ export const makeSessionGroup = <I extends HttpApiMiddleware.AnyId, S, FormI ext
     .add(
       HttpApiEndpoint.post("session.generate", "/api/session/:sessionID/generate", {
         params: { sessionID: Session.ID },
-        payload: Schema.Struct({ prompt: Schema.String }),
+        payload: Schema.Struct({
+          prompt: Schema.String,
+          experimental: Schema.Struct({
+            model: Model.Ref.pipe(optional).annotate({
+              description:
+                "Experimental: may change without compatibility guarantees. Overrides the model for this request without changing the session's model.",
+            }),
+          }).pipe(optional),
+        }),
         success: Schema.Struct({
           // Same `tokens` and `cost` an assistant message reports for a step.
           data: Schema.Struct({ text: Schema.String, tokens: TokenUsage.Info, cost: Money.USD }),
