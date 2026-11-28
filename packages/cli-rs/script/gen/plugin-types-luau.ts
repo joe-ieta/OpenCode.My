@@ -20,7 +20,9 @@ type Schema = {
   allOf?: Schema[]
 }
 
-const root = new URL("../..", import.meta.url).pathname
+import { fileURLToPath } from "node:url"
+
+const root = fileURLToPath(new URL("../..", import.meta.url))
 const schema = (await Bun.file(`${root}crates/plugin-abi/schema/v2.json`).json()) as {
   $defs: Record<string, Schema>
   "x-abi": { major: number; minor: number }

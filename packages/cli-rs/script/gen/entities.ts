@@ -1,7 +1,8 @@
 // Generates strict HTML named references from the packed trie in `entities`, checking each name against its decoder.
+import { fileURLToPath } from "node:url"
 import { createRequire } from "node:module"
 
-const require = createRequire(new URL("../../../merman/package.json", import.meta.url).pathname)
+const require = createRequire(fileURLToPath(new URL("../../../merman/package.json", import.meta.url)))
 const entities: {
   htmlDecodeTree: Uint16Array
   decodeHTMLStrict: (value: string) => string
@@ -99,6 +100,6 @@ const lines = [
   "",
 ]
 
-const file = new URL("../../crates/mermaid/src/core/entities.rs", import.meta.url).pathname
+const file = fileURLToPath(new URL("../../crates/mermaid/src/core/entities.rs", import.meta.url))
 await Bun.write(file, lines.join("\n"))
 console.log(`entities: ${names.length} names`)

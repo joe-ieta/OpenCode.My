@@ -3,6 +3,7 @@
 // scoreFn, threshold, and limit, over a corpus of the 244 keybind definitions as `/` commands and `@` mentions.
 // Descriptions repeat in the corpus, so ties are covered. Writes parity/fixtures/E.3/fuzzy.json; the Rust test
 // expects the same order.
+import { fileURLToPath } from "node:url"
 import fuzzysort from "../../../tui/node_modules/fuzzysort"
 import { Definitions } from "../../../tui/src/config/keybind"
 import { stripFileLineRange } from "../../../tui/src/prompt/parse"
@@ -41,6 +42,6 @@ function go(mode: "command" | "reference", search: string) {
 const cases = (["command", "reference"] as const).flatMap((mode) =>
   queries.map((query) => ({ mode, query, results: go(mode, query) })),
 )
-const path = new URL("../fixtures/E.3/fuzzy.json", import.meta.url).pathname
+const path = fileURLToPath(new URL("../fixtures/E.3/fuzzy.json", import.meta.url))
 await Bun.write(path, records({ corpus, cases }, ["corpus.*[]", "cases[]"]))
 console.log(`oracle: E.3/fuzzy ${cases.length} cases`)

@@ -4,9 +4,10 @@
 // TypeScript, TSX, Markdown, Markdown inline, Zig) take the queries bundled in @opentui/core. Every query then gets
 // Core's #lua-match? rewrite, so the files hold what Core compiles. The manifest lists
 // each linked filetype with its aliases and sources (parity/deviations/H06-highlight-queries.md).
+import { fileURLToPath } from "node:url"
 import parsers from "../../../tui/src/parsers-config"
 
-const root = new URL("../../assets/queries/", import.meta.url).pathname
+const root = fileURLToPath(new URL("../../assets/queries/", import.meta.url))
 const core = Bun.resolveSync("@opentui/core/package.json", import.meta.dir).replace(/package\.json$/, "")
 // Core's query cache: getDataPaths().globalDataPath, then tree-sitter/queries.
 const cache = `${process.env.XDG_DATA_HOME || `${process.env.HOME}/.local/share`}/opentui/tree-sitter/queries`

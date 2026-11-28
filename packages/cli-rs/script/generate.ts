@@ -1,5 +1,7 @@
 // Runs every generator in script/gen in name order. Each writes its own output under crates/.
-const root = new URL("..", import.meta.url).pathname
+import { fileURLToPath } from "node:url"
+
+const root = fileURLToPath(new URL("..", import.meta.url))
 const scripts = Array.from(new Bun.Glob("script/gen/*.ts").scanSync({ cwd: root })).sort()
 
 for (const script of scripts) {

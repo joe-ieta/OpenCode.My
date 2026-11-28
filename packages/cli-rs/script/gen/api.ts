@@ -1,4 +1,5 @@
 // Generates Rust API types and endpoints from ClientApi.
+import { fileURLToPath } from "node:url"
 import { compile, type Endpoint } from "@opencode/httpapi-codegen"
 import { ClientApi, clientNamespace, groupNames, promiseOmitEndpoints } from "@opencode/protocol/client"
 import { Schema, SchemaAST, SchemaRepresentation } from "effect"
@@ -6,7 +7,7 @@ import { HttpApiSchema } from "effect/http-api"
 import { emitMethod, type Field, type Method } from "../rust/methods.ts"
 import { pascal, Types } from "../rust/types.ts"
 
-const root = new URL("..", import.meta.url).pathname.replace(/script\/$/, "")
+const root = fileURLToPath(new URL("../..", import.meta.url))
 const directory = `${root}crates/api/src/generated`
 const typesFile = `${root}crates/api-types/src/types.rs`
 const clientFile = `${root}crates/api-types/src/client.rs`

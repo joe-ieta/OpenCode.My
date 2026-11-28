@@ -18,3 +18,27 @@ pub fn option_number<S: Serializer>(value: &Option<f64>, serializer: S) -> Resul
         None => serializer.serialize_none(),
     }
 }
+
+/// Writes a present optional field as either null or a number. Serde skips the absent outer option.
+pub fn double_option_number<S: Serializer>(value: &Option<Option<f64>>, serializer: S) -> Result<S::Ok, S::Error> {
+    option_number(&value.flatten(), serializer)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::types::CustomProviderAdvancedCostPatch;
+
+    #[test]
+    fn cost_patch_preserves_omitted_null_and_numeric_fields() {
+        for (json, expected) in [
+            ("{}", None),
+            (r#"{"cacheRead":null}"#, Some(None)),
+            (r#"{"cacheRead":3}"#, Some(Some(3.0))),
+            (r#"{"cacheRead":3.5}"#, Some(Some(3.5))),
+        ] {
+            let patch: CustomProviderAdvancedCostPatch = serde_json::from_str(json).unwrap();
+            assert_eq!(patch.cache_read, expected);
+            assert_eq!(serde_json::to_string(&patch).unwrap(), json);
+        }
+    }
+}

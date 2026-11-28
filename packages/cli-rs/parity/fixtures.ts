@@ -4,7 +4,9 @@
 //
 // Oracle scripts whose first line names them a "helper" (E.2-history.ts, F.4-local.ts, and others) write no
 // fixture: Rust tests run them with arguments, so they are skipped here.
-const parity = new URL(".", import.meta.url).pathname
+import { fileURLToPath } from "node:url"
+
+const parity = fileURLToPath(new URL(".", import.meta.url))
 const scripts = Array.from(new Bun.Glob("oracle/*.ts").scanSync({ cwd: parity })).sort()
 const helpers = await Promise.all(
   scripts.map(async (script) => /\bhelper\b/.test((await Bun.file(`${parity}${script}`).text()).split("\n", 1)[0])),
@@ -13,7 +15,7 @@ const oracles = scripts.filter((_, index) => !helpers[index])
 const components = Array.from(new Bun.Glob("component/*.tsx").scanSync({ cwd: parity })).sort()
 const scenarios = Array.from(new Bun.Glob("scenarios/*/*.app.ts").scanSync({ cwd: parity }))
   .sort()
-  .map((file) => file.slice("scenarios/".length, -".app.ts".length))
+  .map((file) => file.replaceAll("\\", "/").slice("scenarios/".length, -".app.ts".length))
 
 for (const script of oracles) run(["bun", "run", script])
 // Component scripts and scenarios run from parity/ so bun picks up the TUI preloads in parity/bunfig.toml.

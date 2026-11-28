@@ -560,6 +560,11 @@ pub fn experimental_session_export(input: &ExperimentalSessionExportInput) -> Ca
     call
 }
 
+/// `GET /api/experimental/session/activity` (`activity`)
+pub fn experimental_session_activity() -> Call<ExperimentalSessionActivityOutput> {
+    Call::new("GET", "/api/experimental/session/activity".to_owned(), Reply::Data, 200, &[400, 401])
+}
+
 /// `POST /api/experimental/session/:sessionID/skill` (`skill`)
 pub fn experimental_session_skill(input: &ExperimentalSessionSkillInput) -> Call<()> {
     let mut call = Call::new("POST", String::new(), Reply::Empty, 204, &[400, 401, 404, 502]);
@@ -681,6 +686,20 @@ pub fn experimental_generate_text(input: &ExperimentalGenerateTextInput) -> Call
     if let Some(value) = &input.model {
         call.field("model", value);
     }
+    call
+}
+
+/// `POST /api/experimental/generate/test-text` (`testText`)
+pub fn experimental_generate_test_text(input: &ExperimentalGenerateTestTextInput) -> Call<()> {
+    let mut call = Call::new(
+        "POST",
+        "/api/experimental/generate/test-text".to_owned(),
+        Reply::Empty,
+        204,
+        &[400, 401, 404, 422, 502, 503],
+    );
+    call.object();
+    call.field("model", &input.model);
     call
 }
 
@@ -2167,6 +2186,15 @@ pub fn experimental_migration_v1_status() -> Call<ExperimentalMigrationV1StatusO
     Call::new("GET", "/api/experimental/migration/v1".to_owned(), Reply::Json, 200, &[400, 401])
 }
 
+/// `POST /api/experimental/migration/v1/accept` (`v1.accept`)
+pub fn experimental_migration_v1_accept(input: &ExperimentalMigrationV1AcceptInput) -> Call<()> {
+    let mut call =
+        Call::new("POST", "/api/experimental/migration/v1/accept".to_owned(), Reply::Empty, 200, &[400, 401]);
+    call.object();
+    call.field("acknowledged", &input.acknowledged);
+    call
+}
+
 /// `GET /api/websearch/provider` (`providers`)
 pub fn websearch_providers(input: &WebsearchProvidersInput) -> Call<WebsearchProvidersOutput> {
     let mut call = Call::new("GET", "/api/websearch/provider".to_owned(), Reply::Json, 200, &[400, 401, 404, 503]);
@@ -2228,6 +2256,84 @@ pub fn experimental_config_update(input: &ExperimentalConfigUpdateInput) -> Call
     let mut call = Call::new("PATCH", "/api/experimental/config".to_owned(), Reply::Empty, 204, &[400, 401, 404]);
     call.object();
     call.field("shell", &input.shell);
+    call
+}
+
+/// `GET /api/experimental/config/providers` (`providers.list`)
+pub fn experimental_config_providers_list(
+    input: &ExperimentalConfigProvidersListInput,
+) -> Call<ExperimentalConfigProvidersListOutput> {
+    let mut call =
+        Call::new("GET", "/api/experimental/config/providers".to_owned(), Reply::Json, 200, &[400, 401, 404, 500]);
+    if let Some(value) = &input.location {
+        call.query("location", value);
+    }
+    call
+}
+
+/// `PATCH /api/experimental/config/providers/:providerID` (`providers.update`)
+pub fn experimental_config_providers_update(
+    input: &ExperimentalConfigProvidersUpdateInput,
+) -> Call<ExperimentalConfigProvidersUpdateOutput> {
+    let mut call = Call::new("PATCH", String::new(), Reply::Json, 200, &[400, 401, 404, 409, 500]);
+    call.path = format!("/api/experimental/config/providers/{}", call.param(&input.provider_id));
+    call.object();
+    if let Some(value) = &input.location {
+        call.query("location", value);
+    }
+    call.field("mode", &input.mode);
+    call.field("revision", &input.revision);
+    if let Some(value) = &input.patch {
+        call.field("patch", value);
+    }
+    if let Some(value) = &input.credential {
+        call.field("credential", value);
+    }
+    call
+}
+
+/// `POST /api/experimental/config/providers/discover` (`providers.discover`)
+pub fn experimental_config_providers_discover(
+    input: &ExperimentalConfigProvidersDiscoverInput,
+) -> Call<ExperimentalConfigProvidersDiscoverOutput> {
+    let mut call = Call::new(
+        "POST",
+        "/api/experimental/config/providers/discover".to_owned(),
+        Reply::Json,
+        200,
+        &[400, 401, 404, 409, 500],
+    );
+    call.object();
+    if let Some(value) = &input.location {
+        call.query("location", value);
+    }
+    call.field("target", &input.target);
+    if let Some(value) = &input.api {
+        call.field("api", value);
+    }
+    if let Some(value) = &input.metadata {
+        call.field("metadata", value);
+    }
+    call
+}
+
+/// `POST /api/experimental/config/providers/test` (`providers.test`)
+pub fn experimental_config_providers_test(
+    input: &ExperimentalConfigProvidersTestInput,
+) -> Call<ExperimentalConfigProvidersTestOutput> {
+    let mut call = Call::new(
+        "POST",
+        "/api/experimental/config/providers/test".to_owned(),
+        Reply::Json,
+        200,
+        &[400, 401, 404, 409, 500],
+    );
+    call.object();
+    if let Some(value) = &input.location {
+        call.query("location", value);
+    }
+    call.field("target", &input.target);
+    call.field("modelID", &input.model_id);
     call
 }
 
@@ -2535,6 +2641,7 @@ pub fn probe(name: &str, input: &serde_json::Value) -> Option<Result<Call<serde_
             })
             .cast())
         })()),
+        "experimental.session.activity" => Some((|| Ok(experimental_session_activity().cast()))()),
         "experimental.session.skill" => Some((|| {
             Ok(experimental_session_skill(&ExperimentalSessionSkillInput {
                 session_id: field(input, "sessionID")?,
@@ -2599,6 +2706,10 @@ pub fn probe(name: &str, input: &serde_json::Value) -> Option<Result<Call<serde_
                 model: field(input, "model")?,
             })
             .cast())
+        })()),
+        "experimental.generate.testText" => Some((|| {
+            Ok(experimental_generate_test_text(&ExperimentalGenerateTestTextInput { model: field(input, "model")? })
+                .cast())
         })()),
         "experimental.generate.image" => Some((|| {
             Ok(experimental_generate_image(&ExperimentalGenerateImageInput {
@@ -3337,6 +3448,12 @@ pub fn probe(name: &str, input: &serde_json::Value) -> Option<Result<Call<serde_
             )
         }
         "experimental.migration.v1.status" => Some((|| Ok(experimental_migration_v1_status().cast()))()),
+        "experimental.migration.v1.accept" => Some((|| {
+            Ok(experimental_migration_v1_accept(&ExperimentalMigrationV1AcceptInput {
+                acknowledged: field(input, "acknowledged")?,
+            })
+            .cast())
+        })()),
         "websearch.providers" => {
             Some((|| Ok(websearch_providers(&WebsearchProvidersInput { location: field(input, "location")? }).cast()))())
         }
@@ -3358,6 +3475,40 @@ pub fn probe(name: &str, input: &serde_json::Value) -> Option<Result<Call<serde_
         "config.shells" => Some((|| Ok(config_shells().cast()))()),
         "experimental.config.update" => Some((|| {
             Ok(experimental_config_update(&ExperimentalConfigUpdateInput { shell: field(input, "shell")? }).cast())
+        })()),
+        "experimental.config.providers.list" => Some((|| {
+            Ok(experimental_config_providers_list(&ExperimentalConfigProvidersListInput {
+                location: field(input, "location")?,
+            })
+            .cast())
+        })()),
+        "experimental.config.providers.update" => Some((|| {
+            Ok(experimental_config_providers_update(&ExperimentalConfigProvidersUpdateInput {
+                provider_id: field(input, "providerID")?,
+                location: field(input, "location")?,
+                mode: field(input, "mode")?,
+                revision: field(input, "revision")?,
+                patch: field(input, "patch")?,
+                credential: field(input, "credential")?,
+            })
+            .cast())
+        })()),
+        "experimental.config.providers.discover" => Some((|| {
+            Ok(experimental_config_providers_discover(&ExperimentalConfigProvidersDiscoverInput {
+                location: field(input, "location")?,
+                target: field(input, "target")?,
+                api: field(input, "api")?,
+                metadata: field(input, "metadata")?,
+            })
+            .cast())
+        })()),
+        "experimental.config.providers.test" => Some((|| {
+            Ok(experimental_config_providers_test(&ExperimentalConfigProvidersTestInput {
+                location: field(input, "location")?,
+                target: field(input, "target")?,
+                model_id: field(input, "modelID")?,
+            })
+            .cast())
         })()),
         _ => None,
     }

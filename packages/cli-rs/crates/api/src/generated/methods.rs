@@ -68,6 +68,13 @@ impl Client {
     endpoint!(" `GET /api/experimental/session/stats` (`stats`)", experimental_session_stats, experimental_session_stats_call, data, ExperimentalSessionStatsOutput, input: ExperimentalSessionStatsInput);
     endpoint!(" `POST /api/experimental/session/import` (`import`)", experimental_session_import, experimental_session_import_call, data, ExperimentalSessionImportOutput, input: ExperimentalSessionImportInput);
     endpoint!(" `GET /api/experimental/session/:sessionID/export` (`export`)", experimental_session_export, experimental_session_export_call, data, ExperimentalSessionExportOutput, input: ExperimentalSessionExportInput);
+    endpoint!(
+        " `GET /api/experimental/session/activity` (`activity`)",
+        experimental_session_activity,
+        experimental_session_activity_call,
+        data,
+        ExperimentalSessionActivityOutput
+    );
     endpoint!(" `POST /api/experimental/session/:sessionID/skill` (`skill`)", experimental_session_skill, experimental_session_skill_call, empty, (), input: ExperimentalSessionSkillInput);
     endpoint!(" `POST /api/experimental/session/:sessionID/wait` (`wait`)", experimental_session_wait, experimental_session_wait_call, empty, (), input: ExperimentalSessionWaitInput);
     endpoint!(" `GET /api/experimental/session/:sessionID/instructions/entries` (`instructions.entry.list`)", experimental_session_instructions_entry_list, experimental_session_instructions_entry_list_call, data, ExperimentalSessionInstructionsEntryListOutput, input: ExperimentalSessionInstructionsEntryListInput);
@@ -78,6 +85,7 @@ impl Client {
     endpoint!(" `GET /api/model` (`list`)", model_list, model_list_call, json, ModelListOutput, input: ModelListInput);
     endpoint!(" `GET /api/model/default` (`default`)", model_default, model_default_call, json, ModelDefaultOutput, input: ModelDefaultInput);
     endpoint!(" `POST /api/experimental/generate/text` (`text`)", experimental_generate_text, experimental_generate_text_call, data, ExperimentalGenerateTextOutput, input: ExperimentalGenerateTextInput);
+    endpoint!(" `POST /api/experimental/generate/test-text` (`testText`)", experimental_generate_test_text, experimental_generate_test_text_call, empty, (), input: ExperimentalGenerateTestTextInput);
     endpoint!(" `POST /api/experimental/generate/image` (`image`)", experimental_generate_image, experimental_generate_image_call, data, ExperimentalGenerateImageOutput, input: ExperimentalGenerateImageInput);
     endpoint!(" `POST /api/experimental/generate/video` (`video.create`)", experimental_generate_video_create, experimental_generate_video_create_call, data, ExperimentalGenerateVideoCreateOutput, input: ExperimentalGenerateVideoCreateInput);
     endpoint!(" `GET /api/experimental/generate/video/:id` (`video.get`)", experimental_generate_video_get, experimental_generate_video_get_call, data, ExperimentalGenerateVideoGetOutput, input: ExperimentalGenerateVideoGetInput);
@@ -257,6 +265,7 @@ impl Client {
         json,
         ExperimentalMigrationV1StatusOutput
     );
+    endpoint!(" `POST /api/experimental/migration/v1/accept` (`v1.accept`)", experimental_migration_v1_accept, experimental_migration_v1_accept_call, empty, (), input: ExperimentalMigrationV1AcceptInput);
     endpoint!(" `GET /api/websearch/provider` (`providers`)", websearch_providers, websearch_providers_call, json, WebsearchProvidersOutput, input: WebsearchProvidersInput);
     endpoint!(" `POST /api/websearch` (`query`)", websearch_query, websearch_query_call, json, WebsearchQueryOutput, input: WebsearchQueryInput);
     endpoint!(" `GET /api/experimental/usage/limits` (`limits`)", experimental_usage_limits, experimental_usage_limits_call, json, ExperimentalUsageLimitsOutput, input: ExperimentalUsageLimitsInput);
@@ -264,4 +273,8 @@ impl Client {
     endpoint!(" `GET /api/config` (`get`)", config_get, config_get_call, json, ConfigGetOutput, input: ConfigGetInput);
     endpoint!(" `GET /api/config/shell` (`shells`)", config_shells, config_shells_call, json, ConfigShellsOutput);
     endpoint!(" `PATCH /api/experimental/config` (`update`)", experimental_config_update, experimental_config_update_call, empty, (), input: ExperimentalConfigUpdateInput);
+    endpoint!(" `GET /api/experimental/config/providers` (`providers.list`)", experimental_config_providers_list, experimental_config_providers_list_call, json, ExperimentalConfigProvidersListOutput, input: ExperimentalConfigProvidersListInput);
+    endpoint!(" `PATCH /api/experimental/config/providers/:providerID` (`providers.update`)", experimental_config_providers_update, experimental_config_providers_update_call, json, ExperimentalConfigProvidersUpdateOutput, input: ExperimentalConfigProvidersUpdateInput);
+    endpoint!(" `POST /api/experimental/config/providers/discover` (`providers.discover`)", experimental_config_providers_discover, experimental_config_providers_discover_call, json, ExperimentalConfigProvidersDiscoverOutput, input: ExperimentalConfigProvidersDiscoverInput);
+    endpoint!(" `POST /api/experimental/config/providers/test` (`providers.test`)", experimental_config_providers_test, experimental_config_providers_test_call, json, ExperimentalConfigProvidersTestOutput, input: ExperimentalConfigProvidersTestInput);
 }

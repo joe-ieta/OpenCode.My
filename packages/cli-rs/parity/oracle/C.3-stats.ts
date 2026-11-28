@@ -5,6 +5,7 @@
 // Both read process state: `activityCalendar` takes local dates (TZ), and the stats palette comes from
 // COLORFGBG when the module loads. So each time zone and each COLORFGBG runs in a child process. The
 // time zones have fixed offsets, which the Rust test can rebuild with `FixedOffset`.
+import { fileURLToPath } from "node:url"
 import type { SessionStatsInfo } from "@opencode/client"
 import { activityCalendar } from "../../../util/src/activity-calendar"
 
@@ -37,7 +38,7 @@ const render = renders.map((item, index) => ({
   cases: item.cases.filter((entry: { options: { color: boolean } }) => index === 0 || entry.options.color),
 }))
 
-const file = new URL("../fixtures/C.3/stats.json", import.meta.url).pathname
+const file = fileURLToPath(new URL("../fixtures/C.3/stats.json", import.meta.url))
 // One case per line: the calendars and the colored renders are too long to indent.
 const lines = (items: unknown[]) => `[\n${items.map((item) => JSON.stringify(item)).join(",\n")}\n]`
 await Bun.write(
@@ -280,7 +281,8 @@ async function renderCases() {
         [false, true].map((color) => {
           const { name, ...rest } = option
           const resolved = { ...base, ...rest, color }
-          return { stats: input.stats, name, options: resolved, output: renderStats(input.value, resolved) }
+          const output = renderStats(input.value, resolved).replaceAll("\r\n", "\n")
+          return { stats: input.stats, name, options: resolved, output }
         }),
       ),
   )

@@ -3110,6 +3110,31 @@ pub struct SessionTransferData {
 /// Output of `Client::experimental_session_export`.
 pub type ExperimentalSessionExportOutput = SessionTransferData;
 
+literal_enum! {
+SessionActivityInfoKind {
+    Shell => "shell",
+    Subagent => "subagent",
+    Image => "image",
+    Job => "job",
+}
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SessionActivityInfo {
+    pub id: String,
+    #[serde(rename = "sessionID")]
+    pub session_id: SessionID,
+    pub kind: SessionActivityInfoKind,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(rename = "startedAt", serialize_with = "crate::ser::number")]
+    pub started_at: f64,
+    pub ancestors: Vec<SessionID>,
+}
+
+/// Output of `Client::experimental_session_activity`.
+pub type ExperimentalSessionActivityOutput = Vec<SessionActivityInfo>;
+
 /// Input of `Client::experimental_session_skill`.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct ExperimentalSessionSkillInput {
@@ -5511,6 +5536,19 @@ pub struct ExperimentalGenerateTextInput {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct ExperimentalGenerateTextOutput {
     pub text: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ExperimentalGenerateTestTextInputModel {
+    #[serde(rename = "providerID")]
+    pub provider_id: ProviderID,
+    pub id: String,
+}
+
+/// Input of `Client::experimental_generate_test_text`.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct ExperimentalGenerateTestTextInput {
+    pub model: ExperimentalGenerateTestTextInputModel,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -7978,6 +8016,22 @@ pub struct SessionCompactionDelta {
     pub data: SessionCompactionDeltaData,
 }
 
+/// Any value but `null`.
+pub type ExperimentalSessionActivityChangedData = crate::de::NotNull;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ExperimentalSessionActivityChanged {
+    pub id: EventID,
+    #[serde(serialize_with = "crate::ser::number")]
+    pub created: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata: Option<IndexMap<String, serde_json::Value>>,
+    pub r#type: tag::ExperimentalSessionActivityChanged,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub location: Option<LocationRef>,
+    pub data: ExperimentalSessionActivityChangedData,
+}
+
 literal_enum! {
 FilesystemChangedDataEvent {
     Add => "add",
@@ -9253,6 +9307,7 @@ pub enum V2Event {
     SessionRevertStaged(SessionRevertStaged),
     SessionRevertCleared(SessionRevertCleared),
     SessionRevertCommitted(SessionRevertCommitted),
+    ExperimentalSessionActivityChanged(ExperimentalSessionActivityChanged),
     FilesystemChanged(FilesystemChanged),
     ReferenceUpdated(ReferenceUpdated),
     PermissionAsked(PermissionAsked),
@@ -9371,6 +9426,9 @@ impl V2Event {
             Some("session.revert.staged") => raw.variant().map(Self::SessionRevertStaged),
             Some("session.revert.cleared") => raw.variant().map(Self::SessionRevertCleared),
             Some("session.revert.committed") => raw.variant().map(Self::SessionRevertCommitted),
+            Some("experimental.session.activity.changed") => {
+                raw.variant().map(Self::ExperimentalSessionActivityChanged)
+            }
             Some("filesystem.changed") => raw.variant().map(Self::FilesystemChanged),
             Some("reference.updated") => raw.variant().map(Self::ReferenceUpdated),
             Some("permission.asked") => raw.variant().map(Self::PermissionAsked),
@@ -9485,6 +9543,7 @@ impl V2Event {
             Self::SessionRevertStaged(value) => value.r#type.as_str(),
             Self::SessionRevertCleared(value) => value.r#type.as_str(),
             Self::SessionRevertCommitted(value) => value.r#type.as_str(),
+            Self::ExperimentalSessionActivityChanged(value) => value.r#type.as_str(),
             Self::FilesystemChanged(value) => value.r#type.as_str(),
             Self::ReferenceUpdated(value) => value.r#type.as_str(),
             Self::PermissionAsked(value) => value.r#type.as_str(),
@@ -9597,6 +9656,7 @@ impl V2Event {
             Self::SessionRevertStaged(value) => value.id.as_str(),
             Self::SessionRevertCleared(value) => value.id.as_str(),
             Self::SessionRevertCommitted(value) => value.id.as_str(),
+            Self::ExperimentalSessionActivityChanged(value) => value.id.as_str(),
             Self::FilesystemChanged(value) => value.id.as_str(),
             Self::ReferenceUpdated(value) => value.id.as_str(),
             Self::PermissionAsked(value) => value.id.as_str(),
@@ -9709,6 +9769,7 @@ impl V2Event {
             Self::SessionRevertStaged(value) => Some(value.created),
             Self::SessionRevertCleared(value) => Some(value.created),
             Self::SessionRevertCommitted(value) => Some(value.created),
+            Self::ExperimentalSessionActivityChanged(value) => Some(value.created),
             Self::FilesystemChanged(value) => Some(value.created),
             Self::ReferenceUpdated(value) => Some(value.created),
             Self::PermissionAsked(value) => Some(value.created),
@@ -9820,6 +9881,7 @@ impl V2Event {
             Self::SessionRevertStaged(value) => value.metadata.as_ref(),
             Self::SessionRevertCleared(value) => value.metadata.as_ref(),
             Self::SessionRevertCommitted(value) => value.metadata.as_ref(),
+            Self::ExperimentalSessionActivityChanged(value) => value.metadata.as_ref(),
             Self::FilesystemChanged(value) => value.metadata.as_ref(),
             Self::ReferenceUpdated(value) => value.metadata.as_ref(),
             Self::PermissionAsked(value) => value.metadata.as_ref(),
@@ -9933,6 +9995,7 @@ impl V2Event {
             | Self::SessionToolInputDelta(_)
             | Self::SessionToolProgress(_)
             | Self::SessionCompactionDelta(_)
+            | Self::ExperimentalSessionActivityChanged(_)
             | Self::FilesystemChanged(_)
             | Self::ReferenceUpdated(_)
             | Self::PermissionAsked(_)
@@ -10045,6 +10108,7 @@ impl V2Event {
             | Self::SessionToolInputDelta(_)
             | Self::SessionToolProgress(_)
             | Self::SessionCompactionDelta(_)
+            | Self::ExperimentalSessionActivityChanged(_)
             | Self::FilesystemChanged(_)
             | Self::ReferenceUpdated(_)
             | Self::PermissionAsked(_)
@@ -10157,6 +10221,7 @@ impl V2Event {
             | Self::SessionToolInputDelta(_)
             | Self::SessionToolProgress(_)
             | Self::SessionCompactionDelta(_)
+            | Self::ExperimentalSessionActivityChanged(_)
             | Self::FilesystemChanged(_)
             | Self::ReferenceUpdated(_)
             | Self::PermissionAsked(_)
@@ -10270,6 +10335,7 @@ pub enum EventKind {
     SessionRevertStaged,
     SessionRevertCleared,
     SessionRevertCommitted,
+    ExperimentalSessionActivityChanged,
     FilesystemChanged,
     ReferenceUpdated,
     PermissionAsked,
@@ -10320,7 +10386,7 @@ pub enum EventKind {
 
 impl EventKind {
     /// How many kinds there are, `Unknown` included.
-    pub const COUNT: usize = 106;
+    pub const COUNT: usize = 107;
 
     /// The kind an event whose `type` is `tag` decodes to.
     pub fn from_tag(tag: &str) -> Self {
@@ -10385,6 +10451,7 @@ impl EventKind {
             "session.revert.staged" => Self::SessionRevertStaged,
             "session.revert.cleared" => Self::SessionRevertCleared,
             "session.revert.committed" => Self::SessionRevertCommitted,
+            "experimental.session.activity.changed" => Self::ExperimentalSessionActivityChanged,
             "filesystem.changed" => Self::FilesystemChanged,
             "reference.updated" => Self::ReferenceUpdated,
             "permission.asked" => Self::PermissionAsked,
@@ -10504,6 +10571,7 @@ impl V2Event {
             Self::SessionRevertStaged(_) => EventKind::SessionRevertStaged,
             Self::SessionRevertCleared(_) => EventKind::SessionRevertCleared,
             Self::SessionRevertCommitted(_) => EventKind::SessionRevertCommitted,
+            Self::ExperimentalSessionActivityChanged(_) => EventKind::ExperimentalSessionActivityChanged,
             Self::FilesystemChanged(_) => EventKind::FilesystemChanged,
             Self::ReferenceUpdated(_) => EventKind::ReferenceUpdated,
             Self::PermissionAsked(_) => EventKind::PermissionAsked,
@@ -11986,10 +12054,24 @@ pub struct VcsBranch {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct VcsRemote {
+    pub name: String,
+    pub url: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct VcsInfoExperimental {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub remotes: Option<Vec<VcsRemote>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct VcsInfo {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
     pub branch: VcsBranch,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub experimental: Option<VcsInfoExperimental>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
@@ -12133,6 +12215,7 @@ pub struct DebugLocationEvictInput {
 
 literal_enum! {
 ExperimentalMigrationV1StatusOutput2Variant1Status {
+    ConfirmationRequired => "confirmation_required",
     Required => "required",
     Completed => "completed",
 }
@@ -12183,7 +12266,7 @@ impl<'de> Deserialize<'de> for ExperimentalMigrationV1StatusOutput2 {
 impl ExperimentalMigrationV1StatusOutput2 {
     pub fn from_raw(raw: &crate::de::Raw) -> Result<Self, serde_json::Error> {
         match raw.field("status").as_str() {
-            Some("required") | Some("completed") => raw.variant().map(Self::Variant1),
+            Some("confirmation_required") | Some("required") | Some("completed") => raw.variant().map(Self::Variant1),
             Some("running") => raw.variant().map(Self::Running),
             Some("error") => raw.variant().map(Self::Error),
             _ => raw.unknown().map(Self::Unknown),
@@ -12205,6 +12288,12 @@ impl ExperimentalMigrationV1StatusOutput2 {
 
 /// Output of `Client::experimental_migration_v1_status`.
 pub type ExperimentalMigrationV1StatusOutput = ExperimentalMigrationV1StatusOutput2;
+
+/// Input of `Client::experimental_migration_v1_accept`.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct ExperimentalMigrationV1AcceptInput {
+    pub acknowledged: bool,
+}
 
 /// Input of `Client::websearch_providers`.
 #[derive(Debug, Clone, PartialEq, Default)]
@@ -13159,6 +13248,8 @@ pub struct ConfigEntryDocumentInfoExperimental {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub console_watches: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub openai_compatible_discovery: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub recommended_api: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub full_codemode: Option<bool>,
@@ -13329,6 +13420,730 @@ pub type ConfigShellsOutput = Vec<ConfigShellOption>;
 pub struct ExperimentalConfigUpdateInput {
     pub shell: Option<String>,
 }
+
+/// Input of `Client::experimental_config_providers_list`.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct ExperimentalConfigProvidersListInput {
+    pub location: Option<LocationQueryInput>,
+}
+
+literal_enum! {
+CustomProviderAdvancedProviderSettingsTextVerbosity {
+    Low => "low",
+    Medium => "medium",
+    High => "high",
+}
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedProviderSettings {
+    #[serde(rename = "reasoningEffort", default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<String>,
+    #[serde(rename = "textVerbosity", default, skip_serializing_if = "Option::is_none")]
+    pub text_verbosity: Option<CustomProviderAdvancedProviderSettingsTextVerbosity>,
+    #[serde(rename = "parallelToolCalls", default, skip_serializing_if = "Option::is_none")]
+    pub parallel_tool_calls: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub encoding: Option<ProviderEncoding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<ProviderSettingsTimeout>,
+    #[serde(rename = "headerTimeout", default, skip_serializing_if = "Option::is_none")]
+    pub header_timeout: Option<ProviderSettingsTimeout>,
+    #[serde(rename = "chunkTimeout", default, skip_serializing_if = "Option::is_none")]
+    pub chunk_timeout: Option<ProviderSettingsTimeout>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedCompatibility {
+    #[serde(rename = "reasoningField", default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_field: Option<String>,
+    #[serde(rename = "maxTokensField", default, skip_serializing_if = "Option::is_none")]
+    pub max_tokens_field: Option<ModelMaxTokensField>,
+    #[serde(rename = "requireReasoning", default, skip_serializing_if = "Option::is_none")]
+    pub require_reasoning: Option<bool>,
+    #[serde(rename = "requireFinishReason", default, skip_serializing_if = "Option::is_none")]
+    pub require_finish_reason: Option<bool>,
+    #[serde(rename = "requireAssistantAfterTool", default, skip_serializing_if = "Option::is_none")]
+    pub require_assistant_after_tool: Option<bool>,
+    #[serde(rename = "supportsPromptCacheKey", default, skip_serializing_if = "Option::is_none")]
+    pub supports_prompt_cache_key: Option<bool>,
+    #[serde(rename = "streamUsage", default, skip_serializing_if = "Option::is_none")]
+    pub stream_usage: Option<bool>,
+    #[serde(rename = "cacheFormat", default, skip_serializing_if = "Option::is_none")]
+    pub cache_format: Option<ModelCacheFormat>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderEntryCredentialsItem {
+    pub id: CredentialID,
+    pub label: String,
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedSettings {
+    #[serde(rename = "reasoningEffort", default, skip_serializing_if = "Option::is_none")]
+    pub reasoning_effort: Option<String>,
+    #[serde(rename = "textVerbosity", default, skip_serializing_if = "Option::is_none")]
+    pub text_verbosity: Option<CustomProviderAdvancedProviderSettingsTextVerbosity>,
+    #[serde(rename = "parallelToolCalls", default, skip_serializing_if = "Option::is_none")]
+    pub parallel_tool_calls: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub encoding: Option<ProviderEncoding>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedCost {
+    #[serde(serialize_with = "crate::ser::number")]
+    pub input: f64,
+    #[serde(serialize_with = "crate::ser::number")]
+    pub output: f64,
+    #[serde(
+        rename = "cacheRead",
+        default,
+        serialize_with = "crate::ser::option_number",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub cache_read: Option<f64>,
+    #[serde(
+        rename = "cacheWrite",
+        default,
+        serialize_with = "crate::ser::option_number",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub cache_write: Option<f64>,
+    #[serde(rename = "tierSize", default, skip_serializing_if = "Option::is_none")]
+    pub tier_size: Option<i64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedVariant {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<CustomProviderAdvancedSettings>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderDefinition {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(rename = "modelID", default, skip_serializing_if = "Option::is_none")]
+    pub model_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output: Option<i64>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Option<bool>>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub image: Option<Option<bool>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<CustomProviderAdvancedSettings>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<CustomProviderAdvancedCompatibility>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost: Option<Vec<CustomProviderAdvancedCost>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variants: Option<Vec<CustomProviderAdvancedVariant>>,
+    #[serde(rename = "variantsReadonly", default, skip_serializing_if = "Option::is_none")]
+    pub variants_readonly: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderEntry {
+    pub id: ProviderID,
+    pub name: String,
+    pub sources: Vec<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    #[serde(rename = "baseURL", default, skip_serializing_if = "Option::is_none")]
+    pub base_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<CustomProviderAdvancedProviderSettings>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<CustomProviderAdvancedCompatibility>,
+    #[serde(rename = "keyReadonly")]
+    pub key_readonly: bool,
+    #[serde(rename = "keySources")]
+    pub key_sources: Vec<String>,
+    pub credentials: Vec<CustomProviderEntryCredentialsItem>,
+    pub models: IndexMap<String, CustomProviderDefinition>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderListing {
+    pub revision: String,
+    pub target: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    pub providers: Vec<CustomProviderEntry>,
+}
+
+/// Output of `Client::experimental_config_providers_list`.
+pub type ExperimentalConfigProvidersListOutput = CustomProviderListing;
+
+literal_enum! {
+ExperimentalConfigProvidersUpdateInputMode {
+    Create => "create",
+    Edit => "edit",
+    Delete => "delete",
+}
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum CustomProviderAdvancedProviderSettingsPatchTimeout {
+    Number(i64),
+    Bool(bool),
+    /// A shape this client does not know, kept as it arrived.
+    Unknown(serde_json::Value),
+}
+
+impl<'de> Deserialize<'de> for CustomProviderAdvancedProviderSettingsPatchTimeout {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        crate::de::union(deserializer, Self::from_raw)
+    }
+}
+
+impl CustomProviderAdvancedProviderSettingsPatchTimeout {
+    fn from_raw(raw: &crate::de::Raw) -> Result<Self, serde_json::Error> {
+        if let Ok(member) = raw.decode() {
+            return Ok(Self::Number(member));
+        }
+        if let Ok(member) = raw.decode() {
+            return Ok(Self::Bool(member));
+        }
+        raw.unknown().map(Self::Unknown)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedProviderSettingsPatch {
+    #[serde(
+        rename = "reasoningEffort",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub reasoning_effort: Option<Option<String>>,
+    #[serde(
+        rename = "textVerbosity",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub text_verbosity: Option<Option<CustomProviderAdvancedProviderSettingsTextVerbosity>>,
+    #[serde(
+        rename = "parallelToolCalls",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub parallel_tool_calls: Option<Option<bool>>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub encoding: Option<Option<ProviderEncoding>>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<Option<CustomProviderAdvancedProviderSettingsPatchTimeout>>,
+    #[serde(
+        rename = "headerTimeout",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub header_timeout: Option<Option<CustomProviderAdvancedProviderSettingsPatchTimeout>>,
+    #[serde(
+        rename = "chunkTimeout",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub chunk_timeout: Option<Option<CustomProviderAdvancedProviderSettingsPatchTimeout>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedCompatibilityPatch {
+    #[serde(
+        rename = "reasoningField",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub reasoning_field: Option<Option<String>>,
+    #[serde(
+        rename = "maxTokensField",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub max_tokens_field: Option<Option<ModelMaxTokensField>>,
+    #[serde(
+        rename = "requireReasoning",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_reasoning: Option<Option<bool>>,
+    #[serde(
+        rename = "requireFinishReason",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_finish_reason: Option<Option<bool>>,
+    #[serde(
+        rename = "requireAssistantAfterTool",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub require_assistant_after_tool: Option<Option<bool>>,
+    #[serde(
+        rename = "supportsPromptCacheKey",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub supports_prompt_cache_key: Option<Option<bool>>,
+    #[serde(
+        rename = "streamUsage",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub stream_usage: Option<Option<bool>>,
+    #[serde(
+        rename = "cacheFormat",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub cache_format: Option<Option<ModelCacheFormat>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedSettingsPatch {
+    #[serde(
+        rename = "reasoningEffort",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub reasoning_effort: Option<Option<String>>,
+    #[serde(
+        rename = "textVerbosity",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub text_verbosity: Option<Option<CustomProviderAdvancedProviderSettingsTextVerbosity>>,
+    #[serde(
+        rename = "parallelToolCalls",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub parallel_tool_calls: Option<Option<bool>>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub encoding: Option<Option<ProviderEncoding>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedCostPatch {
+    #[serde(default, serialize_with = "crate::ser::option_number", skip_serializing_if = "Option::is_none")]
+    pub input: Option<f64>,
+    #[serde(default, serialize_with = "crate::ser::option_number", skip_serializing_if = "Option::is_none")]
+    pub output: Option<f64>,
+    #[serde(
+        rename = "cacheRead",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::ser::double_option_number"
+    )]
+    pub cache_read: Option<Option<f64>>,
+    #[serde(
+        rename = "cacheWrite",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "crate::ser::double_option_number"
+    )]
+    pub cache_write: Option<Option<f64>>,
+    #[serde(
+        rename = "tierSize",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub tier_size: Option<Option<i64>>,
+}
+
+/// `CustomProvider.Advanced.CostsPatch`
+pub type CustomProviderAdvancedCostsPatch = IndexMap<String, Option<CustomProviderAdvancedCostPatch>>;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderAdvancedVariantsPatchValue {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<CustomProviderAdvancedSettingsPatch>,
+}
+
+/// `CustomProvider.Advanced.VariantsPatch`
+pub type CustomProviderAdvancedVariantsPatch = IndexMap<String, Option<CustomProviderAdvancedVariantsPatchValue>>;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderModelPatch {
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub name: Option<Option<String>>,
+    #[serde(
+        rename = "modelID",
+        default,
+        deserialize_with = "crate::de::double_option",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub model_id: Option<Option<String>>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub context: Option<Option<i64>>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub input: Option<Option<i64>>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub output: Option<Option<i64>>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Option<bool>>,
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub image: Option<Option<bool>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<CustomProviderAdvancedSettingsPatch>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<CustomProviderAdvancedCompatibilityPatch>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub cost: Option<CustomProviderAdvancedCostsPatch>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub variants: Option<CustomProviderAdvancedVariantsPatch>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderPatch {
+    #[serde(default, deserialize_with = "crate::de::double_option", skip_serializing_if = "Option::is_none")]
+    pub name: Option<Option<String>>,
+    #[serde(rename = "baseURL", default, skip_serializing_if = "Option::is_none")]
+    pub base_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub settings: Option<CustomProviderAdvancedProviderSettingsPatch>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub compatibility: Option<CustomProviderAdvancedCompatibilityPatch>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub models: Option<IndexMap<String, Option<CustomProviderModelPatch>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ExperimentalConfigProvidersUpdateInputCredential {
+    pub id: CredentialID,
+    pub key: String,
+}
+
+/// Input of `Client::experimental_config_providers_update`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExperimentalConfigProvidersUpdateInput {
+    pub provider_id: ProviderID,
+    pub location: Option<LocationQueryInput>,
+    pub mode: ExperimentalConfigProvidersUpdateInputMode,
+    pub revision: String,
+    pub patch: Option<CustomProviderPatch>,
+    pub credential: Option<ExperimentalConfigProvidersUpdateInputCredential>,
+}
+
+literal_enum! {
+CustomProviderSavedConfig {
+    Saved => "saved",
+    Deleted => "deleted",
+}
+}
+
+literal_enum! {
+CustomProviderSavedCredential {
+    Unchanged => "unchanged",
+    Saved => "saved",
+    Failed => "failed",
+    Deleted => "deleted",
+}
+}
+
+literal_enum! {
+CustomProviderSavedCatalog {
+    Ready => "ready",
+    Pending => "pending",
+}
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CustomProviderSaved {
+    pub revision: String,
+    pub config: CustomProviderSavedConfig,
+    pub credential: CustomProviderSavedCredential,
+    pub catalog: CustomProviderSavedCatalog,
+}
+
+/// Output of `Client::experimental_config_providers_update`.
+pub type ExperimentalConfigProvidersUpdateOutput = CustomProviderSaved;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderDiscoveryInputSaved {
+    pub mode: tag::Saved,
+    #[serde(rename = "providerID")]
+    pub provider_id: ProviderID,
+    pub revision: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderDiscoveryInputDraft {
+    pub mode: tag::Draft,
+    #[serde(rename = "baseURL")]
+    pub base_url: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key: Option<String>,
+}
+
+/// `CustomProvider.DiscoveryInput`, tagged by `mode`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum CustomProviderDiscoveryInput {
+    Saved(CustomProviderDiscoveryInputSaved),
+    Draft(CustomProviderDiscoveryInputDraft),
+    /// A member this client does not know, kept as it arrived.
+    Unknown(serde_json::Value),
+}
+
+impl<'de> Deserialize<'de> for CustomProviderDiscoveryInput {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        crate::de::union(deserializer, Self::from_raw)
+    }
+}
+
+impl CustomProviderDiscoveryInput {
+    pub fn from_raw(raw: &crate::de::Raw) -> Result<Self, serde_json::Error> {
+        match raw.field("mode").as_str() {
+            Some("saved") => raw.variant().map(Self::Saved),
+            Some("draft") => raw.variant().map(Self::Draft),
+            _ => raw.unknown().map(Self::Unknown),
+        }
+    }
+}
+
+impl CustomProviderDiscoveryInput {
+    /// The `mode` tag, also of an unknown member.
+    pub fn tag(&self) -> &str {
+        match self {
+            Self::Saved(value) => value.mode.as_str(),
+            Self::Draft(value) => value.mode.as_str(),
+            Self::Unknown(value) => value.get("mode").and_then(serde_json::Value::as_str).unwrap_or_default(),
+        }
+    }
+}
+
+literal_enum! {
+ExperimentalConfigProvidersDiscoverInputApi {
+    Openai => "openai",
+    Ollama => "ollama",
+    Lmstudio => "lmstudio",
+}
+}
+
+/// Input of `Client::experimental_config_providers_discover`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExperimentalConfigProvidersDiscoverInput {
+    pub location: Option<LocationQueryInput>,
+    pub target: CustomProviderDiscoveryInput,
+    pub api: Option<ExperimentalConfigProvidersDiscoverInputApi>,
+    pub metadata: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderCandidate {
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub context: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output: Option<i64>,
+    #[serde(rename = "maxContext", default, skip_serializing_if = "Option::is_none")]
+    pub max_context: Option<i64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub loaded: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tools: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub image: Option<bool>,
+    #[serde(rename = "metadataPending", default, skip_serializing_if = "Option::is_none")]
+    pub metadata_pending: Option<bool>,
+    pub sources: IndexMap<String, String>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderDiscoverySuccess {
+    pub status: tag::Success,
+    pub models: Vec<CustomProviderCandidate>,
+    pub warnings: Vec<String>,
+}
+
+literal_enum! {
+CustomProviderDiscoveryErrorKind {
+    ModelNotFound => "model-not-found",
+    InvalidUrl => "invalid-url",
+    BlockedAddress => "blocked-address",
+    Authentication => "authentication",
+    Unsupported => "unsupported",
+    Redirect => "redirect",
+    Http => "http",
+    Network => "network",
+    Timeout => "timeout",
+    TooLarge => "too-large",
+    InvalidResponse => "invalid-response",
+    Empty => "empty",
+    UnsupportedAuth => "unsupported-auth",
+}
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CustomProviderDiscoveryError {
+    pub status: tag::Error,
+    pub kind: CustomProviderDiscoveryErrorKind,
+    #[serde(rename = "httpStatus", default, skip_serializing_if = "Option::is_none")]
+    pub http_status: Option<i64>,
+}
+
+/// `CustomProvider.Discovery`, tagged by `status`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum CustomProviderDiscovery {
+    Success(CustomProviderDiscoverySuccess),
+    Error(CustomProviderDiscoveryError),
+    /// A member this client does not know, kept as it arrived.
+    Unknown(serde_json::Value),
+}
+
+impl<'de> Deserialize<'de> for CustomProviderDiscovery {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        crate::de::union(deserializer, Self::from_raw)
+    }
+}
+
+impl CustomProviderDiscovery {
+    pub fn from_raw(raw: &crate::de::Raw) -> Result<Self, serde_json::Error> {
+        match raw.field("status").as_str() {
+            Some("success") => raw.variant().map(Self::Success),
+            Some("error") => raw.variant().map(Self::Error),
+            _ => raw.unknown().map(Self::Unknown),
+        }
+    }
+}
+
+impl CustomProviderDiscovery {
+    /// The `status` tag, also of an unknown member.
+    pub fn tag(&self) -> &str {
+        match self {
+            Self::Success(value) => value.status.as_str(),
+            Self::Error(value) => value.status.as_str(),
+            Self::Unknown(value) => value.get("status").and_then(serde_json::Value::as_str).unwrap_or_default(),
+        }
+    }
+}
+
+/// Output of `Client::experimental_config_providers_discover`.
+pub type ExperimentalConfigProvidersDiscoverOutput = CustomProviderDiscovery;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct ExperimentalConfigProvidersTestInputTarget {
+    pub mode: String,
+    #[serde(rename = "providerID")]
+    pub provider_id: ProviderID,
+    pub revision: String,
+}
+
+/// Input of `Client::experimental_config_providers_test`.
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct ExperimentalConfigProvidersTestInput {
+    pub location: Option<LocationQueryInput>,
+    pub target: ExperimentalConfigProvidersTestInputTarget,
+    pub model_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+pub struct CustomProviderTextTestSuccess {
+    pub status: tag::Success,
+}
+
+literal_enum! {
+CustomProviderTextTestErrorKind {
+    ModelNotFound => "model-not-found",
+    InvalidUrl => "invalid-url",
+    BlockedAddress => "blocked-address",
+    Authentication => "authentication",
+    Unsupported => "unsupported",
+    Redirect => "redirect",
+    Http => "http",
+    Network => "network",
+    Timeout => "timeout",
+    TooLarge => "too-large",
+    InvalidResponse => "invalid-response",
+    Empty => "empty",
+    UnsupportedAuth => "unsupported-auth",
+    NoText => "no-text",
+}
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CustomProviderTextTestError {
+    pub status: tag::Error,
+    pub kind: CustomProviderTextTestErrorKind,
+    #[serde(rename = "httpStatus", default, skip_serializing_if = "Option::is_none")]
+    pub http_status: Option<i64>,
+}
+
+/// `CustomProvider.TextTest`, tagged by `status`.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum CustomProviderTextTest {
+    Success(CustomProviderTextTestSuccess),
+    Error(CustomProviderTextTestError),
+    /// A member this client does not know, kept as it arrived.
+    Unknown(serde_json::Value),
+}
+
+impl<'de> Deserialize<'de> for CustomProviderTextTest {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        crate::de::union(deserializer, Self::from_raw)
+    }
+}
+
+impl CustomProviderTextTest {
+    pub fn from_raw(raw: &crate::de::Raw) -> Result<Self, serde_json::Error> {
+        match raw.field("status").as_str() {
+            Some("success") => raw.variant().map(Self::Success),
+            Some("error") => raw.variant().map(Self::Error),
+            _ => raw.unknown().map(Self::Unknown),
+        }
+    }
+}
+
+impl CustomProviderTextTest {
+    /// The `status` tag, also of an unknown member.
+    pub fn tag(&self) -> &str {
+        match self {
+            Self::Success(value) => value.status.as_str(),
+            Self::Error(value) => value.status.as_str(),
+            Self::Unknown(value) => value.get("status").and_then(serde_json::Value::as_str).unwrap_or_default(),
+        }
+    }
+}
+
+/// Output of `Client::experimental_config_providers_test`.
+pub type ExperimentalConfigProvidersTestOutput = CustomProviderTextTest;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct InvalidRequestError {
@@ -14136,9 +14951,10 @@ pub mod tag {
         Compaction = "compaction", Complete = "complete", Completed = "completed", ConfigUpdated = "config.updated",
         Connected = "connected", Credential = "credential", CredentialSwitched = "credential.switched",
         CredentialUpdated = "credential.updated", Cron = "cron", Delta = "delta", Detail = "detail",
-        Directory = "directory", Disabled = "disabled", Document = "document", Env = "env", Error = "error",
-        Event = "event", Every = "every", ExperimentalJobUpdated = "experimental.job.updated",
+        Directory = "directory", Disabled = "disabled", Document = "document", Draft = "draft", Env = "env",
+        Error = "error", Event = "event", Every = "every", ExperimentalJobUpdated = "experimental.job.updated",
         ExperimentalMcpEvent = "experimental.mcp.event", ExperimentalPushUpdated = "experimental.push.updated",
+        ExperimentalSessionActivityChanged = "experimental.session.activity.changed",
         ExperimentalSpaceDeleted = "experimental.space.deleted", ExperimentalSpaceResync = "experimental.space.resync",
         ExperimentalSpaceUpdated = "experimental.space.updated", Expired = "expired", External = "external",
         Failed = "failed", File = "file", FilesystemChanged = "filesystem.changed", FormCancelled = "form.cancelled",
@@ -14156,7 +14972,7 @@ pub mod tag {
         ProjectUpdated = "project.updated", Prompt = "prompt", ProviderUpdated = "provider.updated",
         PtyCreated = "pty.created", PtyDeleted = "pty.deleted", PtyExited = "pty.exited", PtyUpdated = "pty.updated",
         Reasoning = "reasoning", ReferenceUpdated = "reference.updated", Remote = "remote", Retry = "retry",
-        Running = "running", Score = "score", Sdk = "sdk", ServerConnected = "server.connected",
+        Running = "running", Saved = "saved", Score = "score", Sdk = "sdk", ServerConnected = "server.connected",
         SessionAgentSelected = "session.agent.selected", SessionArchived = "session.archived",
         SessionCompactionDelta = "session.compaction.delta", SessionCompactionEnded = "session.compaction.ended",
         SessionCompactionFailed = "session.compaction.failed", SessionCompactionStarted = "session.compaction.started",
@@ -14190,8 +15006,8 @@ pub mod tag {
         SessionUsageUpdated = "session.usage.updated", SessionViewed = "session.viewed", Shell = "shell",
         ShellCreated = "shell.created", ShellDeleted = "shell.deleted", ShellExited = "shell.exited", Skill = "skill",
         SkillUpdated = "skill.updated", Snapshot = "snapshot", Streaming = "streaming", String = "string",
-        Subagent = "subagent", Summary = "summary", Synthetic = "synthetic", System = "system", Text = "text",
-        Through = "through", Tool = "tool", TuiCommandExecute = "tui.command.execute",
+        Subagent = "subagent", Success = "success", Summary = "summary", Synthetic = "synthetic", System = "system",
+        Text = "text", Through = "through", Tool = "tool", TuiCommandExecute = "tui.command.execute",
         TuiPromptAppend = "tui.prompt.append", TuiSessionSelect = "tui.session.select", TuiToastShow = "tui.toast.show",
         Uri = "uri", Url = "url", User = "user", VcsBranchUpdated = "vcs.branch.updated", Video = "video",
         Webrtc = "webrtc", WebsearchUpdated = "websearch.updated", Websocket = "websocket",

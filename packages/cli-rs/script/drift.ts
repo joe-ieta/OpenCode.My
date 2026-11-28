@@ -9,7 +9,9 @@
 // `--all` adds the two generators, `--recordings` adds the P-COMP and P-APP recordings.
 //
 // Run it on a clean tree. Files already dirty before the run count only if the run changes them again.
-const root = new URL("..", import.meta.url).pathname
+import { fileURLToPath } from "node:url"
+
+const root = fileURLToPath(new URL("..", import.meta.url))
 const parity = `${root}parity/`
 const all = process.argv.includes("--all")
 const recordings = process.argv.includes("--recordings")
@@ -19,6 +21,7 @@ const before = await snapshot()
 const started = performance.now()
 
 for (const script of Array.from(new Bun.Glob("script/gen/*.ts").scanSync({ cwd: root }))
+  .map((file) => file.replaceAll("\\", "/"))
   .sort()
   .filter((script) => all || !slow.has(script)))
   run(["bun", "run", script], root)
@@ -39,7 +42,7 @@ if (recordings) {
     run(["bun", "run", script], parity)
   for (const scenario of Array.from(new Bun.Glob("scenarios/*/*.app.ts").scanSync({ cwd: parity }))
     .sort()
-    .map((file) => file.slice("scenarios/".length, -".app.ts".length)))
+    .map((file) => file.replaceAll("\\", "/").slice("scenarios/".length, -".app.ts".length)))
     run(["bun", "test", "./app/scenarios.test.tsx"], parity, { PARITY_SCENARIO: scenario })
 }
 
@@ -63,16 +66,12 @@ function run(command: string[], cwd: string, env: Record<string, string> = {}) {
   if (proc.exitCode !== 0) process.exit(proc.exitCode ?? 1)
 }
 
-// Maps every changed or untracked path under packages/cli-rs to a hash of its content. Porcelain paths are
-// relative to the repository root.
+// Git's diff ignores checkout-only line endings. Both lists return paths relative to the repository root.
 async function snapshot() {
-  const top = Bun.spawnSync(["git", "rev-parse", "--show-toplevel"], { cwd: root }).stdout.toString().trim()
-  const proc = Bun.spawnSync(["git", "status", "--porcelain", "-z", "--untracked-files=all", "--", "."], { cwd: root })
-  const files = proc.stdout
-    .toString()
-    .split("\0")
-    .filter((entry) => entry.length > 3)
-    .map((entry) => entry.slice(3))
+  const top = git("rev-parse", "--show-toplevel").trim()
+  const changed = git("diff", "--name-only", "--no-renames", "-z", "HEAD", "--", ".")
+  const untracked = git("ls-files", "--full-name", "--others", "--exclude-standard", "-z", "--", ".")
+  const files = (changed + untracked).split("\0").filter(Boolean)
   return new Map(
     await Promise.all(
       files.map(async (file) => {
@@ -82,4 +81,10 @@ async function snapshot() {
       }),
     ),
   )
+}
+
+function git(...args: string[]) {
+  const proc = Bun.spawnSync(["git", ...args], { cwd: root, stdout: "pipe", stderr: "inherit" })
+  if (proc.exitCode !== 0) process.exit(proc.exitCode ?? 1)
+  return proc.stdout.toString()
 }

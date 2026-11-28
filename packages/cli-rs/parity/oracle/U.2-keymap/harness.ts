@@ -2,6 +2,7 @@
 // U.2-keymap.ts runs this with OpenTUI's Solid preload from packages/tui. OpenTUI and Solid resolve as packages/tui
 // resolves them, so that this file and the TUI sources share one Solid instance. Writes
 // parity/fixtures/U.2/keymap.json.
+import { fileURLToPath } from "node:url"
 import type { useKeymap } from "@opentui/keymap/solid"
 import { resolve } from "../../../../tui/src/config"
 import { TuiKeybind } from "../../../../tui/src/config/keybind"
@@ -23,7 +24,7 @@ type Scenario = {
   extra?: Step[][]
 }
 
-const tui = new URL("../../../../tui/", import.meta.url).pathname
+const tui = fileURLToPath(new URL("../../../../tui/", import.meta.url))
 const { TextareaRenderable } = await import(Bun.resolveSync("@opentui/core", tui))
 const keymapSolid = await import(Bun.resolveSync("@opentui/keymap/solid", tui))
 const { testRender } = await import(Bun.resolveSync("@opentui/solid", tui))
@@ -187,7 +188,7 @@ const errors = [
 const results = []
 for (const scenario of scenarios) results.push({ ...scenario, cases: await run(scenario) })
 
-const file = new URL("../../fixtures/U.2/keymap.json", import.meta.url).pathname
+const file = fileURLToPath(new URL("../../fixtures/U.2/keymap.json", import.meta.url))
 await Bun.write(file, records({ scenarios: results, errors }, ["scenarios[].cases[]", "errors[]"]))
 console.log(
   `keymap: ${results.reduce((total, scenario) => total + scenario.cases.length, 0)} cases, ${errors.length} errors`,

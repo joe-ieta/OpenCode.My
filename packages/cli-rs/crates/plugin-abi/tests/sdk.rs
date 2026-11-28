@@ -5,10 +5,10 @@ use std::path::Path;
 #[test]
 fn the_guide_shows_its_examples_as_they_are() {
     let crate_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let guide = std::fs::read_to_string(crate_dir.join("../../docs/plugins.md")).unwrap();
+    let guide = std::fs::read_to_string(crate_dir.join("../../docs/plugins.md")).unwrap().replace("\r\n", "\n");
     let examples = crate_dir.join("../plugin/examples");
     for file in ["luau/hello/init.luau", "luau/hello/plugin.toml", "pipe/hello/tui.tsx"] {
-        let source = std::fs::read_to_string(examples.join(file)).unwrap();
+        let source = std::fs::read_to_string(examples.join(file)).unwrap().replace("\r\n", "\n");
         assert!(guide.contains(&source), "docs/plugins.md does not show examples/{file} as it is");
     }
     // The first example of the task module's documentation, without the lines rustdoc hides.

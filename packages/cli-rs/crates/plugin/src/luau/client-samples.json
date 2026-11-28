@@ -47,6 +47,7 @@
 "experimental.session.stats":{"from":1.5,"to":1.5,"project":"s1","timezone":"s1","tools":"none"},
 "experimental.session.import":{"info":{"id":"s1","parentID":"s1","fork":{"sessionID":"s2","boundary":{"type":"before","messageID":"s4"}},"projectID":"s1","agent":"s1","model":{"id":"s2","providerID":"s2","variant":"s2"},"cost":1.5,"tokens":{"input":1.5,"output":1.5,"reasoning":1.5,"cache":{"read":1.5,"write":1.5}},"outcome":"succeeded","time":{"created":1.5,"updated":1.5,"busy":1.5,"idle":1.5,"viewed":1.5,"archived":1.5},"title":"s1","subpath":"s1","metadata":{"key":"any"},"permissions":[{"action":"s3","resource":"s3","effect":"allow"}],"revert":{"messageID":"s2","partID":"s2","snapshot":"s2","files":[{"file":"s4","patch":"s4","additions":2,"deletions":2,"status":"added","more":true}]},"location":{"directory":"s2"}},"messages":["any"],"location":{"directory":"s2"}},
 "experimental.session.export":{"sessionID":"s0","sanitize":true},
+"experimental.session.activity":{},
 "experimental.session.skill":{"sessionID":"s0","id":"s0","resume":true},
 "experimental.session.wait":{"sessionID":"s0"},
 "experimental.session.instructions.entry.list":{"sessionID":"s0"},
@@ -57,6 +58,7 @@
 "model.list":{"location":{"directory":"s3"},"types":["chat"]},
 "model.default":{"location":{"directory":"s3"}},
 "experimental.generate.text":{"prompt":"s0","model":{"id":"s2","providerID":"s2","variant":"s2"}},
+"experimental.generate.testText":{"model":{"providerID":"s1","id":"s1"}},
 "experimental.generate.image":{"model":{"id":"s1","providerID":"s1","variant":"s1"},"prompt":"s0","images":[{"data":"s2","mime":"s2","name":"s2"}],"n":2,"aspect":"s0","resolution":"1K"},
 "experimental.generate.video.create":{"model":{"id":"s1","providerID":"s1","variant":"s1"},"prompt":"s0","start":{"data":"s1","mime":"s1","name":"s1"},"end":{"data":"s1","mime":"s1","name":"s1"},"references":[{"data":"s2","mime":"s2","name":"s2"}],"duration":2,"aspect":"s1","resolution":"480p","sound":true},
 "experimental.generate.video.get":{"id":"s0"},
@@ -182,11 +184,16 @@
 "debug.location.list":{},
 "debug.location.evict":{"location":{"directory":"s3"}},
 "experimental.migration.v1.status":{},
+"experimental.migration.v1.accept":{"acknowledged":true},
 "websearch.providers":{"location":{"directory":"s3"}},
 "websearch.query":{"location":{"directory":"s3"},"query":"s0","providerID":"s0"},
 "experimental.usage.limits":{"location":{"directory":"s3"}},
 "experimental.flag.get":{"location":{"directory":"s3"}},
 "config.get":{"location":{"directory":"s3"}},
 "config.shells":{},
-"experimental.config.update":{"shell":"s1"}
+"experimental.config.update":{"shell":"s1"},
+"experimental.config.providers.list":{"location":{"directory":"s3"}},
+"experimental.config.providers.update":{"providerID":"s0","location":{"directory":"s3"},"mode":"create","revision":"s0","patch":{"name":"s2","baseURL":"s1","settings":{"reasoningEffort":"s3","textVerbosity":"low","parallelToolCalls":true,"encoding":"zstd","timeout":2,"headerTimeout":2,"chunkTimeout":2},"compatibility":{"reasoningField":"s3","maxTokensField":"max_completion_tokens","requireReasoning":true,"requireFinishReason":true,"requireAssistantAfterTool":true,"supportsPromptCacheKey":true,"streamUsage":true,"cacheFormat":"anthropic"},"models":{"key":{"name":"s5","modelID":"s5","context":2,"input":2,"output":2,"tools":true,"image":true,"settings":{"reasoningEffort":"s6","textVerbosity":"low","parallelToolCalls":true,"encoding":"zstd"},"compatibility":{"reasoningField":"s6","maxTokensField":"max_completion_tokens","requireReasoning":true,"requireFinishReason":true,"requireAssistantAfterTool":true,"supportsPromptCacheKey":true,"streamUsage":true,"cacheFormat":"anthropic"},"cost":{"key":{"input":1.5,"output":1.5,"cacheRead":1.5,"cacheWrite":1.5,"tierSize":2}},"variants":{"key":{"settings":{"reasoningEffort":null,"textVerbosity":null,"parallelToolCalls":null,"encoding":null}}}}}},"credential":{"id":"s1","key":"s1"}},
+"experimental.config.providers.discover":{"location":{"directory":"s3"},"target":{"mode":"saved","providerID":"s2","revision":"s2"},"api":"openai","metadata":["s1"]},
+"experimental.config.providers.test":{"location":{"directory":"s3"},"target":{"mode":"saved","providerID":"s1","revision":"s1"},"modelID":"s0"}
 }

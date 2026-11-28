@@ -1,13 +1,14 @@
 // Generates the plugin contract schema from its Rust types.
+import { fileURLToPath } from "node:url"
 import { format, resolveConfig } from "prettier"
 
-const root = new URL("../..", import.meta.url).pathname
+const root = fileURLToPath(new URL("../..", import.meta.url))
 const proc = Bun.spawnSync(
   ["cargo", "run", "-q", "-p", "opencode-plugin-abi", "--example", "schema"],
   { cwd: root, stdout: "pipe", stderr: "inherit" },
 )
 if (proc.exitCode !== 0) process.exit(proc.exitCode ?? 1)
-const file = new URL("../../crates/plugin-abi/schema/v2.json", import.meta.url).pathname
+const file = fileURLToPath(new URL("../../crates/plugin-abi/schema/v2.json", import.meta.url))
 const text = proc.stdout.toString()
 await Bun.write(file, await format(text, { ...(await resolveConfig(file)), parser: "json" }))
 console.log(`plugin-schema: ${Object.keys(JSON.parse(text).$defs).length} definitions`)

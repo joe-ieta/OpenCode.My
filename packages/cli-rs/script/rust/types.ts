@@ -266,7 +266,17 @@ export class Types {
           : this.type({ ...(r as SchemaRepresentation.Union), types: rest }, hint)
     // JSON.stringify writes a whole number as `3`; serde writes an `f64` as `3.0`.
     const float = this.floats.has(inner)
-    if (float && optional && nullable) throw new Error(`An optional and nullable number is not supported: ${hint}`)
+    if (optional && nullable) {
+      return {
+        type: `Option<Option<${inner}>>`,
+        attrs: [
+          "default",
+          'deserialize_with = "crate::de::double_option"',
+          'skip_serializing_if = "Option::is_none"',
+          ...(float ? ['serialize_with = "crate::ser::double_option_number"'] : []),
+        ],
+      }
+    }
     if (float && (optional || nullable))
       return {
         type: `Option<${inner}>`,
@@ -277,12 +287,6 @@ export class Types {
         ],
       }
     if (float) return { type: inner, attrs: ['serialize_with = "crate::ser::number"'] }
-    if (optional && nullable) {
-      return {
-        type: `Option<Option<${inner}>>`,
-        attrs: ["default", 'deserialize_with = "crate::de::double_option"', 'skip_serializing_if = "Option::is_none"'],
-      }
-    }
     if (optional) return { type: `Option<${inner}>`, attrs: ["default", 'skip_serializing_if = "Option::is_none"'] }
     if (nullable) return { type: `Option<${inner}>`, attrs: ["default"] }
     return { type: inner, attrs: [] as Array<string> }

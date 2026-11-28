@@ -1992,6 +1992,7 @@ export type ConfigInfoEncoded = {
         media_blob: boolean?,
         artifacts: boolean?,
         console_watches: boolean?,
+        openai_compatible_discovery: boolean?,
         recommended_api: boolean?,
         full_codemode: boolean?,
         codemode_agents: boolean?,
@@ -2220,6 +2221,201 @@ export type CredentialUpdated = _Event1<"credential.updated", {
 
 export type CredentialValue = (CredentialOAuth | CredentialKey | CredentialExternal)
 
+export type CustomProviderAdvancedCompatibility = {
+    reasoningField: string?,
+    maxTokensField: ModelMaxTokensField?,
+    requireReasoning: boolean?,
+    requireFinishReason: boolean?,
+    requireAssistantAfterTool: boolean?,
+    supportsPromptCacheKey: boolean?,
+    streamUsage: boolean?,
+    cacheFormat: ModelCacheFormat?,
+}
+
+export type CustomProviderAdvancedCompatibilityPatch = {
+    reasoningField: string?,
+    maxTokensField: ModelMaxTokensField?,
+    requireReasoning: boolean?,
+    requireFinishReason: boolean?,
+    requireAssistantAfterTool: boolean?,
+    supportsPromptCacheKey: boolean?,
+    streamUsage: boolean?,
+    cacheFormat: ModelCacheFormat?,
+}
+
+export type CustomProviderAdvancedCost = {
+    input: number,
+    output: number,
+    cacheRead: number?,
+    cacheWrite: number?,
+    tierSize: number?,
+}
+
+export type CustomProviderAdvancedCostPatch = {
+    input: number?,
+    output: number?,
+    cacheRead: number?,
+    cacheWrite: number?,
+    tierSize: number?,
+}
+
+export type CustomProviderAdvancedCostsPatch = { [string]: CustomProviderAdvancedCostPatch? }
+
+export type CustomProviderAdvancedProviderSettings = {
+    reasoningEffort: string?,
+    textVerbosity: ("low" | "medium" | "high")?,
+    parallelToolCalls: boolean?,
+    encoding: ProviderEncoding?,
+    timeout: (number | false)?,
+    headerTimeout: (number | false)?,
+    chunkTimeout: (number | false)?,
+}
+
+export type CustomProviderAdvancedProviderSettingsPatch = {
+    reasoningEffort: string?,
+    textVerbosity: ("low" | "medium" | "high")?,
+    parallelToolCalls: boolean?,
+    encoding: ProviderEncoding?,
+    timeout: (number | false)?,
+    headerTimeout: (number | false)?,
+    chunkTimeout: (number | false)?,
+}
+
+export type CustomProviderAdvancedSettings = {
+    reasoningEffort: string?,
+    textVerbosity: ("low" | "medium" | "high")?,
+    parallelToolCalls: boolean?,
+    encoding: ProviderEncoding?,
+}
+
+export type CustomProviderAdvancedSettingsPatch = {
+    reasoningEffort: string?,
+    textVerbosity: ("low" | "medium" | "high")?,
+    parallelToolCalls: boolean?,
+    encoding: ProviderEncoding?,
+}
+
+export type CustomProviderAdvancedVariant = {
+    id: string,
+    settings: CustomProviderAdvancedSettings?,
+}
+
+export type CustomProviderAdvancedVariantsPatch = { [string]: {
+    settings: CustomProviderAdvancedSettingsPatch?,
+}? }
+
+export type CustomProviderCandidate = {
+    id: string,
+    name: string?,
+    context: number?,
+    input: number?,
+    output: number?,
+    maxContext: number?,
+    loaded: boolean?,
+    tools: boolean?,
+    image: boolean?,
+    metadataPending: boolean?,
+    sources: { [string]: string },
+    warnings: { string },
+}
+
+export type CustomProviderDefinition = {
+    name: string?,
+    modelID: string?,
+    context: number?,
+    input: number?,
+    output: number?,
+    tools: boolean?,
+    image: boolean?,
+    settings: CustomProviderAdvancedSettings?,
+    compatibility: CustomProviderAdvancedCompatibility?,
+    cost: { CustomProviderAdvancedCost }?,
+    variants: { CustomProviderAdvancedVariant }?,
+    variantsReadonly: boolean?,
+}
+
+export type CustomProviderDiscovery = ({
+    status: "success",
+    models: { CustomProviderCandidate },
+    warnings: { string },
+} | {
+    status: "error",
+    kind: ("model-not-found" | "invalid-url" | "blocked-address" | "authentication" | "unsupported" | "redirect" | "http" | "network" | "timeout" | "too-large" | "invalid-response" | "empty" | "unsupported-auth"),
+    httpStatus: number?,
+})
+
+export type CustomProviderDiscoveryInput = ({
+    mode: "saved",
+    providerID: ProviderID,
+    revision: string,
+} | {
+    mode: "draft",
+    baseURL: string,
+    key: string?,
+})
+
+export type CustomProviderEntry = {
+    id: ProviderID,
+    name: string,
+    sources: { string },
+    reason: string?,
+    baseURL: string?,
+    settings: CustomProviderAdvancedProviderSettings?,
+    compatibility: CustomProviderAdvancedCompatibility?,
+    keyReadonly: boolean,
+    keySources: { string },
+    credentials: { {
+        id: CredentialID,
+        label: string,
+        active: boolean,
+    } },
+    models: { [string]: CustomProviderDefinition },
+}
+
+export type CustomProviderListing = {
+    revision: string,
+    target: string,
+    reason: string?,
+    providers: { CustomProviderEntry },
+}
+
+export type CustomProviderModelPatch = {
+    name: string?,
+    modelID: string?,
+    context: number?,
+    input: number?,
+    output: number?,
+    tools: boolean?,
+    image: boolean?,
+    settings: CustomProviderAdvancedSettingsPatch?,
+    compatibility: CustomProviderAdvancedCompatibilityPatch?,
+    cost: CustomProviderAdvancedCostsPatch?,
+    variants: CustomProviderAdvancedVariantsPatch?,
+}
+
+export type CustomProviderPatch = {
+    name: string?,
+    baseURL: string?,
+    settings: CustomProviderAdvancedProviderSettingsPatch?,
+    compatibility: CustomProviderAdvancedCompatibilityPatch?,
+    models: { [string]: CustomProviderModelPatch? }?,
+}
+
+export type CustomProviderSaved = {
+    revision: string,
+    config: ("saved" | "deleted"),
+    credential: ("unchanged" | "saved" | "failed" | "deleted"),
+    catalog: ("ready" | "pending"),
+}
+
+export type CustomProviderTextTest = ({
+    status: "success",
+} | {
+    status: "error",
+    kind: ("model-not-found" | "invalid-url" | "blocked-address" | "authentication" | "unsupported" | "redirect" | "http" | "network" | "timeout" | "too-large" | "invalid-response" | "empty" | "unsupported-auth" | "no-text"),
+    httpStatus: number?,
+})
+
 export type EventID = string
 
 export type EventSeq = number
@@ -2244,6 +2440,8 @@ export type ExperimentalMcpEvent = _Event1<"experimental.mcp.event", {
 }>
 
 export type ExperimentalPushUpdated = _Event1<"experimental.push.updated", any>
+
+export type ExperimentalSessionActivityChanged = _Event1<"experimental.session.activity.changed", any>
 
 export type ExperimentalSpaceDeleted = _Event1<"experimental.space.deleted", {
     space: SpaceName,
@@ -3450,6 +3648,8 @@ export type ProviderCompatibility = {
     mediaInput: ModelMediaInput?,
 }
 
+export type ProviderEncoding = ("zstd" | "gzip" | "none")
+
 export type ProviderID = string
 
 export type ProviderInfo = {
@@ -3595,6 +3795,15 @@ export type ServerInfo = {
     capabilities: {
         persistentPty: boolean?,
     }?,
+}
+
+export type SessionActivityInfo = {
+    id: string,
+    sessionID: SessionID,
+    kind: ("shell" | "subagent" | "image" | "job"),
+    title: string?,
+    startedAt: number,
+    ancestors: { SessionID },
 }
 
 export type SessionAgentSelected = _Event2<"session.agent.selected", {
@@ -4645,7 +4854,7 @@ export type UsageLimitsMeter = {
     resetsAt: number,
 }
 
-export type V2Event = (LocationShutdown | ModelsDevRefreshed | CredentialUpdated | CredentialSwitched | IntegrationUpdated | ProviderUpdated | ModelUpdated | AgentUpdated | SessionCreated | SessionAgentSelected | SessionModelSelected | SessionMoved | SessionRenamed | SessionMetadataUpdated | SessionPermissions | SessionViewed | SessionArchived | SessionUnarchived | SessionUsageUpdated | SessionDeleted | SessionForked | SessionInboxDelivered | SessionInboxEnqueued | SessionInboxCancelled | SessionInboxDeliveryChanged | SessionExecutionStarted | SessionExecutionSucceeded | SessionExecutionFailed | SessionExecutionInterrupted | SessionInstructionsUpdated | SessionSynthetic | SessionSkillActivated | SessionShellStarted | SessionShellEnded | SessionStepStarted | SessionStepFirstToken | SessionStepStreamed | SessionStepEnded | SessionStepFailed | SessionTextStarted | SessionTextDelta | SessionTextEnded | SessionReasoningStarted | SessionReasoningDelta | SessionReasoningEnded | SessionToolInputStarted | SessionToolInputDelta | SessionToolInputEnded | SessionToolCalled | SessionToolProgress | SessionToolSuccess | SessionToolFailed | SessionRetryScheduled | SessionCompactionStarted | SessionCompactionDelta | SessionCompactionEnded | SessionCompactionFailed | SessionRevertStaged | SessionRevertCleared | SessionRevertCommitted | FilesystemChanged | ReferenceUpdated | PermissionAsked | PermissionReplied | PluginUpdated | ProjectUpdated | WorktreeUpdated | WorktreeResolved | CommandUpdated | ConfigUpdated | SkillUpdated | PtyCreated | PtyUpdated | PtyExited | PtyDeleted | PersistentPtyAdded | PersistentPtyRemoved | PersistentPtyUpdated | ShellCreated | ShellExited | ShellDeleted | ExperimentalJobUpdated | FormCreated | FormReplied | FormCancelled | WebsearchUpdated | ExperimentalPushUpdated | ArtifactUpdated | SessionStatusUpdated | SessionIdle | TuiPromptAppend | TuiCommandExecute | TuiToastShow | TuiSessionSelect | InstallationUpdated | InstallationUpdateAvailable | VcsBranchUpdated | McpStatusChanged | McpResourcesChanged | ExperimentalMcpEvent | ExperimentalSpaceResync | ExperimentalSpaceUpdated | ExperimentalSpaceDeleted | V2EventRpc | V2EventServerConnected)
+export type V2Event = (LocationShutdown | ModelsDevRefreshed | CredentialUpdated | CredentialSwitched | IntegrationUpdated | ProviderUpdated | ModelUpdated | AgentUpdated | SessionCreated | SessionAgentSelected | SessionModelSelected | SessionMoved | SessionRenamed | SessionMetadataUpdated | SessionPermissions | SessionViewed | SessionArchived | SessionUnarchived | SessionUsageUpdated | SessionDeleted | SessionForked | SessionInboxDelivered | SessionInboxEnqueued | SessionInboxCancelled | SessionInboxDeliveryChanged | SessionExecutionStarted | SessionExecutionSucceeded | SessionExecutionFailed | SessionExecutionInterrupted | SessionInstructionsUpdated | SessionSynthetic | SessionSkillActivated | SessionShellStarted | SessionShellEnded | SessionStepStarted | SessionStepFirstToken | SessionStepStreamed | SessionStepEnded | SessionStepFailed | SessionTextStarted | SessionTextDelta | SessionTextEnded | SessionReasoningStarted | SessionReasoningDelta | SessionReasoningEnded | SessionToolInputStarted | SessionToolInputDelta | SessionToolInputEnded | SessionToolCalled | SessionToolProgress | SessionToolSuccess | SessionToolFailed | SessionRetryScheduled | SessionCompactionStarted | SessionCompactionDelta | SessionCompactionEnded | SessionCompactionFailed | SessionRevertStaged | SessionRevertCleared | SessionRevertCommitted | ExperimentalSessionActivityChanged | FilesystemChanged | ReferenceUpdated | PermissionAsked | PermissionReplied | PluginUpdated | ProjectUpdated | WorktreeUpdated | WorktreeResolved | CommandUpdated | ConfigUpdated | SkillUpdated | PtyCreated | PtyUpdated | PtyExited | PtyDeleted | PersistentPtyAdded | PersistentPtyRemoved | PersistentPtyUpdated | ShellCreated | ShellExited | ShellDeleted | ExperimentalJobUpdated | FormCreated | FormReplied | FormCancelled | WebsearchUpdated | ExperimentalPushUpdated | ArtifactUpdated | SessionStatusUpdated | SessionIdle | TuiPromptAppend | TuiCommandExecute | TuiToastShow | TuiSessionSelect | InstallationUpdated | InstallationUpdateAvailable | VcsBranchUpdated | McpStatusChanged | McpResourcesChanged | ExperimentalMcpEvent | ExperimentalSpaceResync | ExperimentalSpaceUpdated | ExperimentalSpaceDeleted | V2EventRpc | V2EventServerConnected)
 
 export type V2EventRpc = {
     id: EventID,
@@ -4687,6 +4896,14 @@ export type VcsFileStatus = {
 export type VcsInfo = {
     provider: string?,
     branch: VcsBranch,
+    experimental: {
+        remotes: { VcsRemote }?,
+    }?,
+}
+
+export type VcsRemote = {
+    name: string,
+    url: string,
 }
 
 export type VoiceModel = {
@@ -5130,7 +5347,7 @@ export type Client = {
     },
     event: {
         subscribe: (input: {
-            types: { (("location.shutdown" | "models-dev.refreshed" | "credential.updated" | "credential.switched" | "integration.updated" | "provider.updated" | "model.updated" | "agent.updated" | "session.created" | "session.agent.selected" | "session.model.selected" | "session.moved" | "session.renamed" | "session.metadata.updated" | "session.permissions" | "session.viewed" | "session.archived" | "session.unarchived" | "session.usage.updated" | "session.deleted" | "session.forked" | "session.inbox.delivered" | "session.inbox.enqueued" | "session.inbox.cancelled" | "session.inbox.delivery.changed" | "session.execution.started" | "session.execution.succeeded" | "session.execution.failed" | "session.execution.interrupted" | "session.instructions.updated" | "session.synthetic" | "session.skill.activated" | "session.shell.started" | "session.shell.ended" | "session.step.started" | "session.step.first-token" | "session.step.streamed" | "session.step.ended" | "session.step.failed" | "session.text.started" | "session.text.delta" | "session.text.ended" | "session.reasoning.started" | "session.reasoning.delta" | "session.reasoning.ended" | "session.tool.input.started" | "session.tool.input.delta" | "session.tool.input.ended" | "session.tool.called" | "session.tool.progress" | "session.tool.success" | "session.tool.failed" | "session.retry.scheduled" | "session.compaction.started" | "session.compaction.delta" | "session.compaction.ended" | "session.compaction.failed" | "session.revert.staged" | "session.revert.cleared" | "session.revert.committed" | "filesystem.changed" | "reference.updated" | "permission.asked" | "permission.replied" | "plugin.updated" | "project.updated" | "worktree.updated" | "worktree.resolved" | "command.updated" | "config.updated" | "skill.updated" | "pty.created" | "pty.updated" | "pty.exited" | "pty.deleted" | "persistent-pty.added" | "persistent-pty.removed" | "persistent-pty.updated" | "shell.created" | "shell.exited" | "shell.deleted" | "experimental.job.updated" | "form.created" | "form.replied" | "form.cancelled" | "websearch.updated" | "experimental.push.updated" | "artifact.updated" | "session.status" | "session.idle" | "tui.prompt.append" | "tui.command.execute" | "tui.toast.show" | "tui.session.select" | "installation.updated" | "installation.update-available" | "vcs.branch.updated" | "mcp.status.changed" | "mcp.resources.changed" | "experimental.mcp.event") | string) }?,
+            types: { (("location.shutdown" | "models-dev.refreshed" | "credential.updated" | "credential.switched" | "integration.updated" | "provider.updated" | "model.updated" | "agent.updated" | "session.created" | "session.agent.selected" | "session.model.selected" | "session.moved" | "session.renamed" | "session.metadata.updated" | "session.permissions" | "session.viewed" | "session.archived" | "session.unarchived" | "session.usage.updated" | "session.deleted" | "session.forked" | "session.inbox.delivered" | "session.inbox.enqueued" | "session.inbox.cancelled" | "session.inbox.delivery.changed" | "session.execution.started" | "session.execution.succeeded" | "session.execution.failed" | "session.execution.interrupted" | "session.instructions.updated" | "session.synthetic" | "session.skill.activated" | "session.shell.started" | "session.shell.ended" | "session.step.started" | "session.step.first-token" | "session.step.streamed" | "session.step.ended" | "session.step.failed" | "session.text.started" | "session.text.delta" | "session.text.ended" | "session.reasoning.started" | "session.reasoning.delta" | "session.reasoning.ended" | "session.tool.input.started" | "session.tool.input.delta" | "session.tool.input.ended" | "session.tool.called" | "session.tool.progress" | "session.tool.success" | "session.tool.failed" | "session.retry.scheduled" | "session.compaction.started" | "session.compaction.delta" | "session.compaction.ended" | "session.compaction.failed" | "session.revert.staged" | "session.revert.cleared" | "session.revert.committed" | "experimental.session.activity.changed" | "filesystem.changed" | "reference.updated" | "permission.asked" | "permission.replied" | "plugin.updated" | "project.updated" | "worktree.updated" | "worktree.resolved" | "command.updated" | "config.updated" | "skill.updated" | "pty.created" | "pty.updated" | "pty.exited" | "pty.deleted" | "persistent-pty.added" | "persistent-pty.removed" | "persistent-pty.updated" | "shell.created" | "shell.exited" | "shell.deleted" | "experimental.job.updated" | "form.created" | "form.replied" | "form.cancelled" | "websearch.updated" | "experimental.push.updated" | "artifact.updated" | "session.status" | "session.idle" | "tui.prompt.append" | "tui.command.execute" | "tui.toast.show" | "tui.session.select" | "installation.updated" | "installation.update-available" | "vcs.branch.updated" | "mcp.status.changed" | "mcp.resources.changed" | "experimental.mcp.event") | string) }?,
         }?) -> (nil, string?),
     },
     experimental: {
@@ -5223,6 +5440,37 @@ export type Client = {
             tunnel: (input: {}?) -> (boolean?, string?),
         },
         config: {
+            providers: {
+                discover: (input: {
+                    location: { directory: string? }?,
+                    target: CustomProviderDiscoveryInput,
+                    api: ("openai" | "ollama" | "lmstudio")?,
+                    metadata: { string }?,
+                }) -> (CustomProviderDiscovery?, string?),
+                list: (input: {
+                    location: { directory: string? }?,
+                }?) -> (CustomProviderListing?, string?),
+                test: (input: {
+                    location: { directory: string? }?,
+                    target: {
+                        mode: "saved",
+                        providerID: ProviderID,
+                        revision: string,
+                    },
+                    modelID: string,
+                }) -> (CustomProviderTextTest?, string?),
+                update: (input: {
+                    providerID: string,
+                    location: { directory: string? }?,
+                    mode: ("create" | "edit" | "delete"),
+                    revision: string,
+                    patch: CustomProviderPatch?,
+                    credential: {
+                        id: CredentialID,
+                        key: string,
+                    }?,
+                }) -> (CustomProviderSaved?, string?),
+            },
             update: (input: {
                 shell: string?,
             }) -> (nil, string?),
@@ -5267,6 +5515,12 @@ export type Client = {
                 aspect: GenerateImageAspect?,
                 resolution: GenerateImageResolution?,
             }) -> (GenerateImageResult?, string?),
+            testText: (input: {
+                model: {
+                    providerID: ProviderID,
+                    id: string,
+                },
+            }) -> (nil, string?),
             text: (input: {
                 prompt: string,
                 model: ModelRef?,
@@ -5356,8 +5610,11 @@ export type Client = {
         },
         migration: {
             v1: {
+                accept: (input: {
+                    acknowledged: true,
+                }) -> (nil, string?),
                 status: (input: {}?) -> (({
-                    status: ("required" | "completed"),
+                    status: ("confirmation_required" | "required" | "completed"),
                 } | {
                     status: "running",
                     progress: {
@@ -5469,6 +5726,7 @@ export type Client = {
             },
         },
         session: {
+            activity: (input: {}?) -> ({ SessionActivityInfo }?, string?),
             export: (input: {
                 sessionID: string,
                 sanitize: boolean?,

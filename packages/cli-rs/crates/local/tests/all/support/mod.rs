@@ -4,9 +4,9 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 pub fn ts_root() -> PathBuf {
-    std::env::var_os("OPENCODE_TS_ROOT")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../..").canonicalize().unwrap())
+    std::env::var_os("OPENCODE_TS_ROOT").map(PathBuf::from).unwrap_or_else(|| {
+        opencode_util::path::realpath(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../..")).unwrap()
+    })
 }
 
 pub fn available() -> bool {

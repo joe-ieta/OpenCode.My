@@ -1,5 +1,6 @@
 // Writes crates/ui/src/keymap/generated.rs from the TUI's keybind definitions: every name in definition order,
 // its default as JSON text, and its description.
+import { fileURLToPath } from "node:url"
 import { TuiKeybind } from "../../../tui/src/config/keybind"
 
 const entries = Object.entries(TuiKeybind.Definitions)
@@ -24,6 +25,6 @@ const lines = [
   "",
 ]
 
-const file = new URL("../../crates/ui/src/keymap/generated.rs", import.meta.url).pathname
+const file = fileURLToPath(new URL("../../crates/ui/src/keymap/generated.rs", import.meta.url))
 await Bun.write(file, lines.join("\n"))
 console.log(`keybinds: ${entries.length} definitions`)

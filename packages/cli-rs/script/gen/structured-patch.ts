@@ -1,7 +1,8 @@
 // Records jsdiff's structured patch hunk ranges for the ACP diff tests.
+import { fileURLToPath } from "node:url"
 import { createRequire } from "node:module"
 
-const require = createRequire(new URL("../../../cli/package.json", import.meta.url).pathname)
+const require = createRequire(fileURLToPath(new URL("../../../cli/package.json", import.meta.url)))
 const jsdiff: {
   structuredPatch: (
     oldName: string,
@@ -78,6 +79,6 @@ const ranges = (old: string, next: string) =>
     .join(" ")
 const cases = [...table, ...randomCases].map(([old, next]) => [old, next, ranges(old, next)])
 
-const file = new URL("../../crates/acp/src/permission/structured_patch.json", import.meta.url).pathname
+const file = fileURLToPath(new URL("../../crates/acp/src/permission/structured_patch.json", import.meta.url))
 await Bun.write(file, JSON.stringify(cases, null, 0).replaceAll("],[", "],\n[") + "\n")
 console.log(`structured-patch: ${cases.length} cases`)

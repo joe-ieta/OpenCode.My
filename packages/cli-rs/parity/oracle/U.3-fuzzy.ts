@@ -2,6 +2,7 @@
 // (packages/tui/src/ui/dialog-select.tsx:214-229) over a corpus built from the 244 keybind definitions, for a list of
 // queries and both thresholds the TUI uses. Writes parity/fixtures/U.3/fuzzy.json; crates/ui/tests/all/dialogs.rs
 // expects the same order.
+import { fileURLToPath } from "node:url"
 import fuzzysort from "../../../tui/node_modules/fuzzysort"
 import { Definitions } from "../../../tui/src/config/keybind"
 import { records } from "../lib/records"
@@ -52,6 +53,6 @@ const cases = [0, 0.7].flatMap((threshold) =>
   })),
 )
 
-const path = new URL("../fixtures/U.3/fuzzy.json", import.meta.url).pathname
+const path = fileURLToPath(new URL("../fixtures/U.3/fuzzy.json", import.meta.url))
 await Bun.write(path, records({ options, cases }, ["options[]", "cases[]"]))
 console.log(`oracle: U.3/fuzzy ${cases.length} cases`)

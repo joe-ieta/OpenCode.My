@@ -1,6 +1,7 @@
 // P-ORACLE for crates/ui/src/path.rs: the TUI's formatPath and abbreviateHome (packages/tui/src/util/path-format.ts)
 // over POSIX and Windows paths. Writes parity/fixtures/U.3/path.json; crates/ui/tests/all/dialogs.rs expects the same
 // strings.
+import { fileURLToPath } from "node:url"
 import { abbreviateHome, formatPath } from "../../../tui/src/util/path-format"
 import { records } from "../lib/records"
 
@@ -60,6 +61,6 @@ const cases = [posix, windows].flatMap((set) =>
   ),
 )
 
-const path = new URL("../fixtures/U.3/path.json", import.meta.url).pathname
+const path = fileURLToPath(new URL("../fixtures/U.3/path.json", import.meta.url))
 await Bun.write(path, records(cases, ["[]"]))
 console.log(`oracle: U.3/path ${cases.length} cases`)
