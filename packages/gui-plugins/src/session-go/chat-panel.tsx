@@ -7,12 +7,20 @@ import { Loader } from "@opencode/ui/loader"
 import { TextShimmer } from "@opencode/ui/text-shimmer"
 import { Markdown } from "@opencode/session-ui/markdown"
 import { showToast } from "@opencode/ui/toast"
-import { Select } from "@opencode/ui/select"
+import { Tooltip } from "@opencode/ui/tooltip"
+import { useI18n } from "@opencode/ui/context/i18n"
 import type SessionGo from "./index"
 import type { GoChatModel } from "./chat-model"
 
-export default function GoChatPanel(props: { model: GoChatModel; visible: boolean; onClose: () => void }) {
+export default function GoChatPanel(props: {
+  model: GoChatModel
+  visible: boolean
+  maximized?: boolean
+  onResize: () => void
+  onClose: () => void
+}) {
   const ctx = usePlugin<typeof SessionGo>()
+  const i18n = useI18n()
   let scroller: HTMLDivElement | undefined
   let input: HTMLTextAreaElement | undefined
 
@@ -38,44 +46,108 @@ export default function GoChatPanel(props: { model: GoChatModel; visible: boolea
     props.model.send()
   }
 
-  const choices = createMemo(() => [
-    { key: "session", label: ctx.t("chat.follow"), model: undefined },
-    ...props.model.models().map((model) => ({
-      // Kobalte uses these keys in attribute selectors; encode the composite ID before handing it over.
-      key: encodeURIComponent(JSON.stringify([model.ref.providerID, model.ref.id])),
-      label: `${model.name} · ${model.provider}`,
-      model: model.ref,
-    })),
-  ])
+  const numbers = createMemo(() => new Intl.NumberFormat(i18n.locale()))
 
-  const selected = createMemo(() => {
-    const model = props.model.selectedModel()
+  const money = createMemo(
+    () => new Intl.NumberFormat(i18n.locale(), { style: "currency", currency: "USD", maximumFractionDigits: 6 }),
+  )
 
-    if (!model) return choices()[0]
+  const clear = async () => {
+    const confirmed = await ctx.dialogs.confirm({
+      title: ctx.t("chat.clearTitle"),
+      description: ctx.t("chat.clearDescription"),
+      confirm: ctx.t("chat.clear"),
+      danger: true,
+    })
 
-    return (
-      choices().find((choice) => choice.model?.id === model.id && choice.model.providerID === model.providerID) ?? {
-        key: encodeURIComponent(JSON.stringify([model.providerID, model.id])),
-        label: `${model.providerID}/${model.id}`,
-        model,
-      }
-    )
-  })
+    if (confirmed) props.model.clear()
+  }
+
+  const modelHint = () => (
+    <div class="flex min-w-56 flex-col gap-1 text-12-regular">
+      <p class="font-medium">{props.model.modelInfo()?.name ?? ctx.t("chat.modelUnknown")}</p>
+      <Show when={!props.model.selectedModel()}>
+        <p>{ctx.t("chat.follow")}</p>
+      </Show>
+      <Show when={props.model.modelInfo()}>
+        {(info) => (
+          <>
+            <p>{info().provider}</p>
+            <p>{ctx.t("chat.modelVariant", { variant: info().variant ?? ctx.t("common.default") })}</p>
+            <p>
+              {ctx.t("chat.reasoning", {
+                value: ctx.t(
+                  info().reasoning === undefined
+                    ? "chat.unknown"
+                    : info().reasoning
+                      ? "chat.supported"
+                      : "chat.notAdvertised",
+                ),
+              })}
+            </p>
+            <Show when={info().context}>
+              {(context) => <p>{ctx.t("chat.contextLimit", { count: numbers().format(context()) })}</p>}
+            </Show>
+          </>
+        )}
+      </Show>
+      <p class="mt-1 font-medium">{ctx.t("chat.usage")}</p>
+      <p>
+        {ctx.t("chat.usageTokens", {
+          input: numbers().format(props.model.usage().input),
+          output: numbers().format(props.model.usage().output),
+          reasoning: numbers().format(props.model.usage().reasoning),
+        })}
+      </p>
+      <p>{ctx.t("chat.usageCache", { count: numbers().format(props.model.usage().cache) })}</p>
+      <p>{ctx.t("chat.usageCost", { cost: money().format(props.model.usage().cost) })}</p>
+    </div>
+  )
 
   return (
-    <div class="flex h-full min-h-0 flex-col bg-background-base" data-component="session-go-chat">
+    <div class="flex h-full min-h-0 w-full flex-col bg-background-base" data-component="session-go-chat">
       <header class="flex min-h-12 shrink-0 items-center gap-2 border-b border-border-muted px-4 py-2">
         <Icon name="comment" class="text-text-weak" />
         <h2 class="text-14-medium text-text-strong">{ctx.t("chat.title")}</h2>
         <span class="text-11-regular text-text-faint">{ctx.t("chat.badge")}</span>
-        <IconButton
-          class="ms-auto"
-          variant="ghost-muted"
-          size="normal"
-          icon={<Icon name="minus" />}
-          aria-label={ctx.t("chat.close")}
-          onClick={props.onClose}
-        />
+        <div class="ms-auto flex shrink-0 items-center gap-0.5">
+          <Tooltip placement="bottom-end" value={modelHint()}>
+            <IconButton
+              variant="ghost-muted"
+              size="normal"
+              icon={<Icon name="models" />}
+              aria-label={ctx.t("chat.modelSelect")}
+              disabled={!props.model.ready() || props.model.busy()}
+              onClick={() => void props.model.pickModel()}
+            />
+          </Tooltip>
+          <Tooltip placement="bottom-end" value={ctx.t("chat.clear")}>
+            <IconButton
+              variant="ghost-muted"
+              size="normal"
+              icon={<Icon name="trash" />}
+              aria-label={ctx.t("chat.clear")}
+              disabled={!props.model.canClear()}
+              onClick={() => void clear()}
+            />
+          </Tooltip>
+          <Tooltip placement="bottom-end" value={ctx.t(props.maximized ? "chat.restore" : "chat.maximize")}>
+            <IconButton
+              variant="ghost-muted"
+              size="normal"
+              icon={<Icon name={props.maximized ? "collapse" : "expand"} />}
+              aria-label={ctx.t(props.maximized ? "chat.restore" : "chat.maximize")}
+              onClick={props.onResize}
+            />
+          </Tooltip>
+          <IconButton
+            variant="ghost-muted"
+            size="normal"
+            icon={<Icon name="minus" />}
+            aria-label={ctx.t("chat.close")}
+            onClick={props.onClose}
+          />
+        </div>
       </header>
       <p class="shrink-0 px-4 pt-3 text-11-regular text-text-faint">{ctx.t("chat.context")}</p>
       <div
@@ -193,23 +265,7 @@ export default function GoChatPanel(props: { model: GoChatModel; visible: boolea
             }}
           />
           <div class="flex flex-wrap items-center justify-between gap-2 px-2 pb-2 ps-3">
-            <Select
-              aria-label={ctx.t("chat.modelSelect")}
-              modal={false}
-              options={choices()}
-              current={selected()}
-              value={(choice) => choice.key}
-              label={(choice) => choice.label}
-              onSelect={(choice) => {
-                if (choice) props.model.setModel(choice.model)
-              }}
-              disabled={!props.model.ready() || props.model.busy()}
-              appearance="small"
-              surface="invisible"
-              class="min-w-0 max-w-full flex-1 text-11-regular"
-              valueClass="truncate"
-              contentClass="max-w-[min(28rem,calc(100vw-2rem))]"
-            />
+            <span class="text-11-regular text-text-faint">{ctx.t("chat.keyboard")}</span>
             <Show
               when={props.model.busy()}
               fallback={
@@ -227,7 +283,6 @@ export default function GoChatPanel(props: { model: GoChatModel; visible: boolea
         </div>
         <div class="mt-1.5 flex flex-wrap justify-between gap-1 text-11-regular text-text-faint">
           <span>{ctx.t("chat.private")}</span>
-          <span>{ctx.t("chat.keyboard")}</span>
         </div>
       </div>
     </div>

@@ -436,14 +436,18 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
       { id: "ses_go_main", title: "Go main" },
       { id: "ses_go_other", title: "Go other" },
     ],
-    provider: provider({ id: "test", name: "Main model" }, { id: "side", name: "Side model" }),
+    provider: provider({ id: "test", name: "Main model" }, { id: "side", name: "Side model", variants: { high: {} } }),
     seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
     pageMessages: () => ({ items: sessionGoMessages() }),
     onPrompt: (input) => prompts.push(input),
     generate: (input) => {
       generations.push(input)
 
-      return { text: generations.length === 1 ? "Build the Go side conversation." : "Confirm the panel layout." }
+      return {
+        text: generations.length === 1 ? "Build the Go side conversation." : "Confirm the panel layout.",
+        tokens: { input: 100, output: 20, reasoning: 5, cache: { read: 10, write: 0 } },
+        cost: 0.0001,
+      }
     },
   })
 
@@ -457,8 +461,8 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   const input = chat.getByRole("textbox", { name: "Ask Go", exact: true })
   await expect(input).toBeEditable()
   await expect(overview).toBeVisible()
-  const model = chat.getByRole("group", { name: "Go model", exact: true }).getByRole("button")
-  await expect(model).toContainText("Follow main session")
+  const model = chat.getByRole("button", { name: "Go model", exact: true })
+  await expectGoModel(page, "Follow main session")
   const mainModel = page.locator('[data-action="composer-model"]')
   await expect(mainModel).toContainText("Main model")
 
@@ -478,21 +482,30 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   await expect(chat.getByText("Build the Go side conversation.", { exact: true })).toBeVisible()
   expect(generations[0]?.experimental).toBeUndefined()
   await model.click()
+  const picker = page.getByRole("dialog", { name: "Select model", exact: true })
+  const search = picker.getByRole("combobox", { name: "Search models", exact: true })
+  await expect(search).toBeEditable()
   await expect(chat).toBeVisible()
   await expect(overview).toBeVisible()
-  await page.getByRole("option", { name: "Side model · OpenCode", exact: true }).press("Escape")
+  await search.press("Escape")
+  await expect(picker).toBeHidden()
   await expect(chat).toBeVisible()
   await expect(overview).toBeVisible()
-  await expect(page.getByRole("option", { name: "Side model · OpenCode", exact: true })).toHaveCount(0)
   await model.click()
-  await page.getByRole("option", { name: "Side model · OpenCode", exact: true }).click()
-  await expect(model).toContainText("Side model")
+  await search.fill("Side model")
+  await picker.getByRole("option", { name: /Side model/ }).hover()
+  await picker.getByRole("menuitemradio", { name: "high", exact: true }).click()
+  await expect(picker).toBeHidden()
+  await expectGoModel(page, "Side model")
   await input.fill("What remains?")
   await chat.getByRole("button", { name: "Send", exact: true }).click()
   await expect(chat.getByText("Confirm the panel layout.", { exact: true })).toBeVisible()
   expect(generations).toHaveLength(2)
   expect(generations[1]?.sessionID).toBe(workspace.session.id)
-  expect(generations[1]?.experimental?.model).toEqual({ providerID: "opencode", id: "side" })
+  expect(generations[1]?.experimental?.model).toMatchObject({ providerID: "opencode", id: "side", variant: "high" })
+  await expectGoModel(page, "Input 200 · Output 40 · Reasoning 10 tokens")
+  await expect(page.getByRole("tooltip")).toContainText("Reasoning: Supported")
+  await expect(page.getByRole("tooltip")).toContainText("Reasoning setting: high")
   await expect(mainModel).toContainText("Main model")
   expect(generations[1]?.prompt).toContain("What is the goal?")
   expect(generations[1]?.prompt).toContain("Build the Go side conversation.")
@@ -504,7 +517,7 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   await expect(overview).toBeVisible()
   await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
   await expect(input).toHaveValue("An unsent follow-up")
-  await expect(model).toContainText("Side model")
+  await expectGoModel(page, "Side model")
   await expect(chat.getByText("Build the Go side conversation.", { exact: true })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath("go-chat-pair.png") })
   await page.reload()
@@ -512,7 +525,8 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   await fab.click()
   await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
   await expect(input).toHaveValue("An unsent follow-up")
-  await expect(model).toContainText("Side model")
+  await expectGoModel(page, "Side model")
+  await expect(page.getByRole("tooltip")).toContainText("Input 200 · Output 40 · Reasoning 10 tokens")
   await expect(chat.getByText("Confirm the panel layout.", { exact: true })).toBeVisible()
   expect(generations).toHaveLength(2)
   expect(prompts).toEqual([])
@@ -521,7 +535,7 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   await fab.click()
   await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
   await expect(input).toHaveValue("")
-  await expect(model).toContainText("Follow main session")
+  await expectGoModel(page, "Follow main session")
   await expect(chat.getByText("Build the Go side conversation.", { exact: true })).toHaveCount(0)
   await input.fill("Other session question")
   await input.press("Enter")
@@ -533,11 +547,12 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
   await expectSessionTitle(page, "Go main")
   await fab.click()
   await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
-  await expect(model).toContainText("Side model")
+  await expectGoModel(page, "Side model")
   await expect(input).toHaveValue("An unsent follow-up")
   await expect(mainModel).toContainText("Main model")
   await model.click()
-  await page.getByRole("option", { name: "Follow main session", exact: true }).click()
+  await picker.getByRole("button", { name: "Follow main session", exact: true }).click()
+  await expect(picker).toBeHidden()
   await input.press("Enter")
   await expect(input).toHaveValue("")
   await expect(chat.getByRole("button", { name: "Send", exact: true })).toBeDisabled()
@@ -558,6 +573,127 @@ test("Session Go keeps a multi-round side conversation beside its overview witho
     .toBe(true)
   await expect(input).toBeEditable()
   await page.screenshot({ path: testInfo.outputPath("go-chat-narrow.png") })
+})
+
+async function expectGoModel(page: Page, text: string) {
+  await page.getByRole("button", { name: "Go model", exact: true }).hover()
+  await expect(page.getByRole("tooltip")).toContainText(text)
+}
+
+test("Session Go maximizes as a modal and clears its private context without losing its model", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  const held = Promise.withResolvers<void>()
+
+  const generations: {
+    sessionID: string
+    prompt: string
+    experimental?: { model?: { id: string; providerID: string } }
+  }[] = []
+
+  const prompts: unknown[] = []
+  await openSession(page, {
+    name: "GoModalClear",
+    provider: provider({ id: "test", name: "Main model" }, { id: "side", name: "Side model" }),
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: () => ({ items: sessionGoMessages() }),
+    onPrompt: (input) => prompts.push(input),
+    generate: async (input) => {
+      generations.push(input)
+
+      if (input.prompt.includes("Discard pending question")) {
+        await held.promise
+
+        return { text: "Late discarded answer" }
+      }
+
+      return {
+        text: input.prompt.includes("Fresh question") ? "Fresh answer" : "Old Go answer",
+        tokens: { input: 50, output: 10, reasoning: 0, cache: { read: 0, write: 0 } },
+        cost: 0.0001,
+      }
+    },
+  })
+  const overview = page.locator('[data-component="session-go-floating"]')
+  const floating = page.locator('[data-component="session-go-chat-floating"]')
+  const fab = page.locator('[data-component="session-go-fab"]').getByRole("button")
+  await fab.click()
+  await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
+  await floating.getByRole("textbox", { name: "Ask Go", exact: true }).fill("Old private question")
+  await floating.getByRole("button", { name: "Send", exact: true }).click()
+  await expect(floating.getByText("Old Go answer", { exact: true })).toBeVisible()
+  await floating.getByRole("button", { name: "Maximize Go chat", exact: true }).click()
+  const modal = page.getByRole("dialog", { name: "Go chat", exact: true })
+  const input = modal.getByRole("textbox", { name: "Ask Go", exact: true })
+  await expect(input).toBeEditable()
+  await expect(modal).toHaveAttribute("aria-modal", "true")
+  await expect(overview).toBeHidden()
+  await expect(floating).toBeHidden()
+  await expect
+    .poll(async () => {
+      const rect = await modal.boundingBox()
+
+      return (
+        !!rect &&
+        rect.width > 1200 &&
+        rect.height > 800 &&
+        Math.abs(rect.x + rect.width / 2 - 720) < 2 &&
+        Math.abs(rect.y + rect.height / 2 - 500) < 2
+      )
+    })
+    .toBe(true)
+  await input.fill("A large conversation draft")
+  await page.locator('[data-component="composer-editor"]').focus()
+  await expect(input).toBeFocused()
+  await modal.getByRole("button", { name: "Go model", exact: true }).click()
+  const picker = page.getByRole("dialog", { name: "Select model", exact: true })
+  await picker.getByRole("combobox", { name: "Search models", exact: true }).fill("Side model")
+  await picker.getByRole("option", { name: /Side model/ }).click()
+  await expect(picker).toBeHidden()
+  await expect(input).toHaveValue("A large conversation draft")
+  await expectGoModel(page, "Side model")
+  await page.screenshot({ path: testInfo.outputPath("go-chat-modal.png") })
+  await input.fill("Discard pending question")
+  await input.press("Enter")
+  await expect(modal.getByRole("button", { name: "Cancel", exact: true })).toBeVisible()
+  await modal.getByRole("button", { name: "Clear Go conversation", exact: true }).click()
+  const confirm = page.getByRole("dialog", { name: "Clear Go conversation?", exact: true })
+  await confirm.getByRole("button", { name: "Clear Go conversation", exact: true }).click()
+  await expect(confirm).toBeHidden()
+  await expect(input).toHaveValue("")
+  await expect(modal.getByText("Old Go answer", { exact: true })).toHaveCount(0)
+  await expect(modal.getByText("Discard pending question", { exact: true })).toHaveCount(0)
+  await expectGoModel(page, "Input 0 · Output 0 · Reasoning 0 tokens")
+  await expect(page.getByRole("tooltip")).toContainText("Side model")
+  held.resolve()
+  await input.fill("Fresh question")
+  await input.press("Enter")
+  await expect(modal.getByText("Fresh answer", { exact: true })).toBeVisible()
+  await expect(modal.getByText("Late discarded answer", { exact: true })).toHaveCount(0)
+  expect(generations.at(-1)?.prompt).not.toContain("Old private question")
+  expect(generations.at(-1)?.prompt).not.toContain("Discard pending question")
+  expect(generations.at(-1)?.experimental?.model).toMatchObject({ providerID: "opencode", id: "side" })
+  expect(prompts).toEqual([])
+  await expect(page.locator('[data-action="composer-model"]')).toContainText("Main model")
+  await input.fill("Restored draft")
+  await modal.getByRole("button", { name: "Restore Go chat", exact: true }).click()
+  await expect(modal).toBeHidden()
+  await expect(floating.getByRole("textbox", { name: "Ask Go", exact: true })).toHaveValue("Restored draft")
+  await expect(floating.getByText("Fresh answer", { exact: true })).toBeVisible()
+  await floating.getByRole("button", { name: "Maximize Go chat", exact: true }).click()
+  await modal.getByRole("button", { name: "Collapse Go chat", exact: true }).click()
+  await expect(modal).toBeHidden()
+  await expect(floating).toBeHidden()
+  await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
+  await expect(floating.getByRole("textbox", { name: "Ask Go", exact: true })).toHaveValue("Restored draft")
+  await page.reload()
+  await expect(fab).toBeVisible()
+  await fab.click()
+  await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
+  await expect(floating.getByText("Fresh answer", { exact: true })).toBeVisible()
+  await expect(floating.getByText("Old Go answer", { exact: true })).toHaveCount(0)
+  await expect(floating.getByRole("textbox", { name: "Ask Go", exact: true })).toHaveValue("Restored draft")
 })
 
 test("Session Go answers while collapsed and makes cancelled and blank answers recoverable", async ({ page }) => {

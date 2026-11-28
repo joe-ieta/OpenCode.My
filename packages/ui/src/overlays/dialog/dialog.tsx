@@ -1,4 +1,4 @@
-import { CloseButton, Content, Description, Title } from "@kobalte/core/dialog"
+import { CloseButton, Content, Description, Title, useDialogContext } from "@kobalte/core/dialog"
 import {
   type ComponentProps,
   type JSXElement,
@@ -23,9 +23,9 @@ export interface DialogProps extends ParentProps {
   /**
    * normal: 480px wide, for confirmations and small forms. tall: 480×600, for a short form that reveals a list under
    * a choice. large: 680×600, for palettes, pickers and lists. x-large: 880×680, for long documents and settings-like
-   * panels. Each clamps to the window.
+   * panels. maximized: the window with a 32px margin, for extended work. Each clamps to the window.
    */
-  size?: "normal" | "tall" | "large" | "x-large"
+  size?: "normal" | "tall" | "large" | "x-large" | "maximized"
   /** Height follows the content, up to the size's height. Tall and larger sizes grow down from a fixed top edge. */
   fit?: boolean
   variant?: "default" | "settings"
@@ -120,6 +120,7 @@ export function Dialog(props: DialogProps) {
   ])
 
   const layer = useDialogLayer()
+  const dialog = useDialogContext()
   let focusTimer: ReturnType<typeof setTimeout> | undefined
   createEffect(() => layer?.setBackdropDismiss(!local.preventBackdropDismiss))
   onCleanup(() => clearTimeout(focusTimer))
@@ -133,6 +134,7 @@ export function Dialog(props: DialogProps) {
     >
       <div data-slot="dialog-container" class={local.containerClass}>
         <Content
+          aria-modal={dialog.modal() ? true : undefined}
           data-slot="dialog-content"
           data-focus-scope
           onCloseAutoFocus={local.onCloseAutoFocus}

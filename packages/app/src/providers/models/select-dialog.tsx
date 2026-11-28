@@ -18,7 +18,7 @@ import {
   untrack,
 } from "solid-js"
 import { createStore } from "solid-js/store"
-import { useLocal, type ModelSelection } from "@/providers/models/selection"
+import { useLocal, type ModelKey, type ModelSelection } from "@/providers/models/selection"
 import { isFreeModel } from "@/providers/models/models"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { popularProviders } from "@/providers/catalog/providers"
@@ -471,6 +471,7 @@ function createModelSelectorController(input: {
   provider: () => string | undefined
   model?: ModelState
   onSelect: () => void
+  onPick?: (model: ModelKey) => void
 }) {
   const model = input.model ?? useLocal().model
 
@@ -501,6 +502,20 @@ function createModelSelectorController(input: {
       return value ? modelKey(value) : undefined
     },
     select: (item: ModelItem, variant?: string | null) => {
+      if (input.onPick) {
+        input.onPick({
+          providerID: item.provider.id,
+          modelID: item.id,
+          variant:
+            variant === null
+              ? undefined
+              : (variant ?? model.variant.current({ providerID: item.provider.id, modelID: item.id })),
+        })
+        input.onSelect()
+
+        return
+      }
+
       // Close the picker before updating recent/visibility so the closing list does not reconcile and re-measure.
       input.onSelect()
       batch(() => {
@@ -667,13 +682,19 @@ function ModelPickerActions(props: {
   )
 }
 
-export function DialogSelectModel(props: { provider?: string; model?: ModelState }) {
+export function DialogSelectModel(props: {
+  provider?: string
+  model?: ModelState
+  onPick?: (model: ModelKey) => void
+  defaultOption?: { label: string; run: () => void }
+}) {
   const dialog = useDialog()
   const language = useLanguage()
 
   const controller = createModelSelectorController({
     model: props.model,
     provider: () => props.provider,
+    onPick: props.onPick,
     onSelect: () => {
       pendingPlace = undefined
       dispatch({ type: "dismissed" })
@@ -1279,6 +1300,15 @@ export function DialogSelectModel(props: { provider?: string; model?: ModelState
             {(row, attrs) => <Row model={row()} attrs={attrs} />}
           </SearchList>
         </div>
+        <Show when={props.defaultOption}>
+          {(option) => (
+            <div class="w-full shrink-0 border-t border-border-muted px-3 py-2">
+              <Button variant="ghost-muted" class="w-full !justify-start" onClick={() => option().run()}>
+                {option().label}
+              </Button>
+            </div>
+          )}
+        </Show>
         <ModelPickerActions
           onCustom={custom.available() ? () => void custom.open() : undefined}
           onManage={manage}

@@ -1,6 +1,12 @@
 import type { CustomProvider } from "@opencode/schema/custom-provider"
 import type { Page } from "@playwright/test"
-import type { AutomationInfo, OpenCodeEvent, SessionActivityInfo, SessionMessageInfo } from "@opencode/client/promise"
+import type {
+  AutomationInfo,
+  OpenCodeEvent,
+  SessionActivityInfo,
+  SessionMessageInfo,
+  TokenUsageInfo,
+} from "@opencode/client/promise"
 import type { TextTestRequest } from "@opencode/schema/generate"
 import { Permission } from "@opencode/schema/permission"
 import { artifactKind, artifactMime } from "@opencode/util/artifact"
@@ -26,6 +32,8 @@ import { createPersistentPty, type MockPersistentPtyConfig, type MockServerEvent
 import { installSseTransport } from "./sse-transport"
 
 type Resolvable<T> = T | (() => T)
+
+type MockGeneration = { text: string; tokens?: TokenUsageInfo; cost?: number }
 
 // A hook's replacement response.
 export type MockAnswer = { status: number; body: unknown }
@@ -182,7 +190,7 @@ export interface MockServerConfig {
     sessionID: string
     prompt: string
     experimental?: { model?: Model.Ref }
-  }) => { text: string } | Promise<{ text: string }>
+  }) => MockGeneration | Promise<MockGeneration>
   onInboxChange?: (input: { sessionID: string; inboxID: string; action: "cancel" | "steer" | "queue" }) => void
   onBackground?: (input: { sessionID: string }) => void
   // Serves `/api/experimental/automation*`; defaults to an empty list.
@@ -1480,11 +1488,19 @@ function mockHandlers(
             }
           }),
         sessionGenerate: (ctx) =>
-          Effect.promise(async () => ({
-            data: (await config.generate?.({ sessionID: ctx.params.sessionID, ...ctx.payload })) ?? {
+          Effect.promise(async () => {
+            const reply = (await config.generate?.({ sessionID: ctx.params.sessionID, ...ctx.payload })) ?? {
               text: "Side-question answer",
-            },
-          })),
+            }
+
+            return {
+              data: {
+                text: reply.text,
+                tokens: reply.tokens ?? { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+                cost: reply.cost ?? 0,
+              },
+            }
+          }),
         sessionInboxCancel: (ctx) =>
           Effect.sync(() =>
             config.onInboxChange?.({ sessionID: ctx.params.sessionID, inboxID: ctx.params.inboxID, action: "cancel" }),

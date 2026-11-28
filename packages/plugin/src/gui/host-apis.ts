@@ -627,6 +627,23 @@ export interface Composer {
    */
   model(): ComposerModel | undefined
   /**
+   * Opens the app's model picker without changing the composer's selection. Returns the chosen model, null for the
+   * optional default action, or undefined when dismissed. The model catalog and preferences remain shared.
+   *
+   * @param options - The initial selection and optional default action.
+   * @example
+   * ```ts
+   * const model = await screen.composer.pickModel()
+   * if (model) console.log(model.modelID)
+   * ```
+   */
+  pickModel(options?: {
+    /** Initially selected model. Omitted uses the composer's current model. */
+    readonly current?: ComposerModel
+    /** Adds an action with this label that returns null, for a caller's inherited or default model. */
+    readonly defaultLabel?: string
+  }): Promise<ComposerModel | null | undefined>
+  /**
    * Selects the model for the routed session's next prompts, as picking it in the model picker does: it becomes the
    * session's choice and the first recent model. Without `variant`, the model keeps the variant the picker would show
    * for it. Returns false, and changes nothing, while the model catalog loads, when no connected provider offers the

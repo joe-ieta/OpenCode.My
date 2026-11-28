@@ -324,7 +324,8 @@ export function DialogProvider(props: ParentProps<{ container?: HTMLElement }>) 
   )
 }
 
-export function useDialog() {
+/** `context: caller` keeps this scope's providers when opening above an unrelated dialog. */
+export function useDialog(options?: { context?: "caller" }) {
   const ctx = useContext(Context)
   const layer = useContext(LayerContext)
   const owner = getOwner()
@@ -351,12 +352,12 @@ export function useDialog() {
      * signal aborts, the open neither mounts nor replaces anything and onClose runs as for a replaced dialog.
      */
     show(element: DialogElement, onClose?: () => void, id?: string, signal?: AbortSignal) {
-      const base = ctx.base() ?? owner
+      const base = options?.context === "caller" ? owner : (ctx.base() ?? owner)
 
       return startTransition(() => ctx.open("show", { element, owner: base, onClose }, id, !!signal?.aborted))
     },
     push(element: DialogElement, onClose?: () => void, id?: string, signal?: AbortSignal) {
-      const base = ctx.base() ?? owner
+      const base = options?.context === "caller" ? owner : (ctx.base() ?? owner)
 
       return startTransition(() => ctx.open("push", { element, owner: base, onClose }, id, !!signal?.aborted))
     },

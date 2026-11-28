@@ -184,6 +184,12 @@
     width: min(calc(100vw - 32px), 880px);
   }
 
+  &[data-size="maximized"] [data-slot="dialog-container"] {
+    --dialog-height: calc(100vh - 64px);
+    width: calc(100vw - 64px);
+    background: var(--v2-background-bg-base);
+  }
+
   &[data-fit] [data-slot="dialog-container"] {
     height: auto;
 

@@ -3,6 +3,8 @@ import { Portal } from "solid-js/web"
 import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { Tooltip } from "@opencode/ui/tooltip"
+import { Dialog } from "@opencode/ui/dialog"
+import { Loader } from "@opencode/ui/loader"
 import {
   Command,
   MenuItem,
@@ -11,6 +13,7 @@ import {
   Style,
   usePanel,
   type ClosedPanelTab,
+  type DialogHandle,
   type MountedSession,
   type Plugin,
 } from "@opencode/plugin/gui"
@@ -22,6 +25,8 @@ import { recentTurns } from "./panel/last-turn"
 import { formatTurnDuration } from "./panel/turn-format"
 import { createGoChat } from "./chat-model"
 import { floatingLayout } from "./floating-layout"
+import { uuid } from "@opencode/util/uuid"
+import { transitionChatWindow, type ChatWindowEvent, type ChatWindowState } from "./chat-window-machine"
 
 const TAB = "main"
 
@@ -43,6 +48,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
   const SessionGoAuto = lazy(() => import("./panel/auto"))
   const SessionGoSettings = lazy(() => import("./settings"))
   const GoChatPanel = lazy(() => import("./chat-panel"))
+  const GoChatDialog = lazy(() => import("./chat-dialog"))
 
   ctx.add(Style, styles)
 
@@ -52,6 +58,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       void SessionGoPanel.preload()
       void SessionGoSettings.preload()
       void GoChatPanel.preload()
+      void GoChatDialog.preload()
 
       if (ctx.stores.settings.value.autoAnalyze) void SessionGoAuto.preload()
     }),
@@ -65,8 +72,52 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
   // Anchored above the composer's send button and following it as the composer grows or the window changes.
   const FloatingSessionGo = (props: { session: MountedSession }) => {
     const chatModel = createGoChat(() => props.session)
-    const [chatOpened, setChatOpened] = createSignal(false)
-    const [chatMounted, setChatMounted] = createSignal(false)
+    const [chatState, setChatState] = createSignal<ChatWindowState>({ status: "unmounted" })
+    // Handles belong to the dialog host; chatState alone owns the window's mode.
+    const chatDialogs = new Map<string, DialogHandle>()
+    const chatOpened = () => chatState().status === "floating" || chatState().status === "modal"
+    const chatMounted = () => chatState().status !== "unmounted" && chatState().status !== "disposed"
+    const chatModal = () => chatState().status === "modal"
+
+    const dispatchChat = (event: ChatWindowEvent) => {
+      const previous = chatState()
+      const next = transitionChatWindow(previous, event)
+
+      if (previous === next) return
+      setChatState(next)
+
+      if (previous.status === "modal") chatDialogs.get(previous.id)?.close()
+
+      if (next.status !== "modal") return
+      const id = next.id
+
+      const handle = ctx.dialogs.open(() => {
+        onCleanup(() => {
+          chatDialogs.delete(id)
+          dispatchChat({ type: "dismissed", id })
+        })
+
+        return (
+          <Suspense
+            fallback={
+              <Dialog size="maximized">
+                <Loader class="m-auto" />
+              </Dialog>
+            }
+          >
+            <GoChatDialog
+              model={chatModel}
+              onRestore={() => dispatchChat({ type: "restore" })}
+              onCollapse={() => dispatchChat({ type: "collapse" })}
+            />
+          </Suspense>
+        )
+      })
+
+      chatDialogs.set(id, handle)
+    }
+
+    onCleanup(() => dispatchChat({ type: "disposed" }))
     const [viewport, setViewport] = createSignal({ width: window.innerWidth, height: window.innerHeight })
     const [position, setPosition] = createSignal<{ top: number; left: number }>()
     const [opened, setOpened] = createSignal(false)
@@ -168,7 +219,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       }
 
       const outside = (event: Event) => {
-        if (!opened() || docked()) return
+        if (!opened() || docked() || chatModal() || ctx.dialogs.active()) return
 
         const target = event.target
 
@@ -182,12 +233,12 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       }
 
       const escape = (event: KeyboardEvent) => {
-        if (event.key !== "Escape" || !opened() || docked()) return
+        if (event.key !== "Escape" || !opened() || docked() || chatModal() || ctx.dialogs.active()) return
 
         if (event.target instanceof Element && event.target.closest("[data-kb-top-layer]")) return
 
         if (chatOpened()) {
-          setChatOpened(false)
+          dispatchChat({ type: "collapse" })
           event.preventDefault()
           event.stopPropagation()
 
@@ -198,7 +249,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       }
 
       const blur = () => {
-        if (!docked()) setOpened(false)
+        if (!docked() && !chatModal() && !ctx.dialogs.active()) setOpened(false)
       }
 
       window.addEventListener("resize", resize)
@@ -349,9 +400,9 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                 ref={(element) => (panel = element)}
                 data-component="session-go-floating"
                 data-docked={docked() ? "" : undefined}
-                data-floating-overlay={opened() || docked() ? "" : undefined}
+                data-floating-overlay={!chatModal() && (opened() || docked()) ? "" : undefined}
                 class="session-go-float"
-                classList={{ hidden: !opened() && !docked() }}
+                classList={{ hidden: chatModal() || (!opened() && !docked()) }}
                 style={panelStyle("main")}
               >
                 <Suspense
@@ -368,10 +419,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                     timeline
                     chat={{
                       opened: chatOpened(),
-                      toggle: () => {
-                        setChatMounted(true)
-                        setChatOpened(!chatOpened())
-                      },
+                      toggle: () => dispatchChat({ type: "toggle" }),
                     }}
                     openToken={openToken()}
                   />
@@ -382,8 +430,8 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               <div
                 ref={(element) => (chatWindow = element)}
                 data-component="session-go-chat-floating"
-                data-floating-overlay={chatOpened() && (opened() || docked()) ? "" : undefined}
-                classList={{ hidden: !chatOpened() || (!opened() && !docked()) }}
+                data-floating-overlay={!chatModal() && chatOpened() && (opened() || docked()) ? "" : undefined}
+                classList={{ hidden: chatModal() || !chatOpened() || (!opened() && !docked()) }}
                 style={panelStyle("chat")}
               >
                 <Suspense
@@ -391,8 +439,9 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                 >
                   <GoChatPanel
                     model={chatModel}
-                    visible={chatOpened() && !!(opened() || docked())}
-                    onClose={() => setChatOpened(false)}
+                    visible={!chatModal() && chatOpened() && !!(opened() || docked())}
+                    onResize={() => dispatchChat({ type: "maximize", id: uuid() })}
+                    onClose={() => dispatchChat({ type: "collapse" })}
                   />
                 </Suspense>
               </div>

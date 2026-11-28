@@ -2,6 +2,7 @@ import { createMemo, createSignal, onCleanup } from "solid-js"
 import { usePlugin, type MountedSession } from "@opencode/plugin/gui"
 import { Model } from "@opencode/schema/model"
 import { Provider } from "@opencode/schema/provider"
+import { Money } from "@opencode/schema/money"
 import { uuid } from "@opencode/util/uuid"
 import type SessionGo from "./index"
 import type { ChatTurn } from "./chat-schema"
@@ -12,19 +13,44 @@ export function createGoChat(session: () => MountedSession) {
   const store = () => ctx.stores.chat(session())
   const [state, setState] = createSignal<ChatState>({ status: "idle" })
 
-  const models = createMemo(() => {
+  const modelInfo = createMemo(() => {
     const current = session()
+    const ref = store().value?.model ?? current.server.data.session.get(current.id)?.model
     const location = { directory: current.directory }
-    const providers = current.server.data.location.provider.list(location)
 
-    return (current.server.data.location.model.list(location) ?? [])
-      .filter((model) => model.enabled && model.status !== "deprecated" && model.capabilities.output.includes("text"))
-      .map((model) => ({
-        ref: { providerID: Provider.ID.make(model.providerID), id: Model.ID.make(model.id) },
-        name: model.name,
-        provider: providers?.find((provider) => provider.id === model.providerID)?.name ?? model.providerID,
-      }))
+    if (!ref) return
+
+    const info = current.server.data.location.model
+      .list(location)
+      ?.find((model) => model.providerID === ref.providerID && model.id === ref.id)
+
+    const provider = current.server.data.location.provider
+      .list(location)
+      ?.find((provider) => provider.id === ref.providerID)
+
+    return {
+      name: info?.name ?? ref.id,
+      provider: provider?.name ?? ref.providerID,
+      variant: ref.variant,
+      context: info?.limit.context,
+      reasoning: info
+        ? info.compatibility?.reasoningField !== undefined || info.variants.some((variant) => variant.id !== "none")
+        : undefined,
+    }
   })
+
+  const usage = createMemo(() =>
+    (store().value?.turns ?? []).reduce(
+      (total, turn) => ({
+        input: total.input + (turn.tokens?.input ?? 0),
+        output: total.output + (turn.tokens?.output ?? 0),
+        reasoning: total.reasoning + (turn.tokens?.reasoning ?? 0),
+        cache: total.cache + (turn.tokens?.cache.read ?? 0) + (turn.tokens?.cache.write ?? 0),
+        cost: total.cost + (turn.cost ?? 0),
+      }),
+      { input: 0, output: 0, reasoning: 0, cache: 0, cost: 0 },
+    ),
+  )
 
   // Resource handles only; the machine owns request identity and every terminal state.
   const requests = new Map<string, { controller: AbortController; timer: ReturnType<typeof setTimeout> }>()
@@ -84,7 +110,10 @@ export function createGoChat(session: () => MountedSession) {
           saved.update((draft) => {
             const item = draft.turns.find((item) => item.id === turn.id)
 
-            if (item) item.answer = answer
+            if (!item) return
+            item.answer = answer
+            item.tokens = reply.tokens
+            item.cost = Money.USD.make(reply.cost)
           })
         },
         (cause) =>
@@ -115,18 +144,45 @@ export function createGoChat(session: () => MountedSession) {
 
   return {
     ready: () => store().ready(),
-    models,
+    modelInfo,
+    usage,
     selectedModel: () => store().value?.model,
-    setModel: (model: Model.Ref | undefined) =>
-      store().update((draft) => {
-        if (!model) {
+    pickModel: async () => {
+      const target = store()
+      const current = target.value?.model
+      const screen = ctx.screen.current()
+
+      if (!target.ready() || busy() || !screen) return
+
+      const selected = await screen.composer.pickModel({
+        current: current
+          ? { providerID: current.providerID, modelID: current.id, variant: current.variant }
+          : undefined,
+        defaultLabel: ctx.t("chat.follow"),
+      })
+
+      if (selected === undefined || state().status === "disposed") return
+      target.update((draft) => {
+        if (selected === null) {
           delete draft.model
 
           return
         }
 
-        draft.model = model
-      }),
+        draft.model = { providerID: Provider.ID.make(selected.providerID), id: Model.ID.make(selected.modelID) }
+
+        if (selected.variant !== undefined) draft.model.variant = Model.VariantID.make(selected.variant)
+      })
+    },
+    canClear: () => store().ready() && (!!store().value?.turns.length || !!store().value?.draft || busy()),
+    clear: () => {
+      if (!store().ready()) return
+      dispatch({ type: "cancelled" })
+      store().update((draft) => {
+        draft.turns = []
+        draft.draft = ""
+      })
+    },
     turns: () => store().value?.turns ?? [],
     draft: () => store().value?.draft ?? "",
     setDraft: (value: string) =>

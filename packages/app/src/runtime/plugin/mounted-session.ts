@@ -35,6 +35,7 @@ import { useFile } from "@/workspaces/files/model"
 import { useWorkspaceLocation } from "@/workspaces/location"
 import { pathKey } from "@/workspaces/path-key"
 import { usePluginAttachment } from "./host-apis"
+import { createPluginModelPicker } from "./model-picker"
 import {
   createComposerWriteState,
   transitionComposerWrite,
@@ -66,6 +67,7 @@ export function createMountedSession(session: SessionModel) {
   const comments = useComments()
   const composer = useComposerState()
   const local = useLocal()
+  const pickModel = createPluginModelPicker(local.model)
   const server = useServer()
   const servers = useServers()
   const location = useWorkspaceLocation()
@@ -240,6 +242,7 @@ export function createMountedSession(session: SessionModel) {
   }
 
   const composerRef: Composer = {
+    pickModel,
     text: () =>
       session.data.isChild()
         ? ""
