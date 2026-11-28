@@ -93,6 +93,19 @@ impl Fences {
         self.more(text);
     }
 
+    fn answer_with_full_pipe(&self, text: &str, parts: usize) {
+        let scripts = self.pipe.scripts();
+        let deferred = opencode_plugin::pipe::crossed().deferred_parts;
+        // Keep the transport from draining while every part is offered.
+        scripts.hold_input(true);
+        self.answer(text);
+        self.pipe.harness.wait("the part mounts filled the JS host queue", || {
+            self.now();
+            opencode_plugin::pipe::crossed().deferred_parts > deferred && mounted().len() == parts
+        });
+        scripts.hold_input(false);
+    }
+
     fn more(&self, text: &str) {
         self.emit("session.text.delta", json!({ "ordinal": 0, "delta": text }));
     }
@@ -214,17 +227,16 @@ fn what_a_renderer_asks_for_as_it_draws_is_dropped() {
 #[test]
 fn three_hundred_fences_mounted_at_once_all_fill_in() {
     let Some(mut config) = config() else { return };
-    // A queue to the JS host that takes a few parts at a time: the answer's 300 parts back it up.
+    // The JS host's queue has room for only a few parts at a time.
     config.limits.queued = 4 << 10;
     let fences = Fences::open(config, None);
     let before = opencode_plugin::pipe::crossed();
     let text: String = (0..300).map(|index| format!("```probe\nfence {index}\n```\n\n")).collect();
-    fences.answer(&text);
+    fences.answer_with_full_pipe(&text, 300);
     fences.settled();
     let shown = mounted();
     assert_eq!((shown.len(), drawn()), (300, 300), "{shown:?}");
     let after = opencode_plugin::pipe::crossed();
-    assert!(after.deferred_parts > before.deferred_parts, "no part waited for the queue");
     assert_eq!(after.refused_sends, before.refused_sends, "the queue refused a part");
 }
 
@@ -233,13 +245,11 @@ fn a_part_another_plugin_held_back_is_offered_once_the_queue_drained() {
     let Some(mut config) = config() else { return };
     config.limits.queued = 4 << 10;
     let fences = Fences::open_with(config, None, true);
-    let before = opencode_plugin::pipe::crossed();
     let text: String = (0..300).map(|index| format!("```probe\nfence {index}\n```\n\n")).collect();
-    fences.answer(&format!("{text}```other\nlast\n```\n\nAfter.\n"));
+    fences.answer_with_full_pipe(&format!("{text}```other\nlast\n```\n\nAfter.\n"), 301);
     fences.settled();
     let other: Vec<_> = mounted().into_iter().filter(|shown| shown.id.surface == "other").collect();
     assert!(other.len() == 1 && other[0].shows, "the other plugin's part never drew: {other:?}");
-    assert!(opencode_plugin::pipe::crossed().deferred_parts > before.deferred_parts, "no part waited");
 }
 
 #[test]

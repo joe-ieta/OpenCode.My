@@ -10,7 +10,7 @@
 //   bun MS1-files.ts <ts-root> history <state> <prefix> <count>  prompt-history.jsonl: `append` below the
 //                                                                limit, one appendText per entry
 //   bun MS1-files.ts <ts-root> frecency <state> <prefix> <count> frecency.jsonl: `updateFrecency` of a new
-//                                                                path /w/<prefix>-<i>, one appendText each
+//                                                                path <state>/<prefix>-<i>, one appendText each
 //   bun MS1-files.ts <ts-root> stash <state> <prefix> <count>    prompt-stash.jsonl: `push` below the limit,
 //                                                                one appendText per entry
 //   bun MS1-files.ts <ts-root> read <state>                      what the TypeScript TUI reads of them all
@@ -66,7 +66,7 @@ if (root && command && state) {
   }
   if (command === "frecency") {
     for (let i = 0; i < Number(count); i++) {
-      const entry = { path: `/w/${prefix}-${i}`, frequency: 1, lastOpen: Date.now() }
+      const entry = { path: path.resolve(state, `${prefix}-${i}`), frequency: 1, lastOpen: Date.now() }
       await appendText(frecency, JSON.stringify(entry) + "\n")
       await Bun.sleep(1)
     }

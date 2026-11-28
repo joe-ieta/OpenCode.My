@@ -16,7 +16,7 @@ if (!root || !state) throw new Error("usage: E.2-history.ts <ts-root> <state>")
 // The load's rewrite (`writeText`, a `writeFile`) is not awaited, and an append that lands before it ends is
 // lost. Neither the file's time nor its text tells when it ended: a rewrite of the same entries writes the same
 // bytes and then truncates. So the writes are counted.
-const writes = countWrites(["writeFile"])
+const writes = countWrites(["writeFile", "appendFile"])
 const ops = await Bun.stdin.json()
 
 // What the provider reads on mount, read before its rewrite can change the file.
@@ -31,7 +31,6 @@ const { app, value: history } = await mount<{
   worktree: state,
 })
 // The provider reads the file on mount; wait until an existing file's entries are in.
-const file = Bun.file(`${state}/prompt-history.jsonl`)
 if (before.trim()) {
   let newest = history.move(-1, "")
   await until("the load", () => {
@@ -45,19 +44,15 @@ if (before.trim()) {
 }
 
 const output: unknown[] = []
+const writesBeforeOps = writes.started
 for (const op of ops) {
   if (op.move) output.push(history.move(op.move[0], op.move[1])?.text ?? null)
   if (op.append) history.append(op.append)
 }
-// Appends write asynchronously: wait until the file ends with them.
-const appended: string[] = ops.flatMap((op: { append?: { text: string } }) => (op.append ? [op.append.text] : []))
-if (appended.length > 0) {
-  await until("the appends", async () => {
-    // A fresh handle: a `BunFile` can keep the size it first saw.
-    const lines = (await Bun.file(file.name!).text()).split("\n").filter(Boolean)
-    const last = lines.slice(-appended.length).map((line) => JSON.parse(line).text)
-    return last.length === appended.length && last.every((text, index) => text === appended[index])
-  })
+// Wait for the provider's writes so the Rust test can compare the full file after this process exits.
+const appends = ops.filter((op: { append?: unknown }) => op.append).length
+if (appends > 0) {
+  await until("the appends", () => writes.started >= writesBeforeOps + appends && writes.pending === 0)
 }
 app.renderer.destroy()
 console.log(JSON.stringify(output))
