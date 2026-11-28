@@ -1,6 +1,7 @@
 import { expect, test } from "bun:test"
 import { InputRenderable, TextareaRenderable } from "@opentui/core"
 import path from "node:path"
+import { takeDraft } from "../../src/component/prompt/draft-stash"
 import { createAppFixture } from "../fixture/app"
 import { tmpdir } from "../fixture/fixture"
 import { json, worktree } from "../fixture/tui-client"
@@ -10,6 +11,7 @@ const beta = "/tmp/wt-beta"
 const project = { id: "proj_test", directory: worktree, canonical: worktree }
 
 test("switching Home between worktrees loads the branch of each", async () => {
+  takeDraft(undefined)
   await using state = await tmpdir()
   const vcs: string[] = []
   let worktreeReads = 0
@@ -48,12 +50,12 @@ test("switching Home between worktrees loads the branch of each", async () => {
 
   async function select(filter: string) {
     await until("Home prompt focus", () => {
-      const input = setup.renderer.currentFocusedRenderable
+      const input = setup.renderer.currentFocusedEditor
       return input instanceof TextareaRenderable && !(input instanceof InputRenderable)
     })
     const reads = worktreeReads
     await setup.mockInput.typeText("/worktrees")
-    await setup.renderOnce()
+    await setup.waitForFrame((frame) => frame.includes("/worktrees"))
     setup.mockInput.pressEnter()
     await until("worktree list request", () => worktreeReads > reads)
     await setup.waitForFrame((frame) => frame.includes(alpha) && frame.includes(beta))
