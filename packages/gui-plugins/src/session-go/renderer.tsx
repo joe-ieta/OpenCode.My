@@ -20,6 +20,8 @@ import type definition from "./index"
 import type { HistoryTurn } from "./panel/history"
 import { recentTurns } from "./panel/last-turn"
 import { formatTurnDuration } from "./panel/turn-format"
+import { createGoChat } from "./chat-model"
+import { floatingLayout } from "./floating-layout"
 
 const TAB = "main"
 
@@ -40,6 +42,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
   const SessionGoPanel = lazy(() => import("./panel/panel"))
   const SessionGoAuto = lazy(() => import("./panel/auto"))
   const SessionGoSettings = lazy(() => import("./settings"))
+  const GoChatPanel = lazy(() => import("./chat-panel"))
 
   ctx.add(Style, styles)
 
@@ -48,6 +51,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     onIdle(() => {
       void SessionGoPanel.preload()
       void SessionGoSettings.preload()
+      void GoChatPanel.preload()
 
       if (ctx.stores.settings.value.autoAnalyze) void SessionGoAuto.preload()
     }),
@@ -60,6 +64,10 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
   // Anchored above the composer's send button and following it as the composer grows or the window changes.
   const FloatingSessionGo = (props: { session: MountedSession }) => {
+    const chatModel = createGoChat(() => props.session)
+    const [chatOpened, setChatOpened] = createSignal(false)
+    const [chatMounted, setChatMounted] = createSignal(false)
+    const [viewport, setViewport] = createSignal({ width: window.innerWidth, height: window.innerHeight })
     const [position, setPosition] = createSignal<{ top: number; left: number }>()
     const [opened, setOpened] = createSignal(false)
     const [mounted, setMounted] = createSignal(false)
@@ -77,6 +85,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     const [docked, setDocked] = createSignal<{ top: number; left: number; width: number; height: number }>()
     let fab: HTMLDivElement | undefined
     let panel: HTMLDivElement | undefined
+    let chatWindow: HTMLDivElement | undefined
     let send: HTMLElement | undefined
     let composer: HTMLElement | undefined
     let chat: HTMLElement | undefined
@@ -153,7 +162,10 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       void SessionGoPanel.preload()
       find()
 
-      const resize = () => measure(true)
+      const resize = () => {
+        setViewport({ width: window.innerWidth, height: window.innerHeight })
+        measure(true)
+      }
 
       const outside = (event: Event) => {
         if (!opened() || docked()) return
@@ -162,13 +174,21 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
 
         if (!(target instanceof Node)) return
 
-        if (panel?.contains(target) || fab?.contains(target)) return
+        if (panel?.contains(target) || chatWindow?.contains(target) || fab?.contains(target)) return
 
         setOpened(false)
       }
 
       const escape = (event: KeyboardEvent) => {
         if (event.key !== "Escape" || !opened() || docked()) return
+
+        if (chatOpened()) {
+          setChatOpened(false)
+          event.preventDefault()
+          event.stopPropagation()
+
+          return
+        }
 
         setOpened(false)
       }
@@ -226,28 +246,37 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
       setOpened(true)
     }
 
-    const panelStyle = () => {
+    const rectangles = createMemo(() => {
       const dock = docked()
-
-      if (dock)
-        return {
-          top: dock.top + "px",
-          left: dock.left + "px",
-          width: dock.width + "px",
-          height: dock.height + "px",
-        }
-
       const current = position()
 
       if (!current) return undefined
+      const size = viewport()
+      const height = Math.max(240, Math.min(640, size.height - 32, current.top - 16))
+      const width = Math.min(440, Math.max(280, size.width - 24))
 
-      const height = Math.max(240, Math.min(640, window.innerHeight - 32, current.top - 16))
+      return floatingLayout(
+        dock ?? {
+          top: Math.max(8, current.top - height - 8),
+          left: size.width - Math.max(12, size.width - (current.left + 32)) - width,
+          width,
+          height,
+        },
+        size,
+        chatMounted(),
+      )
+    })
+
+    const panelStyle = (kind: "main" | "chat") => {
+      const rect = rectangles()?.[kind]
+
+      if (!rect) return undefined
 
       return {
-        top: Math.max(8, current.top - height - 8) + "px",
-        right: Math.max(12, window.innerWidth - (current.left + 32)) + "px",
-        width: Math.min(440, Math.max(280, window.innerWidth - 24)) + "px",
-        height: height + "px",
+        top: rect.top + "px",
+        left: rect.left + "px",
+        width: rect.width + "px",
+        height: rect.height + "px",
       }
     }
 
@@ -319,7 +348,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                 data-floating-overlay={opened() || docked() ? "" : undefined}
                 class="session-go-float"
                 classList={{ hidden: !opened() && !docked() }}
-                style={panelStyle()}
+                style={panelStyle("main")}
               >
                 <Suspense
                   fallback={
@@ -333,7 +362,33 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
                     mobile={false}
                     dock={{ docked: !!docked(), toggle: docked() ? undock : dockHere }}
                     timeline
+                    chat={{
+                      opened: chatOpened(),
+                      toggle: () => {
+                        setChatMounted(true)
+                        setChatOpened(!chatOpened())
+                      },
+                    }}
                     openToken={openToken()}
+                  />
+                </Suspense>
+              </div>
+            </Show>
+            <Show when={chatMounted()}>
+              <div
+                ref={(element) => (chatWindow = element)}
+                data-component="session-go-chat-floating"
+                data-floating-overlay={chatOpened() && (opened() || docked()) ? "" : undefined}
+                classList={{ hidden: !chatOpened() || (!opened() && !docked()) }}
+                style={panelStyle("chat")}
+              >
+                <Suspense
+                  fallback={<div class="h-full p-4 text-12-regular text-text-faint">{ctx.t("panel.loading")}</div>}
+                >
+                  <GoChatPanel
+                    model={chatModel}
+                    visible={chatOpened() && !!(opened() || docked())}
+                    onClose={() => setChatOpened(false)}
                   />
                 </Suspense>
               </div>
@@ -380,7 +435,7 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
               onClick={() => open(input.session)}
             />
           </Tooltip>
-          <Show when={input.active}>
+          <Show when={input.active ? input.session.key : undefined} keyed>
             <Portal>
               <FloatingSessionGo session={input.session} />
             </Portal>
@@ -420,20 +475,17 @@ const setup: Plugin.Setup<typeof definition> = (ctx) => {
     }
   })
 
-  ctx.add(
-    Command,
-    (): Command | undefined => {
-      if (!enabled() || !ctx.sessions.current()) return
+  ctx.add(Command, (): Command | undefined => {
+    if (!enabled() || !ctx.sessions.current()) return
 
-      return {
-        id: "open",
-        title: ctx.t("command.open"),
-        group: ctx.t("command.category.view"),
-        section: "session",
-        run: () => open(),
-      }
-    },
-  )
+    return {
+      id: "open",
+      title: ctx.t("command.open"),
+      group: ctx.t("command.category.view"),
+      section: "session",
+      run: () => open(),
+    }
+  })
 
   ctx.add(MenuItem, (): MenuItem | undefined => {
     if (!enabled() || ctx.layout.narrow()) return

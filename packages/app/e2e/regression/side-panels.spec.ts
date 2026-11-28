@@ -5,6 +5,7 @@ import { fileDiff, fileNode, openSession } from "../utils/workspace"
 import { openFileLauncher, openReviewLauncher, storedStrips } from "../utils/side-panel"
 import { expectSessionTitle } from "../utils/waits"
 import { base64Encode } from "@opencode/util/encode"
+import { Schema } from "effect"
 
 test("review content stays aligned with the side region in both directions", async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 })
@@ -407,6 +408,159 @@ test("Session Go is enabled for a fresh profile", async ({ page }) => {
 
   await expect(page.getByRole("button", { name: "Open Session Go", exact: true })).toBeVisible()
   await expect(page.locator('[data-component="session-go-fab"]')).toBeVisible()
+})
+
+test("Session Go keeps a multi-round side conversation beside its overview without admitting prompts", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  const prompts: unknown[] = []
+  const generations: { sessionID: string; prompt: string }[] = []
+
+  const workspace = await openSession(page, {
+    name: "SessionGoChat",
+    sessions: [{ id: "ses_go_main", title: "Go main" }, { id: "ses_go_other", title: "Go other" }],
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    pageMessages: () => ({ items: sessionGoMessages() }),
+    onPrompt: (input) => prompts.push(input),
+    generate: (input) => {
+      generations.push(input)
+
+      return { text: generations.length === 1 ? "Build the Go side conversation." : "Confirm the panel layout." }
+    },
+  })
+
+  const overview = page.locator('[data-component="session-go-floating"]')
+  const chat = page.locator('[data-component="session-go-chat-floating"]')
+  const fab = page.locator('[data-component="session-go-fab"]').getByRole("button")
+  await fab.click()
+  const open = overview.getByRole("button", { name: "Open Go chat", exact: true })
+  await expect(open).toBeVisible()
+  await open.click()
+  const input = chat.getByRole("textbox", { name: "Ask Go", exact: true })
+  await expect(input).toBeEditable()
+  await expect(overview).toBeVisible()
+
+  const bounds = await page.evaluate(() => {
+    const main = document.querySelector('[data-component="session-go-floating"]')?.getBoundingClientRect()
+    const side = document.querySelector('[data-component="session-go-chat-floating"]')?.getBoundingClientRect()
+
+    return main && side
+      ? { mainRight: main.right, sideLeft: side.left, sideRight: side.right, width: innerWidth }
+      : undefined
+  })
+
+  expect(bounds?.sideLeft).toBeGreaterThan(bounds?.mainRight ?? Infinity)
+  expect(bounds?.sideRight).toBeLessThanOrEqual(bounds?.width ?? 0)
+  await input.fill("What is the goal?")
+  await input.press("Enter")
+  await expect(chat.getByText("Build the Go side conversation.", { exact: true })).toBeVisible()
+  await input.fill("What remains?")
+  await chat.getByRole("button", { name: "Send", exact: true }).click()
+  await expect(chat.getByText("Confirm the panel layout.", { exact: true })).toBeVisible()
+  expect(generations).toHaveLength(2)
+  expect(generations[1]?.sessionID).toBe(workspace.session.id)
+  expect(generations[1]?.prompt).toContain("What is the goal?")
+  expect(generations[1]?.prompt).toContain("Build the Go side conversation.")
+  expect(generations[1]?.prompt).toContain("What remains?")
+  expect(prompts).toEqual([])
+  await input.fill("An unsent follow-up")
+  await chat.getByRole("button", { name: "Collapse Go chat", exact: true }).click()
+  await expect(chat).toBeHidden()
+  await expect(overview).toBeVisible()
+  await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
+  await expect(input).toHaveValue("An unsent follow-up")
+  await expect(chat.getByText("Build the Go side conversation.", { exact: true })).toBeVisible()
+  await page.screenshot({ path: testInfo.outputPath("go-chat-pair.png") })
+  await page.reload()
+  await expect(fab).toBeVisible()
+  await fab.click()
+  await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
+  await expect(input).toHaveValue("An unsent follow-up")
+  await expect(chat.getByText("Confirm the panel layout.", { exact: true })).toBeVisible()
+  expect(generations).toHaveLength(2)
+  expect(prompts).toEqual([])
+  await page.locator("[data-titlebar-tab-slot]", { hasText: "Go other" }).click()
+  await expectSessionTitle(page, "Go other")
+  await fab.click()
+  await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
+  await expect(input).toHaveValue("")
+  await expect(chat.getByText("Build the Go side conversation.", { exact: true })).toHaveCount(0)
+  await input.fill("Other session question")
+  await input.press("Enter")
+  await expect(chat.getByText("Confirm the panel layout.", { exact: true })).toBeVisible()
+  expect(generations[2]?.sessionID).toBe("ses_go_other")
+  expect(generations[2]?.prompt).not.toContain("What is the goal?")
+  expect(prompts).toEqual([])
+  await page.setViewportSize({ width: 820, height: 900 })
+  await expect(overview).toBeVisible()
+  await expect(chat).toBeVisible()
+  await expect.poll(async () => {
+    const main = await overview.boundingBox()
+    const side = await chat.boundingBox()
+
+    return !!main && !!side && side.x >= main.x + main.width && side.x + side.width <= 820
+  }).toBe(true)
+  await expect(input).toBeEditable()
+  await page.screenshot({ path: testInfo.outputPath("go-chat-narrow.png") })
+})
+
+test("Session Go answers while collapsed and makes cancelled and blank answers recoverable", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1000 })
+  const held = Promise.withResolvers<void>()
+  const cancelled = Promise.withResolvers<void>()
+  const attempts: string[] = []
+  await openSession(page, {
+    name: "SessionGoChatRecovery",
+    seed: { storage: { [SESSION_GO_SETTINGS]: sessionGoEnabled } },
+    generate: async (input) => {
+      const question = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Struct({ question: Schema.String })))(
+        input.prompt.split("\n\n").at(-1),
+      ).question
+
+      attempts.push(question)
+
+      if (question === "slow answer") {
+        await held.promise
+
+        return { text: "The background answer arrived." }
+      }
+
+      if (question === "cancel this") {
+        await cancelled.promise
+
+        return { text: "Discard this late answer." }
+      }
+
+      return {
+        text: attempts.filter((prompt) => prompt.includes("blank answer")).length === 1 ? " " : "Recovered answer.",
+      }
+    },
+  })
+  const overview = page.locator('[data-component="session-go-floating"]')
+  const chat = page.locator('[data-component="session-go-chat-floating"]')
+  await page.locator('[data-component="session-go-fab"]').getByRole("button").click()
+  await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
+  const input = chat.getByRole("textbox", { name: "Ask Go", exact: true })
+  await expect(input).toBeEditable()
+  await input.fill("slow answer")
+  await input.press("Enter")
+  await expect(chat.getByRole("button", { name: "Cancel", exact: true })).toBeVisible()
+  await chat.getByRole("button", { name: "Collapse Go chat", exact: true }).click()
+  held.resolve()
+  await overview.getByRole("button", { name: "Open Go chat", exact: true }).click()
+  await expect(chat.getByText("The background answer arrived.", { exact: true })).toBeVisible()
+  await input.fill("cancel this")
+  await input.press("Enter")
+  await chat.getByRole("button", { name: "Cancel", exact: true }).click()
+  await expect(input).toHaveValue("cancel this")
+  cancelled.resolve()
+  await input.fill("blank answer")
+  await input.press("Enter")
+  await expect(chat.getByText("The model replied without any text. Try again.", { exact: true })).toBeVisible()
+  await chat.getByRole("button", { name: "Retry", exact: true }).click()
+  await expect(chat.getByText("Recovered answer.", { exact: true })).toBeVisible()
+  await expect(chat.getByText("Discard this late answer.", { exact: true })).toHaveCount(0)
 })
 
 test("Session Go stays off when disabled and has no command entry", async ({ page }) => {

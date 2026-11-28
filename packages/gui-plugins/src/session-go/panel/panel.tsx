@@ -31,6 +31,7 @@ export default function SessionGoPanel(props: {
   dock?: { docked: boolean; toggle: () => void }
   /** Show the turn rail in the floating and docked windows. */
   timeline?: boolean
+  chat?: { opened: boolean; toggle: () => void }
   /** Increments whenever the floating window opens; undefined in the side panel. */
   openToken?: number
 }) {
@@ -334,6 +335,7 @@ export default function SessionGoPanel(props: {
 
       <Show when={props.timeline}>
         <TimelineRail
+          chat={props.chat}
           turns={model.history.turns()}
           active={activeTurn()}
           status={model.history.turnStatus()}

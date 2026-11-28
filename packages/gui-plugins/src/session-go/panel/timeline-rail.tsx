@@ -24,6 +24,7 @@ export function TimelineRail(props: {
   durationPending?: boolean
   onRetry: () => void
   onSelect: (messageID: string) => void
+  chat?: { opened: boolean; toggle: () => void }
 }) {
   const ctx = usePlugin<typeof SessionGo>()
   const [height, setHeight] = createSignal(0)
@@ -85,7 +86,9 @@ export function TimelineRail(props: {
     if (!focus) return
 
     // Roving focus keeps one tab stop while arrow keys move the selection.
-    slider?.querySelectorAll<HTMLButtonElement>('[data-slot="timeline-segment"]')[target]?.focus({ preventScroll: true })
+    slider
+      ?.querySelectorAll<HTMLButtonElement>('[data-slot="timeline-segment"]')
+      [target]?.focus({ preventScroll: true })
   }
 
   const step = (offset: number) => move(activeIndex() + offset, false)
@@ -133,8 +136,23 @@ export function TimelineRail(props: {
     // No horizontal padding: each segment's hover bed spans the whole rail width.
     <div
       data-component="session-go-timeline"
-      class="relative flex w-6 shrink-0 flex-col gap-0.5 border-s border-border-base bg-background-base py-1"
+      class="relative flex shrink-0 flex-col gap-0.5 border-s border-border-base bg-background-base py-1"
+      classList={{ "w-9": !!props.chat, "w-6": !props.chat }}
     >
+      <Show when={props.chat}>
+        {(chat) => (
+          <button
+            type="button"
+            data-slot="session-go-chat-toggle"
+            aria-label={ctx.t(chat().opened ? "chat.close" : "chat.open")}
+            aria-expanded={chat().opened}
+            class="mx-auto my-1 flex size-7 shrink-0 items-center justify-center rounded-md border border-border-muted text-12-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-focus"
+            onClick={() => chat().toggle()}
+          >
+            {ctx.t("chat.trigger")}
+          </button>
+        )}
+      </Show>
       <button
         type="button"
         data-slot="timeline-prev"
@@ -226,7 +244,10 @@ export function TimelineRail(props: {
         </div>
       </Show>
       <Show when={props.status === "error"}>
-        <div class="absolute inset-0 z-10 flex items-center justify-center">
+        <div
+          class="absolute inset-x-0 bottom-0 z-10 flex items-center justify-center"
+          style={{ top: props.chat ? "38px" : "0" }}
+        >
           <button
             type="button"
             data-slot="timeline-retry"
