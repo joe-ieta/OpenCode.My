@@ -6,6 +6,7 @@ import {
   settingsSchema,
   settingsPersistence,
   defaultSettings,
+  questionComposerAvailable,
   recentSessionsAvailable,
   resolveSidebarOrganize,
   monoDefault,
@@ -101,7 +102,6 @@ describe("settings schema", () => {
         timelineWidth: "comfortable",
         foldUserMessages: false,
         wrapCodeBlocks: false,
-        newQuestionUI: false,
         sidebarOrganize: "list",
         mobileTitlebarPosition: "top",
         followUpBehavior: "steer",
@@ -162,7 +162,7 @@ describe("settings schema", () => {
         questionSubmitKey: "invalid",
         backgroundActivity: "invalid",
         timelineWidth: "invalid",
-        newQuestionUI: "invalid",
+        questionComposer: "invalid",
         sidebarOrganize: "off",
       },
       appearance: {
@@ -187,7 +187,6 @@ describe("settings schema", () => {
       questionSubmitKey: "enter",
       backgroundActivity: "left",
       timelineWidth: "comfortable",
-      newQuestionUI: false,
       sidebarOrganize: "list",
     })
     expect(settings.appearance).toEqual({
@@ -233,6 +232,10 @@ describe("settings schema", () => {
       Schema.encodeUnknownSync(settingsSchema)({ ...decode({}), appearance: { fontSize: "large" } }),
     ).toThrow()
   })
+})
+
+test.each(["local", "dev", "beta", "prod", undefined] as const)("question composer availability in %s", (channel) => {
+  expect(questionComposerAvailable(channel)).toBe(channel === "local" || channel === "dev")
 })
 
 test.each(["local", "dev", "beta", "prod", undefined] as const)("Recent availability in %s", (channel) => {

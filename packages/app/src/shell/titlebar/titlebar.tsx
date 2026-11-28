@@ -133,9 +133,14 @@ function SidebarAction(props: {
       <Icon name={props.icon} class="shrink-0" />
       <span class="min-w-0 truncate">{props.label}</span>
       <Show when={props.count}>
-        <span class="ms-auto text-[12px] tabular-nums">{props.count}</span>
+        <span
+          class="ms-auto text-[12px] tabular-nums"
+          classList={{ "group-hover:hidden group-focus-visible:hidden": !props.compact && props.keybind.length > 0 }}
+        >
+          {props.count}
+        </span>
       </Show>
-      <Show when={!props.compact}>
+      <Show when={!props.compact && props.keybind.length > 0}>
         <div class="ms-auto hidden shrink-0 group-hover:block group-focus-visible:block" aria-hidden="true">
           <Keybind keys={props.keybind} variant="neutral" dir="ltr" />
         </div>
@@ -735,35 +740,33 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
             )
 
             const automationsButton = (vertical = false) => (
-              <Show when={automations.available()}>
-                <Show
-                  when={vertical}
-                  fallback={
-                    <Tooltip placement="bottom" value={language.t("automations.title")} class="shrink-0">
-                      <IconButton
-                        type="button"
-                        variant="ghost-muted"
-                        size="large"
-                        class="!w-9 shrink-0"
-                        icon={<Icon name="clock" />}
-                        state={layout.route().type === "automations" ? "pressed" : undefined}
-                        onClick={toggleAutomations}
-                        aria-label={language.t("automations.title")}
-                        aria-pressed={layout.route().type === "automations"}
-                      />
-                    </Tooltip>
-                  }
-                >
-                  <SidebarAction
-                    action="vertical-tabs-automations"
-                    icon="clock"
-                    label={language.t("automations.title")}
-                    keybind={command.keybindParts("automations.open")}
-                    count={automations.active()}
-                    pressed={layout.route().type === "automations"}
-                    onClick={toggleAutomations}
-                  />
-                </Show>
+              <Show
+                when={vertical}
+                fallback={
+                  <Tooltip placement="bottom" value={language.t("automations.title")} class="shrink-0">
+                    <IconButton
+                      type="button"
+                      variant="ghost-muted"
+                      size="large"
+                      class="!w-9 shrink-0"
+                      icon={<Icon name="clock" />}
+                      state={layout.route().type === "automations" ? "pressed" : undefined}
+                      onClick={toggleAutomations}
+                      aria-label={language.t("automations.title")}
+                      aria-pressed={layout.route().type === "automations"}
+                    />
+                  </Tooltip>
+                }
+              >
+                <SidebarAction
+                  action="vertical-tabs-automations"
+                  icon="clock"
+                  label={language.t("automations.title")}
+                  keybind={command.keybindParts("automations.open")}
+                  count={automations.active()}
+                  pressed={layout.route().type === "automations"}
+                  onClick={toggleAutomations}
+                />
               </Show>
             )
 
@@ -781,16 +784,12 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   toggleHome()
                 },
               },
-              ...(automations.available()
-                ? [
-                    {
-                      id: "automations.open",
-                      title: language.t("automations.title"),
-                      category: language.t("command.category.view"),
-                      onSelect: toggleAutomations,
-                    },
-                  ]
-                : []),
+              {
+                id: "automations.open",
+                title: language.t("automations.title"),
+                category: language.t("command.category.view"),
+                onSelect: toggleAutomations,
+              },
               {
                 id: "sessions.search",
                 title: language.t("command.session.search"),
@@ -1236,7 +1235,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                     <Show when={!windows()}>
                                       <div
                                         data-slot="sidebar-header"
-                                        data-has-action={actionInSidebarHeader() ? "" : undefined}
+                                        data-has-action={actionInSidebarHeader() || linux() ? "" : undefined}
                                         class="flex w-full shrink-0"
                                         classList={{
                                           "gap-2": !sidebarMode(),
@@ -1260,6 +1259,12 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                                             }}
                                             aria-hidden="true"
                                           />
+                                        </Show>
+                                        <Show when={linux()}>
+                                          {/* The menu glyph sits 2px further into its slot than the sidebar icons sit into their rows. */}
+                                          <div class="-ms-0.5 shrink-0">
+                                            <WindowsAppMenu command={command} platform={platform} />
+                                          </div>
                                         </Show>
                                         <Show when={actionInSidebarHeader()} fallback={<div class="flex-1" />}>
                                           <Show
