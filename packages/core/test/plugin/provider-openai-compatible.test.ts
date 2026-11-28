@@ -11,12 +11,12 @@ import { make } from "@opencode/core/plugin/provider/openai-compatible"
 import { Provider } from "@opencode/core/provider"
 import { Document, Event, Info } from "@opencode/schema/config"
 import { describe, expect } from "bun:test"
-import { Effect, Layer, Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { withEnv } from "../fixture/env"
 import { testEffect } from "../lib/effect"
 import { PluginTestLayer } from "./fixture"
 
-const it = testEffect(Layer.merge(PluginTestLayer, Config.testLayer()))
+const it = testEffect(PluginTestLayer)
 const decode = Schema.decodeUnknownSync(Info)
 
 // Registers the config plugin first, matching production order, so discovery sees configured providers.

@@ -111,7 +111,7 @@ export function make(interval: Duration.Input = "5 minutes") {
         const entries = yield* config.entries()
         // Internal plugins are not re-run on config changes, so read the flag on every refresh; turning it off drops
         // the discovered models.
-        const results = flags.resolve(entries).openai_compatible_discovery.enabled
+        const results = (yield* flags.enabled("openai_compatible_discovery"))
           ? yield* Effect.forEach(targets(entries), inventory, { concurrency: 4 })
           : []
         const next = new Map(results.flat())
